@@ -54,34 +54,27 @@ function ModulesViewModel() {
 
     // Baslik (grup adlari) — API yokken yedek; fiyat: aktif dönem (package-prices)
     var PACKAGE_NAMES = {
-        1: moduleT('salon.modules.package.stock_finance', 'Stok Tedarik / Finans'),
         3: moduleT('salon.modules.package.salon_crm', 'Salon CRM'),
-        5: moduleT('salon.modules.package.professional', 'Profesyonel'),
-        6: moduleT('salon.modules.package.corporate', 'Kurumsal / Raporlama')
+        5: moduleT('salon.modules.package.professional', 'Raporlama ve Analiz')
     };
     var PACKAGE_SUMMARIES = {
-        1: moduleT('salon.modules.package.stock_finance.summary', 'Tedarikçi cari, alış kaydı, transfer, sayım, masraf ve daha detaylı finans takibi ekler.'),
         3: moduleT('salon.modules.package.salon_crm.summary', 'Müşteri kartını satış sonrası takip, üyelik, hediye kartı, sadakat, yorum ve geri kazanım işleriyle güçlendirir.'),
-        5: moduleT('salon.modules.package.professional.summary', 'Önce/sonra fotoğraflarıyla işlem sonucunu ve müşteri takibini daha net gösterir.'),
-        6: moduleT('salon.modules.package.corporate.summary', 'Gelişmiş raporlar, şube karşılaştırması, dışa aktarım ve zamanlanmış e-posta raporları ekler.')
+        5: moduleT('salon.modules.package.professional.summary', 'Raporlama, işlem görselleri ve karşılaştırma ekranlarını tek pakette toplar.')
     };
     var PACKAGE_OUTCOMES = {
-        1: moduleT('salon.modules.package.stock_finance.outcome', 'Stok kontrolünü, tedarikçi borçlarını ve maliyet kararlarını daha rahat takip edersiniz.'),
         3: moduleT('salon.modules.package.salon_crm.outcome', 'Müşteriyle ilişkiniz randevudan sonra da devam eder; tekrar geliş, düzenli gelir ve memnuniyet takibi aynı hizmette toplanır.'),
-        5: moduleT('salon.modules.package.professional.outcome', 'Uzman işlem yapan merkezlerde sonuçları müşteriye daha anlaşılır göstermenizi sağlar.'),
-        6: moduleT('salon.modules.package.corporate.outcome', 'Şube, personel, hizmet, ürün ve finans performansını karşılaştırmayı kolaylaştırır.')
+        5: moduleT('salon.modules.package.professional.outcome', 'Şube, personel, hizmet, ürün ve işlem sonuçlarını daha rahat karşılaştırırsınız.')
     };
     var PACKAGE_FLOW_NOTES = {
         3: moduleT('salon.modules.package.salon_crm.flow_note', 'Müşteri kaydı, satış sonrası haklar ve geri dönüş işleri aynı CRM hizmetinde takip edilir.'),
-        5: moduleT('salon.modules.package.professional.flow_note', 'Müşteri ve randevu seçilir; önce/sonra fotoğrafları ve işlem notu aynı kayıtta tutulur.'),
-        6: moduleT('salon.modules.package.corporate.flow_note', 'Şube karşılaştırması, rapor filtresi, dışa aktarım ve e-posta zamanlaması aynı rapor ekranından yönetilir.')
+        5: moduleT('salon.modules.package.professional.flow_note', 'Raporlar ve işlem görselleri aynı analiz paketi altında yönetilir.')
     };
     var PACKAGE_USAGE_NOTES = {
-        3: moduleT('salon.modules.package.salon_crm.usage_note', 'SMS, WhatsApp ve yüksek hacimli e-posta gönderimleri CRM hizmetinden ayrı kredi/kullanım olarak izlenebilir.'),
-        6: moduleT('salon.modules.package.corporate.usage_note', 'Şube sayısı temel abonelikte ayrıca hesaplanır; bu paket rapor derinliği ve dışa aktarım özelliklerini açar.')
+        3: moduleT('salon.modules.package.salon_crm.usage_note', 'CRM hizmeti firma hesabında açılır; şube kullanıcıları kendi şubesindeki müşterileri, hediye kartlarını ve takip işlerini görür. SMS, WhatsApp ve yoğun e-posta kullanımları ayrıca izlenebilir.'),
+        5: moduleT('salon.modules.package.professional.usage_note', 'Bu paket rapor derinliği, dışa aktarım ve işlem görseli özelliklerini açar.')
     };
     /** API / hata: GetActiveSalonPackagePricesAsync ile ayni varsayimlar (SalonModuleGroups) */
-    var PACKAGE_PRICE_FALLBACK = { 0: 1700, 1: 400, 3: 1500, 5: 1500, 6: 200 };
+    var PACKAGE_PRICE_FALLBACK = { 0: 1700, 3: 1500, 5: 1500 };
     self.packagePrices = ko.observable({});
     self.basePackageSummary = ko.observable(moduleT('salon.modules.base_package_summary', 'Randevu, müşteri, hizmet, personel, ürün/stok takibi, adisyon, kasa, profil, bekleme listesi ve temel güvenlik özellikleri dahildir.'));
     self.basePackageOutcome = ko.observable(moduleT('salon.modules.base_package_outcome', 'Yeni bir salonun ilk günden randevu almaya ve satış yapmaya hazır olmasını sağlar.'));

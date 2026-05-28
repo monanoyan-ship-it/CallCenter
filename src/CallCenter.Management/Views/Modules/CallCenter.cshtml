@@ -1,8 +1,9 @@
 @{
-    ViewData["Title"] = "CC Odeme Takibi";
+    ViewData["Title"] ??= "CC Odeme Takibi";
+    var billingProductTypeId = ViewData["BillingProductTypeId"] ?? 1;
 }
 
-<div id="cc-billing-vm">
+<div id="cc-billing-vm" data-product-type-id="@billingProductTypeId">
     <!-- Filtreler -->
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body py-2">

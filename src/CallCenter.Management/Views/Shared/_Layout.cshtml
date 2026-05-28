@@ -1,5 +1,11 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
+@{
+    var __mgmtLang = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+    var __mgmtTranslations = await Translation.GetAllAsync(__mgmtLang);
+    var __mgmtTranslationsJson = System.Text.Json.JsonSerializer.Serialize(__mgmtTranslations);
+}
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="@__mgmtLang">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -42,6 +48,7 @@
     @RenderSection("Styles", required: false)
 </head>
 <body>
+    <div id="management-layout-data" hidden data-translations="@__mgmtTranslationsJson"></div>
     @{ var __jwt = CallCenter.Shared.Auth.JwtIdentityExtensions.GetJwtIdentity(Context); }
     @if (__jwt.IsAuthenticated)
     {
@@ -83,6 +90,7 @@
             <div class="nav-group-items @(modOpen ? "show" : "")">
                 <a class="nav-link @(ctrl == "Modules" && act == "CallCenter" ? "active" : "")" href="/Modules/CallCenter"><i class="bi bi-telephone me-2"></i>Call Center</a>
                 <a class="nav-link @(ctrl == "Modules" && act == "Salon" ? "active" : "")" href="/Modules/Salon"><i class="bi bi-scissors me-2"></i>Salon</a>
+                <a class="nav-link @(ctrl == "Modules" && act == "Crm" ? "active" : "")" href="/Modules/Crm"><i class="bi bi-person-lines-fill me-2"></i>CRM</a>
                 <a class="nav-link @(ctrl == "Modules" && act == "Pricing" ? "active" : "")" href="/Modules/Pricing"><i class="bi bi-tags me-2"></i>Hizmet Fiyatları</a>
                 <a class="nav-link @(ctrl == "Modules" && act == "PricingPeriods" ? "active" : "")" href="/Modules/PricingPeriods"><i class="bi bi-calendar-range me-2"></i>Fiyat Dönemleri</a>
                 <a class="nav-link @(ctrl == "Modules" && act == "Requests" ? "active" : "")" href="/Modules/Requests"><i class="bi bi-inbox me-2"></i>Hizmet Talepleri</a>

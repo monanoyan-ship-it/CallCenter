@@ -1,5 +1,7 @@
 function CcBillingViewModel() {
     var self = this;
+    var root = document.getElementById('cc-billing-vm');
+    var productTypeId = root ? parseInt(root.getAttribute('data-product-type-id') || '1', 10) : 1;
     self.items = ko.observableArray([]);
     self.isLoading = ko.observable(false);
     self.yearFilter = ko.observable(new Date().getFullYear());
@@ -39,7 +41,7 @@ function CcBillingViewModel() {
     self.loadData = function() {
         self.isLoading(true);
         self.selectedIds([]);
-        var params = { productTypeId: 1 };
+        var params = { productTypeId: productTypeId };
         if (self.yearFilter()) params.year = self.yearFilter();
         if (self.monthFilter()) params.month = self.monthFilter();
         if (self.statusFilter()) params.statusId = self.statusFilter();

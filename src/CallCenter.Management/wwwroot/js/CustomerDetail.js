@@ -2,6 +2,7 @@ function DetailViewModel() {
     var self = this;
     var root = document.getElementById('detail-vm');
     var customerId = root ? parseInt(root.getAttribute('data-customer-id') || '0', 10) : 0;
+    var t = window.mgmtT || function (_, fallback) { return fallback || ''; };
     self.customer = ko.observable({});
     self.newPassword = ko.observable('');
 
@@ -26,8 +27,38 @@ function DetailViewModel() {
 
     // Default moduller (grupsuz, temel paket)
     self.defaultModules = ko.computed(function () {
-        return (self.modules() || []).filter(function (m) { return m.isDefault && m.productTypeId === 2; });
+        return (self.modules() || []).filter(function (m) {
+            return m.isDefault && (m.productTypeId === 2 || m.productTypeId === 3);
+        });
     });
+
+    function groupModules(modules, prefix, productOrder) {
+        var grouped = {};
+        modules.forEach(function (m) {
+            var gName = m.groupName || t('management.common.other', 'Diger');
+            var groupIdPart = m.groupId !== null && m.groupId !== undefined
+                ? String(m.groupId)
+                : gName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            var key = prefix + '-' + groupIdPart;
+            var isSalonCrm = gName.indexOf('Salon') >= 0;
+            var isCallCenterCrm = gName.indexOf('CallCenter') >= 0 || gName.indexOf('Call Center') >= 0;
+            if (!grouped[key]) {
+                grouped[key] = {
+                    groupId: key,
+                    groupName: gName,
+                    groupIcon: m.productTypeId === 3
+                        ? (isSalonCrm ? 'bi-scissors' : isCallCenterCrm ? 'bi-headset' : 'bi-person-lines-fill')
+                        : 'bi-puzzle',
+                    sortOrder: productOrder,
+                    modules: [],
+                    activeCount: 0
+                };
+            }
+            grouped[key].modules.push(m);
+            if (m.isActive) grouped[key].activeCount++;
+        });
+        return Object.values(grouped);
+    }
 
     // Salon modulleri grup bazli
     self.salonModuleGroups = ko.computed(function () {
@@ -35,7 +66,7 @@ function DetailViewModel() {
         var grouped = {};
         all.forEach(function (m) {
             var gId = m.groupId || 0;
-            var gName = m.groupName || 'Diger';
+            var gName = m.groupName || t('management.common.other', 'Diger');
             var gIcon = 'bi-puzzle';
             if (!grouped[gId]) grouped[gId] = { groupId: gId, groupName: gName, groupIcon: gIcon, modules: [], activeCount: 0 };
             grouped[gId].modules.push(m);
@@ -44,12 +75,30 @@ function DetailViewModel() {
         return Object.values(grouped).sort(function (a, b) { return a.groupId - b.groupId; });
     });
 
+    self.crmModuleGroups = ko.computed(function () {
+        var all = (self.modules() || []).filter(function (m) { return m.productTypeId === 3 && !m.isDefault; });
+        return groupModules(all, 'crm', 3000);
+    });
+
+    self.moduleGroups = ko.computed(function () {
+        return self.salonModuleGroups().concat(self.crmModuleGroups())
+            .sort(function (a, b) {
+                var ao = a.sortOrder || a.groupId || 0;
+                var bo = b.sortOrder || b.groupId || 0;
+                return ao > bo ? 1 : ao < bo ? -1 : 0;
+            });
+    });
+
     self.moduleTotalPrice = ko.computed(function () {
         var total = 0;
         (self.modules() || []).forEach(function (m) {
             if (m && m.isActive && !m.isDefault) total += (m.effectivePrice || 0);
         });
         return total.toLocaleString('tr-TR');
+    });
+
+    self.totalMonthlyLabel = ko.computed(function () {
+        return t('management.customer_detail.total_monthly', 'Toplam Aylik') + ': ' + self.moduleTotalPrice() + ' TL';
     });
 
     // Urun checkbox/fiyat yonetimi
@@ -138,8 +187,8 @@ function DetailViewModel() {
                     return { productTypeId: p.productTypeId, monthlyPrice: parseFloat(p.monthlyPrice()) || 0 };
                 })
             }),
-            success: function () { toastr.success('Kaydedildi.'); self.loadCustomer(); },
-            error: function () { toastr.error('Kaydetme hatasi.'); }
+            success: function () { toastr.success(t('management.success.saved', 'Kaydedildi.')); self.loadCustomer(); },
+            error: function () { toastr.error(t('management.error.save_error', 'Kaydetme hatasi.')); }
         });
     };
 
@@ -148,14 +197,14 @@ function DetailViewModel() {
             url: '/proxy/customers/' + customerId + '/reset-admin-password', method: 'POST',
             success: function (data) {
                 self.newPassword(data.newPassword || data.password || '???');
-                toastr.success('Sifre sifirlandi.');
+                toastr.success(t('management.success.password_reset', 'Sifre sifirlandi.'));
             },
-            error: function () { toastr.error('Sifre sifirlama hatasi.'); }
+            error: function () { toastr.error(t('management.customer_detail.password_reset_error', 'Sifre sifirlama hatasi.')); }
         });
     };
 
     self.toggleGroup = function (groupId, activate) {
-        var group = self.salonModuleGroups().find(function (g) { return g.groupId === groupId; });
+        var group = self.moduleGroups().find(function (g) { return String(g.groupId) === String(groupId); });
         if (!group) return;
         var moduleIds = group.modules.map(function (m) { return m.id; });
 
@@ -165,9 +214,9 @@ function DetailViewModel() {
                 url: '/proxy/customers/' + customerId + '/modules/assign',
                 method: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify({ moduleIds: moduleIds, notes: group.groupName + ' grubu toplu aktif' }),
-                success: function () { toastr.success(group.groupName + ' grubu aktif edildi.'); self.loadTabs(); },
-                error: function () { toastr.error('Islem hatasi.'); }
+                data: JSON.stringify({ moduleIds: moduleIds, notes: group.groupName + ' ' + t('management.customer_detail.group_bulk_active_note', 'grubu toplu aktif') }),
+                success: function () { toastr.success(group.groupName + ' ' + t('management.customer_detail.group_activated', 'grubu aktif edildi.')); self.loadTabs(); },
+                error: function () { toastr.error(t('management.error.operation_error', 'Islem hatasi.')); }
             });
         } else {
             // Toplu deaktif et
@@ -176,8 +225,8 @@ function DetailViewModel() {
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(moduleIds),
-                success: function () { toastr.success(group.groupName + ' grubu kapatildi.'); self.loadTabs(); },
-                error: function () { toastr.error('Islem hatasi.'); }
+                success: function () { toastr.success(group.groupName + ' ' + t('management.customer_detail.group_deactivated', 'grubu kapatildi.')); self.loadTabs(); },
+                error: function () { toastr.error(t('management.error.operation_error', 'Islem hatasi.')); }
             });
         }
     };
@@ -189,29 +238,33 @@ function DetailViewModel() {
             success: function (data) {
                 var count = data.addedCount || 0;
                 if (count > 0) {
-                    toastr.success(count + ' eksik hizmet eklendi.');
+                    toastr.success(count + ' ' + t('management.customer_detail.missing_services_added', 'eksik hizmet eklendi.'));
                 } else {
-                    toastr.info('Tum hizmetler zaten mevcut.');
+                    toastr.info(t('management.customer_detail.services_already_synced', 'Tum hizmetler zaten mevcut.'));
                 }
                 self.loadTabs();
             },
-            error: function () { toastr.error('Senkronizasyon hatasi.'); }
+            error: function () { toastr.error(t('management.customer_detail.sync_error', 'Senkronizasyon hatasi.')); }
         });
     };
 
     self.activateAllDefaults = function () {
         // Core (IsDefault=true) modul ID leri — SalonPortalModules ile eslestirilmeli
-        var defaultIds = [201, 202, 203, 204, 206, 207, 209, 213, 214, 215, 220, 228];
+        var defaultIds = self.defaultModules().map(function (m) { return m.id; });
+        if (defaultIds.length === 0) {
+            toastr.info(t('management.customer_detail.no_default_services', 'Aktif edilecek temel hizmet bulunamadi.'));
+            return;
+        }
         $.ajax({
             url: '/proxy/customers/' + customerId + '/modules/assign',
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify({ moduleIds: defaultIds, notes: 'Temel paket hizmetleri toplu aktif edildi' }),
+            data: JSON.stringify({ moduleIds: defaultIds, notes: t('management.customer_detail.default_services_note', 'Temel paket hizmetleri toplu aktif edildi') }),
             success: function () {
-                toastr.success('Temel paket hizmetleri aktif edildi.');
+                toastr.success(t('management.customer_detail.default_services_activated', 'Temel paket hizmetleri aktif edildi.'));
                 self.loadTabs();
             },
-            error: function () { toastr.error('Islem hatasi.'); }
+            error: function () { toastr.error(t('management.error.operation_error', 'Islem hatasi.')); }
         });
     };
 
@@ -220,8 +273,8 @@ function DetailViewModel() {
         var url = '/proxy/customers/' + customerId + '/modules/' + (mod.moduleId || mod.id) + '/' + action;
         $.ajax({
             url: url, method: 'POST',
-            success: function () { toastr.success('Hizmet guncellendi.'); self.loadTabs(); },
-            error: function () { toastr.error('Islem hatasi.'); }
+            success: function () { toastr.success(t('management.customer_detail.service_updated', 'Hizmet guncellendi.')); self.loadTabs(); },
+            error: function () { toastr.error(t('management.error.operation_error', 'Islem hatasi.')); }
         });
     };
 
@@ -234,33 +287,33 @@ function DetailViewModel() {
     };
 
     self.approveRequest = function (req) {
-        confirmModal('Talep Onayi', 'Bu talebi onaylamak istiyor musunuz?', function () {
-            confirmModal('Admin Notu', 'Admin notu girin (opsiyonel):', function (notes) {
+        confirmModal(t('management.customer_detail.approve_request_title', 'Talep Onayi'), t('management.customer_detail.approve_request_message', 'Bu talebi onaylamak istiyor musunuz?'), function () {
+            confirmModal(t('management.customer_detail.admin_note_title', 'Admin Notu'), t('management.customer_detail.admin_note_message', 'Admin notu girin (opsiyonel):'), function (notes) {
                 $.ajax({
                     url: '/proxy/sln-module-requests/' + req.id + '/approve',
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({ notes: notes || null }),
-                    success: function () { toastr.success('Talep onaylandi.'); self.loadTabs(); self.loadModuleRequests(); },
-                    error: function () { toastr.error('Onay hatasi.'); }
+                    success: function () { toastr.success(t('management.customer_detail.request_approved', 'Talep onaylandi.')); self.loadTabs(); self.loadModuleRequests(); },
+                    error: function () { toastr.error(t('management.customer_detail.approve_error', 'Onay hatasi.')); }
                 });
-            }, { input: true, inputLabel: 'Admin notu (opsiyonel)', confirmText: 'Onayla', confirmClass: 'btn-success' });
-        }, { confirmText: 'Devam Et', confirmClass: 'btn-success' });
+            }, { input: true, inputLabel: t('management.customer_detail.admin_note_optional', 'Admin notu (opsiyonel)'), confirmText: t('management.customer_detail.approve', 'Onayla'), confirmClass: 'btn-success' });
+        }, { confirmText: t('management.customer_detail.continue', 'Devam Et'), confirmClass: 'btn-success' });
     };
 
     self.rejectRequest = function (req) {
-        confirmModal('Talep Reddi', 'Bu talebi reddetmek istiyor musunuz?', function () {
-            confirmModal('Red Sebebi', 'Red sebebi girin:', function (notes) {
+        confirmModal(t('management.customer_detail.reject_request_title', 'Talep Reddi'), t('management.customer_detail.reject_request_message', 'Bu talebi reddetmek istiyor musunuz?'), function () {
+            confirmModal(t('management.customer_detail.reject_reason_title', 'Red Sebebi'), t('management.customer_detail.reject_reason_message', 'Red sebebi girin:'), function (notes) {
                 $.ajax({
                     url: '/proxy/sln-module-requests/' + req.id + '/reject',
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({ notes: notes || null }),
-                    success: function () { toastr.success('Talep reddedildi.'); self.loadModuleRequests(); },
-                    error: function () { toastr.error('Red hatasi.'); }
+                    success: function () { toastr.success(t('management.customer_detail.request_rejected', 'Talep reddedildi.')); self.loadModuleRequests(); },
+                    error: function () { toastr.error(t('management.customer_detail.reject_error', 'Red hatasi.')); }
                 });
-            }, { input: true, inputLabel: 'Red sebebi', confirmText: 'Reddet', confirmClass: 'btn-danger' });
-        }, { confirmText: 'Devam Et', confirmClass: 'btn-danger' });
+            }, { input: true, inputLabel: t('management.customer_detail.reject_reason', 'Red sebebi'), confirmText: t('management.customer_detail.reject', 'Reddet'), confirmClass: 'btn-danger' });
+        }, { confirmText: t('management.customer_detail.continue', 'Devam Et'), confirmClass: 'btn-danger' });
     };
 
     self.loadProductTypes();

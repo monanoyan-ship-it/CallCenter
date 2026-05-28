@@ -20,6 +20,8 @@ public class CrmFactory : ICrmFactory
     private readonly ICrmSurveyEntityService _surveyEs;
     private readonly ICrmSurveyResponseEntityService _surveyResponseEs;
     private readonly ICrmContactTagEntityService _contactTagEs;
+    private readonly ICustomerProductEntityService _customerProductEs;
+    private readonly ICustomerPortalModuleEntityService _customerPortalModuleEs;
     private readonly IUnitOfWork _uow;
 
     public CrmFactory(
@@ -33,6 +35,8 @@ public class CrmFactory : ICrmFactory
         ICrmSurveyEntityService surveyEs,
         ICrmSurveyResponseEntityService surveyResponseEs,
         ICrmContactTagEntityService contactTagEs,
+        ICustomerProductEntityService customerProductEs,
+        ICustomerPortalModuleEntityService customerPortalModuleEs,
         IUnitOfWork uow)
     {
         _contactEs = contactEs;
@@ -45,6 +49,8 @@ public class CrmFactory : ICrmFactory
         _surveyEs = surveyEs;
         _surveyResponseEs = surveyResponseEs;
         _contactTagEs = contactTagEs;
+        _customerProductEs = customerProductEs;
+        _customerPortalModuleEs = customerPortalModuleEs;
         _uow = uow;
     }
 
@@ -129,7 +135,7 @@ public class CrmFactory : ICrmFactory
                     CssClass = m.CssClass,
                     DisplayOrder = m.DisplayOrder,
                     IsDefault = m.IsDefault,
-                    GroupName = GetCrmModuleGroupName(sourceSalonModuleId),
+                    GroupName = GetCrmModuleGroupName(m.Id),
                     SourceSalonModuleId = sourceSalonModuleId,
                     SourceSalonModuleName = sourceSalonModule?.Description
                 };
@@ -139,20 +145,78 @@ public class CrmFactory : ICrmFactory
         return Task.FromResult(modules);
     }
 
-    private static string GetCrmModuleGroupName(int? sourceSalonModuleId)
+    public async Task<CrmEntitlementsDto> GetEntitlementsAsync(int customerId, int? branchId)
     {
-        if (!sourceSalonModuleId.HasValue)
-            return "CRM Çekirdek";
+        var productTypeIds = await _customerProductEs.GetAllQueryable()
+            .Where(p => p.CustomerId == customerId && p.IsActive)
+            .Select(p => p.ProductTypeId)
+            .Distinct()
+            .ToListAsync();
 
-        var salonGroupId = SalonModuleGroups.GetGroupId(sourceSalonModuleId.Value);
-        return salonGroupId switch
+        var activeModuleIds = await _customerPortalModuleEs.GetActiveModuleIdsAsync(customerId);
+        var activeCrmModuleIds = activeModuleIds
+            .Where(id => CrmModules.GetById(id) != null)
+            .Distinct()
+            .OrderBy(id => id)
+            .ToList();
+        var activeSalonModuleIds = activeModuleIds
+            .Where(id => SalonPortalModules.GetById(id) != null)
+            .Distinct()
+            .OrderBy(id => id)
+            .ToList();
+
+        var hasCrmProduct = productTypeIds.Contains(ProductTypes.Ids.Crm);
+        var hasSalonProduct = productTypeIds.Contains(ProductTypes.Ids.Salon);
+        var hasCallCenterProduct = productTypeIds.Contains(ProductTypes.Ids.CallCenter);
+        var hasCoreCrmModules = activeCrmModuleIds.Any(id => CrmModuleGroups.GetGroupId(id) == CrmModuleGroups.Ids.Core);
+        var hasSalonCrmModules = activeCrmModuleIds.Any(id => CrmModuleGroups.GetGroupId(id) == CrmModuleGroups.Ids.Salon);
+        var hasCallCenterCrmModules = activeCrmModuleIds.Any(id => CrmModuleGroups.GetGroupId(id) == CrmModuleGroups.Ids.CallCenter);
+
+        var hasStandaloneCrm = hasCrmProduct && hasCoreCrmModules;
+        var hasSalonCrm = hasCrmProduct && hasSalonProduct && hasSalonCrmModules;
+        var hasCallCenterCrm = hasCrmProduct && hasCallCenterProduct && hasCallCenterCrmModules;
+
+        var scopes = new List<CrmScopeDto>();
+        if (hasStandaloneCrm)
         {
-            SalonModuleGroups.Ids.LoyaltyMarketing => "Salon CRM",
-            SalonModuleGroups.Ids.StockFinance => "Salon Operasyon",
-            SalonModuleGroups.Ids.Professional => "Salon Profesyonel",
-            SalonModuleGroups.Ids.Enterprise => "Salon Raporlama",
-            _ => "Salon Kaynaklı"
+            scopes.Add(MapScope(CrmScopes.CoreDefinition));
+        }
+        if (hasSalonCrm)
+        {
+            scopes.Add(MapScope(CrmScopes.SalonDefinition));
+        }
+        if (hasCallCenterCrm)
+        {
+            scopes.Add(MapScope(CrmScopes.CallCenterDefinition));
+        }
+
+        return new CrmEntitlementsDto
+        {
+            HasCrmProduct = hasCrmProduct,
+            HasStandaloneCrm = hasStandaloneCrm,
+            HasSalonCrm = hasSalonCrm,
+            HasCallCenterCrm = hasCallCenterCrm,
+            BranchId = branchId,
+            DefaultScope = scopes.Count == 1 ? scopes[0].Key : scopes.Count > 1 ? CrmScopes.Overview : string.Empty,
+            ActiveProductTypeIds = productTypeIds.OrderBy(id => id).ToList(),
+            ActiveCrmModuleIds = activeCrmModuleIds,
+            ActiveSalonModuleIds = activeSalonModuleIds,
+            Scopes = scopes
         };
+    }
+
+    private static CrmScopeDto MapScope(CrmScopeDefinition scope) => new()
+    {
+        Key = scope.Key,
+        Label = scope.Label,
+        DashboardUrl = scope.DashboardUrl,
+        Icon = scope.Icon
+    };
+
+    private static string GetCrmModuleGroupName(int crmModuleId)
+    {
+        var groupId = CrmModuleGroups.GetGroupId(crmModuleId) ?? CrmModuleGroups.Ids.Core;
+        return CrmModuleGroups.GetById(groupId)?.Description ?? "CRM";
     }
 
     // ═══════════════════════════════════════
@@ -333,7 +397,8 @@ public class CrmFactory : ICrmFactory
         contact.Department = dto.Department;
         contact.Title = dto.Title;
         contact.Notes = dto.Notes;
-        contact.IsFavorite = dto.IsFavorite;
+        if (dto.IsFavorite.HasValue)
+            contact.IsFavorite = dto.IsFavorite.Value;
         contact.UpdatedAt = DateTime.UtcNow;
 
         _contactEs.Update(contact);
@@ -367,8 +432,8 @@ public class CrmFactory : ICrmFactory
         var tickets = await query
             .OrderByDescending(t => t.CreatedAt)
             .Include(t => t.CrmContact)
-            .Include(t => t.AssignedToPersonnel).ThenInclude(p => p!.User)
-            .Include(t => t.CreatedByPersonnel).ThenInclude(p => p.User)
+            .Include("AssignedToPersonnel.User")
+            .Include("CreatedByPersonnel.User")
             .ToListAsync();
 
         return tickets.Select(MapTicketDto).ToList();
@@ -379,8 +444,8 @@ public class CrmFactory : ICrmFactory
         var ticket = await _ticketEs.GetAllQueryable()
             .Where(t => t.Id == ticketId && t.CustomerId == customerId)
             .Include(t => t.CrmContact)
-            .Include(t => t.AssignedToPersonnel).ThenInclude(p => p!.User)
-            .Include(t => t.CreatedByPersonnel).ThenInclude(p => p.User)
+            .Include("AssignedToPersonnel.User")
+            .Include("CreatedByPersonnel.User")
             .FirstOrDefaultAsync();
 
         if (ticket == null) return null;
@@ -448,8 +513,8 @@ public class CrmFactory : ICrmFactory
         var deals = await query
             .OrderByDescending(d => d.CreatedAt)
             .Include(d => d.CrmContact)
-            .Include(d => d.OwnerPersonnel).ThenInclude(p => p!.User)
-            .Include(d => d.CreatedByPersonnel).ThenInclude(p => p.User)
+            .Include("OwnerPersonnel.User")
+            .Include("CreatedByPersonnel.User")
             .ToListAsync();
 
         return deals.Select(MapDealDto).ToList();
@@ -460,8 +525,8 @@ public class CrmFactory : ICrmFactory
         var deal = await _dealEs.GetAllQueryable()
             .Where(d => d.Id == dealId && d.CustomerId == customerId)
             .Include(d => d.CrmContact)
-            .Include(d => d.OwnerPersonnel).ThenInclude(p => p!.User)
-            .Include(d => d.CreatedByPersonnel).ThenInclude(p => p.User)
+            .Include("OwnerPersonnel.User")
+            .Include("CreatedByPersonnel.User")
             .FirstOrDefaultAsync();
 
         if (deal == null) return null;
@@ -838,7 +903,7 @@ public class CrmFactory : ICrmFactory
             .Where(r => r.SurveyId == surveyId && r.CustomerId == customerId)
             .OrderByDescending(r => r.CreatedAt)
             .Include(r => r.CrmContact)
-            .Include(r => r.CreatedByPersonnel).ThenInclude(p => p!.User)
+            .Include("CreatedByPersonnel.User")
             .Include(r => r.Answers)
             .ToListAsync();
 
@@ -915,7 +980,9 @@ public class CrmFactory : ICrmFactory
                 Id = c.Id,
                 Content = c.Content,
                 IsInternal = c.IsInternal,
-                CreatedByName = c.CreatedByPersonnel.User!.FullName,
+                CreatedByName = c.CreatedByPersonnel != null && c.CreatedByPersonnel.User != null
+                    ? c.CreatedByPersonnel.User.FullName
+                    : null,
                 CreatedAt = c.CreatedAt
             })
             .ToListAsync();

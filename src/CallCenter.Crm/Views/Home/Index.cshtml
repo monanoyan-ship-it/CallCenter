@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] ??= "CRM Dashboard";
 }
 
 <div id="dashboard-vm">
@@ -121,5 +121,5 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/Dashboard.js"></script>
+    <script src="~/js/Dashboard.js" asp-append-version="true"></script>
 }

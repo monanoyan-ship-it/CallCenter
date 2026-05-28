@@ -45,7 +45,8 @@ function DashboardViewModel() {
 
     self.loadCallbacks = function() {
         $.get("/Calls/GetHistory?pageSize=10", function (data) {
-            var missed = data.filter(function(c) { 
+            var calls = Array.isArray(data) ? data : (data.items || []);
+            var missed = calls.filter(function(c) {
                 return c.statusId === 6 && !c.callbackStatusId; 
             });
             self.pendingCallbacks(missed);

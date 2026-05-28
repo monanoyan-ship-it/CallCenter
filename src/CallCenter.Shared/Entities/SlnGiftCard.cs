@@ -6,6 +6,9 @@ public class SlnGiftCard
     public int CustomerId { get; set; }
     public Customer? Customer { get; set; }
 
+    public int? BranchId { get; set; }
+    public SlnBranch? Branch { get; set; }
+
     public string Code { get; set; } = string.Empty;
     public decimal OriginalAmount { get; set; }
     public decimal RemainingBalance { get; set; }

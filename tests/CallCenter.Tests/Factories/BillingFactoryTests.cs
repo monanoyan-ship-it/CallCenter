@@ -127,6 +127,40 @@ public class BillingFactoryTests : IDisposable
     }
 
     [Fact]
+    public async Task GenerateBulkAsync_SalonCrmCustomer_CreatesSalonCrmBillingOnly()
+    {
+        AddCustomer(15);
+        _db.CustomerProducts.Add(new CustomerProduct
+        {
+            CustomerId = 15,
+            ProductTypeId = ProductTypes.Ids.Salon,
+            IsActive = true
+        });
+        _db.CustomerProducts.Add(new CustomerProduct
+        {
+            CustomerId = 15,
+            ProductTypeId = ProductTypes.Ids.Crm,
+            IsActive = true
+        });
+        _db.CustomerPortalModules.Add(new CustomerPortalModule
+        {
+            CustomerId = 15,
+            ModuleId = CrmModules.Ids.SalonGiftCards,
+            IsActive = true
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.GenerateBulkAsync(2026, 5);
+
+        result.Created.Should().Be(1);
+        var period = _db.CustomerBillingPeriods.Single(p => p.CustomerId == 15);
+        period.BillingKindId.Should().Be(CustomerBillingKinds.SalonCrm);
+        period.UserCount.Should().Be(1);
+        period.UnitPrice.Should().Be(1500m);
+        period.Amount.Should().Be(1500m);
+    }
+
+    [Fact]
     public async Task CreateManualPeriodAsync_CallCenterCustomer_BillsActiveOperatorsIgnoringCustomerProductPrice()
     {
         AddCustomer(11, maxUsers: 5);

@@ -438,7 +438,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             if (string.IsNullOrWhiteSpace(giftCardCode))
                 return (null, "Hediye karti ile odeme icin kart kodu girilmelidir");
 
-            giftCardPayment = await _giftCards.GetGiftCardByCodeAsync(giftCardCode, customerId);
+            giftCardPayment = await _giftCards.GetGiftCardByCodeAsync(giftCardCode, customerId, branchId);
             if (giftCardPayment == null)
                 return (null, "Hediye karti bulunamadi veya aktif degil");
             if (giftCardPayment.ExpiresAt.HasValue && giftCardPayment.ExpiresAt.Value < DateTime.UtcNow)
@@ -479,7 +479,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                 Code = giftCardPayment.Code,
                 Amount = invoice.NetAmount,
                 InvoiceId = invoice.Id
-            }, customerId);
+            }, customerId, branchId);
             if (!success)
                 return (null, error ?? "Hediye karti odemesi kaydedilemedi");
         }

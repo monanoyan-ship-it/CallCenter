@@ -1,5 +1,13 @@
+@using System.Text.Json
+@using CallCenter.Shared.DTOs
+@inject CallCenter.Shared.Services.ITranslationService Translation
+@{
+    var __crmLang = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+    var __crmTranslations = await Translation.GetAllAsync(__crmLang);
+    var __crmTranslationsJson = JsonSerializer.Serialize(__crmTranslations);
+}
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="@__crmLang">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -20,7 +28,6 @@
         .sidebar .nav-link { color: rgba(255,255,255,.7); padding: .6rem 1rem; font-size: .875rem; border-radius: 6px; margin: 2px 8px; }
         .sidebar .nav-link:hover { color: #fff; background: rgba(255,255,255,.1); }
         .sidebar .nav-link.active { color: #fff; background: rgba(79,195,247,.2); }
-        .sidebar .nav-section { color: rgba(255,255,255,.4); font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; padding: .8rem 1rem .3rem; }
         .sidebar .nav-group-toggle {
             display: flex; align-items: center; width: 100%; padding: .6rem 1rem;
             color: rgba(255,255,255,.5); background: none; border: none;
@@ -31,104 +38,183 @@
         .sidebar .nav-group-toggle .chevron { font-size: .6rem; transition: transform .2s ease; opacity: .5; }
         .sidebar .nav-group-toggle .chevron.open { transform: rotate(180deg); }
         .sidebar .nav-group-items { max-height: 0; overflow: hidden; transition: max-height .25s ease; }
-        .sidebar .nav-group-items.show { max-height: 300px; }
+        .sidebar .nav-group-items.show { max-height: 360px; }
         .content-area { margin-left: var(--sidebar-width); padding: 1.5rem; min-height: 100vh; }
         .topbar { background: #fff; border-bottom: 1px solid #e0e0e0; padding: .6rem 1.5rem; margin: -1.5rem -1.5rem 1.5rem; display: flex; align-items: center; justify-content: space-between; }
     </style>
     @RenderSection("Styles", required: false)
 </head>
 <body>
+    <div id="crm-layout-data" hidden data-translations="@__crmTranslationsJson"></div>
     @if (Context.Session.GetString("Token") != null)
     {
+        CrmEntitlementsDto? entitlements = null;
+        var entitlementJson = Context.Session.GetString("CrmEntitlements");
+        if (!string.IsNullOrWhiteSpace(entitlementJson))
+        {
+            try
+            {
+                entitlements = JsonSerializer.Deserialize<CrmEntitlementsDto>(entitlementJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch { }
+        }
+
+        var hasEntitlements = entitlements != null;
+        var showCore = !hasEntitlements || entitlements!.HasStandaloneCrm;
+        var showSalon = !hasEntitlements || entitlements!.HasSalonCrm;
+        var showCallCenter = !hasEntitlements || entitlements!.HasCallCenterCrm;
+        if (!showCore && !showSalon && !showCallCenter)
+        {
+            showCore = true;
+        }
+
         <nav class="sidebar d-print-none">
             <div class="brand">
                 <i class="bi bi-person-lines-fill me-2"></i>CorpLynk <span>CRM</span>
             </div>
             @{
                 var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
-                var crmOpen = ctrl is "Home" or "Contacts" or "Tickets" or "Deals" or "CrmTasks" or "Surveys" or "Modules";
-                var trackOpen = ctrl is "Calls" or "Activities" or "Tasks" or "Campaigns";
+                var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+                var scopeOpen = ctrl == "Home" && action == "Overview";
+                var crmOpen = (ctrl == "Home" && (action == "Core" || action == "Index"))
+                    || ctrl is "Contacts" or "Tickets" or "Deals" or "CrmTasks" or "Surveys" or "Modules";
+                var salonOpen = (ctrl == "Home" && action == "Salon") || ctrl is "SalonCrm";
+                var callCenterOpen = (ctrl == "Home" && action == "CallCenter") || ctrl is "Calls" or "Activities" or "Tasks" or "Campaigns";
                 var integrationOpen = ctrl is "Integrations";
                 var reportOpen = ctrl is "Reports";
+                var multipleScopes = entitlements?.Scopes?.Count > 1;
             }
 
-            <button class="nav-group-toggle mt-2" type="button" data-nav-group-toggle="1">
-                <span>CRM</span>
-                <i class="bi bi-chevron-down chevron @(crmOpen ? "open" : "")"></i>
-            </button>
-            <div class="nav-group-items @(crmOpen ? "show" : "")">
-                <a class="nav-link @(ctrl == "Home" ? "active" : "")" href="/">
-                    <i class="bi bi-speedometer2 me-2"></i>Dashboard
-                </a>
-                <a class="nav-link @(ctrl == "Contacts" ? "active" : "")" href="/Contacts">
-                    <i class="bi bi-people-fill me-2"></i>Kisiler
-                </a>
-                <a class="nav-link @(ctrl == "Tickets" ? "active" : "")" href="/Tickets">
-                    <i class="bi bi-ticket-detailed-fill me-2"></i>Talepler
-                </a>
-                <a class="nav-link @(ctrl == "Deals" ? "active" : "")" href="/Deals">
-                    <i class="bi bi-kanban-fill me-2"></i>Firsatlar
-                </a>
-                <a class="nav-link @(ctrl == "CrmTasks" ? "active" : "")" href="/CrmTasks">
-                    <i class="bi bi-check2-square me-2"></i>Gorevler
-                </a>
-                <a class="nav-link @(ctrl == "Surveys" ? "active" : "")" href="/Surveys">
-                    <i class="bi bi-clipboard2-data me-2"></i>Anketler
-                </a>
-                <a class="nav-link @(ctrl == "Modules" ? "active" : "")" href="/Modules">
-                    <i class="bi bi-grid-3x3-gap-fill me-2"></i>Hizmet Kapsamı
-                </a>
-            </div>
+            @if (multipleScopes)
+            {
+                <button class="nav-group-toggle mt-2" type="button" data-nav-group-toggle="1">
+                    <span><t key="crm.sidebar.scopes">Kapsamlar</t></span>
+                    <i class="bi bi-chevron-down chevron @(scopeOpen ? "open" : "")"></i>
+                </button>
+                <div class="nav-group-items @(scopeOpen ? "show" : "")">
+                    <a class="nav-link @(scopeOpen ? "active" : "")" href="/Home/Overview">
+                        <i class="bi bi-grid-1x2-fill me-2"></i><t key="crm.sidebar.overview">Genel Bakis</t>
+                    </a>
+                    @foreach (var scope in entitlements!.Scopes)
+                    {
+                        <a class="nav-link" href="@scope.DashboardUrl">
+                            <i class="bi @scope.Icon me-2"></i>@scope.Label
+                        </a>
+                    }
+                </div>
+            }
 
-            <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
-                <span>Takip</span>
-                <i class="bi bi-chevron-down chevron @(trackOpen ? "open" : "")"></i>
-            </button>
-            <div class="nav-group-items @(trackOpen ? "show" : "")">
-                <a class="nav-link @(ctrl == "Calls" ? "active" : "")" href="/Calls">
-                    <i class="bi bi-telephone-fill me-2"></i>Arama Gecmisi
-                </a>
-                <a class="nav-link @(ctrl == "Activities" ? "active" : "")" href="/Activities">
-                    <i class="bi bi-clock-history me-2"></i>Etkilesimler
-                </a>
-                <a class="nav-link @(ctrl == "Tasks" ? "active" : "")" href="/Tasks">
-                    <i class="bi bi-list-task me-2"></i>Gorevler
-                </a>
-                <a class="nav-link @(ctrl == "Campaigns" ? "active" : "")" href="/Campaigns">
-                    <i class="bi bi-megaphone-fill me-2"></i>Kampanyalar
-                </a>
-            </div>
+            @if (showCore)
+            {
+                <button class="nav-group-toggle mt-2" type="button" data-nav-group-toggle="1">
+                    <span><t key="crm.sidebar.section.crm">CRM</t></span>
+                    <i class="bi bi-chevron-down chevron @(crmOpen ? "open" : "")"></i>
+                </button>
+                <div class="nav-group-items @(crmOpen ? "show" : "")">
+                    <a class="nav-link @(ctrl == "Home" && action == "Core" ? "active" : "")" href="/Home/Core">
+                        <i class="bi bi-speedometer2 me-2"></i><t key="crm.sidebar.dashboard">Dashboard</t>
+                    </a>
+                    <a class="nav-link @(ctrl == "Contacts" ? "active" : "")" href="/Contacts">
+                        <i class="bi bi-people-fill me-2"></i><t key="crm.sidebar.contacts">Kisiler</t>
+                    </a>
+                    <a class="nav-link @(ctrl == "Tickets" ? "active" : "")" href="/Tickets">
+                        <i class="bi bi-ticket-detailed-fill me-2"></i><t key="crm.sidebar.tickets">Talepler</t>
+                    </a>
+                    <a class="nav-link @(ctrl == "Deals" ? "active" : "")" href="/Deals">
+                        <i class="bi bi-kanban-fill me-2"></i><t key="crm.sidebar.deals">Firsatlar</t>
+                    </a>
+                    <a class="nav-link @(ctrl == "CrmTasks" ? "active" : "")" href="/CrmTasks">
+                        <i class="bi bi-check2-square me-2"></i><t key="crm.sidebar.tasks">Gorevler</t>
+                    </a>
+                    <a class="nav-link @(ctrl == "Surveys" ? "active" : "")" href="/Surveys">
+                        <i class="bi bi-clipboard2-data me-2"></i><t key="crm.sidebar.surveys">Anketler</t>
+                    </a>
+                    <a class="nav-link @(ctrl == "Modules" ? "active" : "")" href="/Modules">
+                        <i class="bi bi-grid-3x3-gap-fill me-2"></i><t key="crm.sidebar.service_scope">Hizmet Kapsami</t>
+                    </a>
+                </div>
+            }
 
-            <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
-                <span>Entegrasyonlar</span>
-                <i class="bi bi-chevron-down chevron @(integrationOpen ? "open" : "")"></i>
-            </button>
-            <div class="nav-group-items @(integrationOpen ? "show" : "")">
-                <a class="nav-link @(ctrl == "Integrations" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")" href="/Integrations">
-                    <i class="bi bi-plug-fill me-2"></i>Baglantilar
-                </a>
-                <a class="nav-link @(ctrl == "Integrations" && ViewContext.RouteData.Values["action"]?.ToString() == "Webhooks" ? "active" : "")" href="/Integrations/Webhooks">
-                    <i class="bi bi-broadcast me-2"></i>Webhooklar
-                </a>
-            </div>
+            @if (showSalon)
+            {
+                <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
+                    <span><t key="crm.sidebar.scope.salon">Salon</t></span>
+                    <i class="bi bi-chevron-down chevron @(salonOpen ? "open" : "")"></i>
+                </button>
+                <div class="nav-group-items @(salonOpen ? "show" : "")">
+                    <a class="nav-link @(ctrl == "Home" && action == "Salon" ? "active" : "")" href="/Home/Salon">
+                        <i class="bi bi-speedometer2 me-2"></i><t key="crm.sidebar.dashboard">Dashboard</t>
+                    </a>
+                    <a class="nav-link @(ctrl == "SalonCrm" && action == "Loyalty" ? "active" : "")" href="/SalonCrm/Loyalty">
+                        <i class="bi bi-star-fill me-2"></i><t key="crm.sidebar.salon.loyalty">Sadakat</t>
+                    </a>
+                    <a class="nav-link @(ctrl == "SalonCrm" && action == "Memberships" ? "active" : "")" href="/SalonCrm/Memberships">
+                        <i class="bi bi-award-fill me-2"></i><t key="crm.sidebar.salon.memberships">Uyelikler</t>
+                    </a>
+                    <a class="nav-link @(ctrl == "SalonCrm" && action == "GiftCards" ? "active" : "")" href="/SalonCrm/GiftCards">
+                        <i class="bi bi-gift-fill me-2"></i><t key="crm.sidebar.salon.giftcards">Hediye Kartlari</t>
+                    </a>
+                </div>
+            }
 
-            <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
-                <span>Raporlar</span>
-                <i class="bi bi-chevron-down chevron @(reportOpen ? "open" : "")"></i>
-            </button>
-            <div class="nav-group-items @(reportOpen ? "show" : "")">
-                <a class="nav-link @(ctrl == "Reports" ? "active" : "")" href="/Reports">
-                    <i class="bi bi-bar-chart-fill me-2"></i>Raporlar
-                </a>
-            </div>
+            @if (showCallCenter)
+            {
+                <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
+                    <span><t key="crm.sidebar.scope.callcenter">Call Center</t></span>
+                    <i class="bi bi-chevron-down chevron @(callCenterOpen ? "open" : "")"></i>
+                </button>
+                <div class="nav-group-items @(callCenterOpen ? "show" : "")">
+                    <a class="nav-link @(ctrl == "Home" && action == "CallCenter" ? "active" : "")" href="/Home/CallCenter">
+                        <i class="bi bi-speedometer2 me-2"></i><t key="crm.sidebar.dashboard">Dashboard</t>
+                    </a>
+                    <a class="nav-link @(ctrl == "Calls" ? "active" : "")" href="/Calls">
+                        <i class="bi bi-telephone-fill me-2"></i><t key="crm.sidebar.callhistory">Arama Gecmisi</t>
+                    </a>
+                    <a class="nav-link @(ctrl == "Activities" ? "active" : "")" href="/Activities">
+                        <i class="bi bi-clock-history me-2"></i><t key="crm.sidebar.activities">Etkilesimler</t>
+                    </a>
+                    <a class="nav-link @(ctrl == "Tasks" ? "active" : "")" href="/Tasks">
+                        <i class="bi bi-list-task me-2"></i><t key="crm.sidebar.trackingtasks">Gorevler</t>
+                    </a>
+                    <a class="nav-link @(ctrl == "Campaigns" ? "active" : "")" href="/Campaigns">
+                        <i class="bi bi-megaphone-fill me-2"></i><t key="crm.sidebar.campaigns">Kampanyalar</t>
+                    </a>
+                </div>
+            }
+
+            @if (showCore || showCallCenter)
+            {
+                <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
+                    <span><t key="crm.sidebar.section.integrations">Entegrasyonlar</t></span>
+                    <i class="bi bi-chevron-down chevron @(integrationOpen ? "open" : "")"></i>
+                </button>
+                <div class="nav-group-items @(integrationOpen ? "show" : "")">
+                    <a class="nav-link @(ctrl == "Integrations" && action == "Index" ? "active" : "")" href="/Integrations">
+                        <i class="bi bi-plug-fill me-2"></i><t key="crm.sidebar.integrations">Baglantilar</t>
+                    </a>
+                    <a class="nav-link @(ctrl == "Integrations" && action == "Webhooks" ? "active" : "")" href="/Integrations/Webhooks">
+                        <i class="bi bi-broadcast me-2"></i><t key="crm.sidebar.webhooks">Webhooklar</t>
+                    </a>
+                </div>
+
+                <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
+                    <span><t key="crm.sidebar.section.reports">Raporlar</t></span>
+                    <i class="bi bi-chevron-down chevron @(reportOpen ? "open" : "")"></i>
+                </button>
+                <div class="nav-group-items @(reportOpen ? "show" : "")">
+                    <a class="nav-link @(ctrl == "Reports" ? "active" : "")" href="/Reports">
+                        <i class="bi bi-bar-chart-fill me-2"></i><t key="crm.sidebar.reports">Raporlar</t>
+                    </a>
+                </div>
+            }
 
             <div class="position-absolute bottom-0 w-100 p-3 border-top" style="border-color: rgba(255,255,255,.1) !important;">
                 <div class="d-flex align-items-center justify-content-between">
                     <small class="text-white-50">@Context.Session.GetString("UserName")</small>
-                    <a href="/Account/Logout" class="text-white-50" title="Cikis"><i class="bi bi-box-arrow-right"></i></a>
+                    <a href="/Account/Logout" class="text-white-50" title="@Translation.T("crm.logout", "Cikis")"><i class="bi bi-box-arrow-right"></i></a>
                 </div>
                 <div class="text-center mt-2" style="opacity:.4; font-size:.65rem;">
-                    Tum haklari saklidir.
+                    <t key="crm.footer.rights">Tum haklari saklidir.</t>
                 </div>
             </div>
         </nav>

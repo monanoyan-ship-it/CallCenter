@@ -1,6 +1,6 @@
 namespace CallCenter.Crm.Controllers;
 
-public class CrmContactsController : CrmBaseController
+public class ContactsController : CrmBaseController
 {
     public IActionResult Index()
     {

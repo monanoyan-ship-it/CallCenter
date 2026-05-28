@@ -474,6 +474,9 @@ public class PaymentService
                 });
             }
 
+            if (CrmModules.HasSalonModule(moduleId))
+                await ActivateCrmModulesForSalonPackageAsync(customerId, new[] { moduleId });
+
             _logger.LogInformation("Modul satin alma basarili: CustomerId={CustomerId}, ModuleId={ModuleId}, Amount={Amount}",
                 customerId, moduleId, pricing.MonthlyPrice);
         }
@@ -566,6 +569,9 @@ public class PaymentService
                     MonthlyPrice = pricing?.MonthlyPrice
                 });
             }
+
+            if (CrmModules.HasSalonModule(tx.ModuleId.Value))
+                await ActivateCrmModulesForSalonPackageAsync(tx.CustomerId.Value, new[] { tx.ModuleId.Value });
         }
 
         await _db.SaveChangesAsync();
@@ -1473,7 +1479,9 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
         if (activePeriod == null) return null;
 
         var item = await _db.ServicePricingItems
-            .FirstOrDefaultAsync(i => i.PeriodId == activePeriod.Id && i.PackageGroupId == packageGroupId);
+            .FirstOrDefaultAsync(i => i.PeriodId == activePeriod.Id
+                && i.ProductTypeId == SalonPortalModules.ProductTypeId
+                && i.PackageGroupId == packageGroupId);
         if (item == null || item.MonthlyPrice <= 0m) return null;
 
         var group = SalonModuleGroups.GetById(packageGroupId);
@@ -1481,6 +1489,63 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             return null;
 
         return item.MonthlyPrice;
+    }
+
+    private async Task EnsureCrmProductAsync(int customerId)
+    {
+        var product = await _db.CustomerProducts
+            .FirstOrDefaultAsync(p => p.CustomerId == customerId && p.ProductTypeId == ProductTypes.Ids.Crm);
+
+        if (product != null)
+        {
+            product.IsActive = true;
+            return;
+        }
+
+        _db.CustomerProducts.Add(new CustomerProduct
+        {
+            CustomerId = customerId,
+            ProductTypeId = ProductTypes.Ids.Crm,
+            IsActive = true,
+            MonthlyPrice = 0m
+        });
+    }
+
+    private async Task ActivateCrmModulesForSalonPackageAsync(int customerId, IEnumerable<int> salonModuleIds)
+    {
+        var crmModuleIds = salonModuleIds
+            .Select(id => CrmModules.GetBySalonModuleId(id)?.Id)
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+
+        if (crmModuleIds.Count == 0)
+            return;
+
+        await EnsureCrmProductAsync(customerId);
+
+        foreach (var crmModuleId in crmModuleIds)
+        {
+            var cpm = await _db.CustomerPortalModules
+                .FirstOrDefaultAsync(m => m.CustomerId == customerId && m.ModuleId == crmModuleId);
+            if (cpm != null)
+            {
+                cpm.IsActive = true;
+                cpm.ActivatedAt = DateTime.UtcNow;
+                cpm.DeactivatedAt = null;
+                continue;
+            }
+
+            _db.CustomerPortalModules.Add(new CustomerPortalModule
+            {
+                CustomerId = customerId,
+                ModuleId = crmModuleId,
+                IsActive = true,
+                ActivatedAt = DateTime.UtcNow,
+                Notes = "Salon CRM paketi ile aktif edildi"
+            });
+        }
     }
 
     public async Task<CheckoutFormResult> InitPackageCheckoutAsync(int customerId, int packageGroupId, string callbackUrl, string? buyerIp = null)
@@ -1703,6 +1768,9 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
                         });
                     }
                 }
+
+                if (pgId == SalonModuleGroups.Ids.LoyaltyMarketing && tx.CustomerId.HasValue)
+                    await ActivateCrmModulesForSalonPackageAsync(tx.CustomerId.Value, moduleIds);
             }
 
             if (tx.PaymentTypeId == PaymentTypes.Ids.UyelikOdemesi && TryReadMembershipPlanId(tx.Notes).HasValue)

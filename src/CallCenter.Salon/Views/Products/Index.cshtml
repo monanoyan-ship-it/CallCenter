@@ -1,15 +1,19 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     ViewData["Title"] = Translation.T("salon.products.auto.title", "Ürünler");
-    var productsJwt = CallCenter.Shared.Auth.JwtIdentityExtensions.GetJwtIdentity(Context);
-    var productsActiveModuleIds = (productsJwt.CustomerModules ?? "")
-        .Split(',', StringSplitOptions.RemoveEmptyEntries)
-        .Select(s => int.TryParse(s.Trim(), out var id) ? id : 0)
-        .Where(id => id > 0)
-        .ToHashSet();
-    var productsHasStockFinancePro = string.IsNullOrWhiteSpace(productsJwt.CustomerModules)
-        || productsActiveModuleIds.Contains(CallCenter.Shared.Enums.SalonPortalModules.Ids.SlnSuppliers)
-        || productsActiveModuleIds.Contains(CallCenter.Shared.Enums.SalonPortalModules.Ids.SlnExpenses);
+    var productsHasStockFinancePro = true;
+}
+
+@section Styles {
+    <style>
+        .products-search { max-width: 280px; }
+        .products-category-filter { width: 160px; }
+        .products-actions-wide { width: 170px; }
+        .products-actions-narrow { width: 120px; }
+        .products-empty-icon { font-size: 2rem; }
+        .autocomplete-clear { cursor: pointer; z-index: 2; }
+        .autocomplete-menu-scroll { max-height: 220px; overflow-y: auto; }
+    </style>
 }
 
 <div id="products-vm" data-stock-finance-pro="@(productsHasStockFinancePro ? "true" : "false")">
@@ -30,11 +34,11 @@
     <!-- Toolbar -->
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="d-flex align-items-center gap-2">
-            <div class="input-group" style="max-width: 280px;">
+            <div class="input-group products-search">
                 <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                 <input type="text" class="form-control" placeholder="@(Translation.T("salon.products.auto.urun_ara", "Ürün ara..."))" data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
             </div>
-            <select class="form-select form-select-sm" style="width:160px;" data-bind="options: categories, optionsText: 'name', optionsValue: 'name', value: selectedCategoryName, optionsCaption: 'Tum Kategoriler'"></select>
+            <select class="form-select form-select-sm products-category-filter" data-bind="options: categories, optionsText: 'name', optionsValue: 'name', value: selectedCategoryName, optionsCaption: 'Tum Kategoriler'"></select>
         </div>
         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
             <i class="bi bi-plus-lg me-1"></i><t key="salon.products.auto.yeni_urun">Yeni Ürün</t>
@@ -103,7 +107,7 @@
                             <th><t key="salon.products.auto.stok">Stok</t></th>
                             <th><t key="salon.products.auto.alis_fiyati">Alış Fiyatı</t></th>
                             <th><t key="salon.products.auto.satis_fiyati">Satış Fiyatı</t></th>
-                            <th style="width: 170px;"></th>
+                            <th class="products-actions-wide"></th>
                         </tr>
                     </thead>
                     <tbody data-bind="foreach: filteredProducts">
@@ -150,7 +154,7 @@
             </div>
             <!-- ko if: filteredProducts().length === 0 -->
             <div class="text-center text-muted py-4">
-                <i class="bi bi-box-seam" style="font-size: 2rem;"></i>
+                <i class="bi bi-box-seam products-empty-icon"></i>
                 <p class="mt-2 small"><t key="salon.products.auto.henuz_urun_eklenmemis">Henüz ürün eklenmemiş</t></p>
             </div>
             <!-- /ko -->
@@ -161,7 +165,7 @@
 
     <div data-bind="visible: activeProductsTab() === 'brands'">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="input-group" style="max-width: 280px;">
+            <div class="input-group products-search">
                 <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                 <input type="text" class="form-control" placeholder="@(Translation.T("salon.products.brand_search", "Marka ara..."))" data-bind="value: brandSearchQuery, valueUpdate: 'afterkeydown'" />
             </div>
@@ -178,7 +182,7 @@
                             <tr>
                                 <th><t key="salon.products.auto.marka">Marka</t></th>
                                 <th><t key="salon.products.linked_product_count">Urun Sayisi</t></th>
-                                <th style="width: 120px;"></th>
+                                <th class="products-actions-narrow"></th>
                             </tr>
                         </thead>
                         <tbody data-bind="foreach: filteredBrands">
@@ -201,7 +205,7 @@
                 </div>
                 <!-- ko if: filteredBrands().length === 0 -->
                 <div class="text-center text-muted py-4">
-                    <i class="bi bi-tags" style="font-size: 2rem;"></i>
+                    <i class="bi bi-tags products-empty-icon"></i>
                     <p class="mt-2 small"><t key="salon.products.no_brands">Henuz marka eklenmemis</t></p>
                 </div>
                 <!-- /ko -->
@@ -232,12 +236,12 @@
                                        data-bind="textInput: query,
                                                   event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
                                 <!-- ko if: selectedName() -->
-                                <span class="position-absolute top-50 end-0 translate-middle-y me-2" style="cursor:pointer; z-index:2;"
+                                <span class="position-absolute top-50 end-0 translate-middle-y me-2 autocomplete-clear"
                                       data-bind="click: clear" title="@(Translation.T("salon.memberships.clear", "Temizle"))">
                                     <i class="bi bi-x-circle text-muted"></i>
                                 </span>
                                 <!-- /ko -->
-                                <div class="dropdown-menu w-100 shadow-sm" style="max-height:220px; overflow-y:auto;"
+                                <div class="dropdown-menu w-100 shadow-sm autocomplete-menu-scroll"
                                      data-bind="css: { show: showDropdown }">
                                     <!-- ko foreach: filteredItems -->
                                     <a class="dropdown-item small py-1 px-2" href="#"
@@ -260,12 +264,12 @@
                                        data-bind="textInput: query,
                                                   event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
                                 <!-- ko if: selectedName() -->
-                                <span class="position-absolute top-50 end-0 translate-middle-y me-2" style="cursor:pointer; z-index:2;"
+                                <span class="position-absolute top-50 end-0 translate-middle-y me-2 autocomplete-clear"
                                       data-bind="click: clear" title="@(Translation.T("salon.memberships.clear", "Temizle"))">
                                     <i class="bi bi-x-circle text-muted"></i>
                                 </span>
                                 <!-- /ko -->
-                                <div class="dropdown-menu w-100 shadow-sm" style="max-height:220px; overflow-y:auto;"
+                                <div class="dropdown-menu w-100 shadow-sm autocomplete-menu-scroll"
                                      data-bind="css: { show: showDropdown }">
                                     <!-- ko foreach: filteredItems -->
                                     <a class="dropdown-item small py-1 px-2" href="#"

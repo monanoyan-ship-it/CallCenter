@@ -99,7 +99,7 @@ public class SlnScannerFactory : ISlnScannerFactory
 
         if (wantsGiftCard)
         {
-            var gift = await ResolveGiftCardAsync(raw, customerId);
+            var gift = await ResolveGiftCardAsync(raw, customerId, requestedBranchId);
             if (gift.Found) return gift;
         }
 
@@ -109,7 +109,7 @@ public class SlnScannerFactory : ISlnScannerFactory
 
         if (!wantsGiftCard)
         {
-            var gift = await ResolveGiftCardAsync(raw, customerId);
+            var gift = await ResolveGiftCardAsync(raw, customerId, requestedBranchId);
             if (gift.Found) return gift;
         }
 
@@ -188,10 +188,10 @@ public class SlnScannerFactory : ISlnScannerFactory
         return NotFound(raw, "productBarcode", "Barkodla eslesen urun bulunamadi.");
     }
 
-    private async Task<SlnScanResolveDto> ResolveGiftCardAsync(string raw, int customerId)
+    private async Task<SlnScanResolveDto> ResolveGiftCardAsync(string raw, int customerId, int? branchId)
     {
         var code = StripKnownPrefix(raw, "gift:", "gift-card:", "hediye:", "hediye-karti:");
-        var card = await _giftCardFactory.GetGiftCardByCodeAsync(code, customerId);
+        var card = await _giftCardFactory.GetGiftCardByCodeAsync(code, customerId, branchId);
         if (card == null)
             return NotFound(raw, "giftCard", "Hediye karti bulunamadi.");
 
@@ -203,6 +203,7 @@ public class SlnScannerFactory : ISlnScannerFactory
             RawValue = raw,
             NormalizedValue = code.Trim().ToUpperInvariant(),
             CustomerId = customerId,
+            BranchId = card.BranchId ?? branchId,
             GiftCard = card
         };
     }
@@ -241,7 +242,7 @@ public class SlnScannerFactory : ISlnScannerFactory
                 ? await ResolveProductTokenAsync(payload.TargetId.Value, raw, customerId, branchId)
                 : NotFound(raw, "scanToken", "Urun token hedefi eksik."),
             "giftCard" => payload.TargetId.HasValue
-                ? await ResolveGiftCardTokenAsync(payload.TargetId.Value, raw, customerId)
+                ? await ResolveGiftCardTokenAsync(payload.TargetId.Value, raw, customerId, branchId)
                 : NotFound(raw, "scanToken", "Hediye karti token hedefi eksik."),
             "client" => payload.TargetId.HasValue
                 ? await ResolveClientByIdAsync(payload.TargetId.Value, raw, customerId, branchId)
@@ -296,9 +297,9 @@ public class SlnScannerFactory : ISlnScannerFactory
             };
     }
 
-    private async Task<SlnScanResolveDto> ResolveGiftCardTokenAsync(int giftCardId, string raw, int customerId)
+    private async Task<SlnScanResolveDto> ResolveGiftCardTokenAsync(int giftCardId, string raw, int customerId, int? branchId)
     {
-        var card = await _giftCardFactory.GetGiftCardAsync(giftCardId, customerId);
+        var card = await _giftCardFactory.GetGiftCardAsync(giftCardId, customerId, branchId);
         return card == null
             ? NotFound(raw, "giftCardQr", "Hediye karti bulunamadi.")
             : new SlnScanResolveDto
@@ -308,6 +309,7 @@ public class SlnScannerFactory : ISlnScannerFactory
                 Action = "openGiftCard",
                 RawValue = raw,
                 CustomerId = customerId,
+                BranchId = card.BranchId ?? branchId,
                 GiftCard = card
             };
     }
@@ -442,7 +444,7 @@ public class SlnScannerFactory : ISlnScannerFactory
                 await RequireProductAsync(payload.TargetId, payload.CustomerId, claimBranchId);
                 return null;
             case "giftCard":
-                await RequireGiftCardAsync(payload.TargetId, payload.CustomerId);
+                await RequireGiftCardAsync(payload.TargetId, payload.CustomerId, isSalonOwner ? payload.BranchId : claimBranchId);
                 return null;
             case "clientPackage":
                 await RequireClientPackageAsync(payload.TargetId, payload.CustomerId, claimBranchId);
@@ -502,11 +504,14 @@ public class SlnScannerFactory : ISlnScannerFactory
         if (!exists) throw new InvalidOperationException("Urun bulunamadi veya yetki disi.");
     }
 
-    private async Task RequireGiftCardAsync(int? id, int customerId)
+    private async Task RequireGiftCardAsync(int? id, int customerId, int? branchId)
     {
         if (!id.HasValue) throw new InvalidOperationException("Hediye karti hedefi eksik.");
-        var exists = await _giftCards.GetAllQueryable().AnyAsync(g => g.Id == id.Value && g.CustomerId == customerId);
-        if (!exists) throw new InvalidOperationException("Hediye karti bulunamadi.");
+        var exists = await SalonBranchScope.ApplyToGiftCards(
+                _giftCards.GetAllQueryable().Where(g => g.Id == id.Value && g.CustomerId == customerId),
+                branchId)
+            .AnyAsync();
+        if (!exists) throw new InvalidOperationException("Hediye karti bulunamadi veya yetki disi.");
     }
 
     private async Task RequireClientPackageAsync(int? id, int customerId, int? branchId)

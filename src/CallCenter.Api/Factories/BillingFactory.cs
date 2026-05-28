@@ -234,6 +234,43 @@ public class BillingFactory : IBillingFactory
             .Select(b => b.CustomerServiceSubscriptionId)
             .ToListAsync();
         var existingBillingSet = new HashSet<int>(existingBillingItemKeys);
+        var crmBillingKinds = CustomerBillingKinds.CrmKinds.ToList();
+        var existingCrmPeriodKeys = (await _billingEs.GetAllQueryable()
+            .Where(b => b.Year == year && b.Month == month && crmBillingKinds.Contains(b.BillingKindId))
+            .Select(b => new { b.CustomerId, b.BillingKindId })
+            .ToListAsync())
+            .Select(b => $"{b.CustomerId}:{b.BillingKindId}")
+            .ToHashSet();
+
+        var activeProductRows = await _customerProductEs.GetAllQueryable()
+            .Where(cp => cp.IsActive)
+            .Select(cp => new { cp.CustomerId, cp.ProductTypeId })
+            .ToListAsync();
+        var productsByCustomer = activeProductRows
+            .GroupBy(cp => cp.CustomerId)
+            .ToDictionary(g => g.Key, g => g.Select(cp => cp.ProductTypeId).ToHashSet());
+
+        var activeCrmModuleRows = await _customerEs.GetAllQueryable()
+            .Where(c => c.IsActive && !c.IsTest)
+            .SelectMany(c => c.PortalModules
+                .Where(pm => pm.IsActive)
+                .Select(pm => new { CustomerId = c.Id, pm.ModuleId }))
+            .ToListAsync();
+        var crmGroupsByCustomer = new Dictionary<int, HashSet<int>>();
+        foreach (var row in activeCrmModuleRows)
+        {
+            var groupId = CrmModuleGroups.GetGroupId(row.ModuleId);
+            if (!groupId.HasValue) continue;
+
+            if (!crmGroupsByCustomer.TryGetValue(row.CustomerId, out var groups))
+            {
+                groups = new HashSet<int>();
+                crmGroupsByCustomer[row.CustomerId] = groups;
+            }
+
+            groups.Add(groupId.Value);
+        }
+        var crmPackagePrices = await _servicePricingFactory.GetActiveCrmPackagePricesAsync();
 
         var created = 0;
         var skipped = 0;
@@ -314,6 +351,75 @@ public class BillingFactory : IBillingFactory
             }
 
             created++;
+        }
+
+        foreach (var customer in activeCustomers)
+        {
+            if (!productsByCustomer.TryGetValue(customer.Id, out var customerProducts))
+                continue;
+            if (!customerProducts.Contains(ProductTypes.Ids.Crm))
+                continue;
+            if (!crmGroupsByCustomer.TryGetValue(customer.Id, out var crmGroupIds))
+                continue;
+
+            var desiredGroups = new List<int>();
+            if (crmGroupIds.Contains(CrmModuleGroups.Ids.Core))
+                desiredGroups.Add(CrmModuleGroups.Ids.Core);
+            if (customerProducts.Contains(ProductTypes.Ids.Salon) && crmGroupIds.Contains(CrmModuleGroups.Ids.Salon))
+                desiredGroups.Add(CrmModuleGroups.Ids.Salon);
+            if (customerProducts.Contains(ProductTypes.Ids.CallCenter) && crmGroupIds.Contains(CrmModuleGroups.Ids.CallCenter))
+                desiredGroups.Add(CrmModuleGroups.Ids.CallCenter);
+
+            if (desiredGroups.Count == 0)
+                continue;
+
+            var startDay = BillingAnchorDayResolver.ResolvePeriodStartDay(year, month, customer.BillingAnchorDay);
+            if (!customer.BillingAnchorDay.HasValue)
+            {
+                var cust = await _customerEs.GetByIdAsync(customer.Id);
+                if (cust != null && !cust.IsTest)
+                    cust.BillingAnchorDay = startDay;
+            }
+
+            var periodStart = new DateTime(year, month, startDay, 0, 0, 0, DateTimeKind.Utc);
+            var nextMonth = month == 12 ? 1 : month + 1;
+            var nextYear = month == 12 ? year + 1 : year;
+            var daysInNextMonth = DateTime.DaysInMonth(nextYear, nextMonth);
+            var endDay = Math.Min(startDay, daysInNextMonth);
+            var periodEnd = new DateTime(nextYear, nextMonth, endDay, 0, 0, 0, DateTimeKind.Utc).AddDays(-1);
+
+            foreach (var groupId in desiredGroups)
+            {
+                var group = CrmModuleGroups.GetById(groupId);
+                if (group == null) continue;
+
+                if (existingCrmPeriodKeys.Contains($"{customer.Id}:{group.BillingKindId}"))
+                {
+                    skipped++;
+                    continue;
+                }
+
+                var monthlyPrice = crmPackagePrices.TryGetValue(groupId, out var price) ? price : group.MonthlyPrice;
+                _billingEs.Add(new CustomerBillingPeriod
+                {
+                    CustomerId = customer.Id,
+                    BillingKindId = group.BillingKindId,
+                    Year = year,
+                    Month = month,
+                    PeriodStartDate = periodStart,
+                    PeriodEndDate = periodEnd,
+                    UserCount = 1,
+                    UnitPrice = monthlyPrice,
+                    Amount = monthlyPrice,
+                    ServiceAmount = 0m,
+                    StatusId = monthlyPrice <= 0m ? BillingPeriodStatuses.Ids.Paid : BillingPeriodStatuses.Ids.Draft,
+                    IsPaid = monthlyPrice <= 0m,
+                    PaidAt = monthlyPrice <= 0m ? DateTime.UtcNow : null,
+                    CreatedAt = DateTime.UtcNow,
+                    Notes = group.Description
+                });
+                created++;
+            }
         }
 
         if (created > 0)
@@ -493,6 +599,11 @@ public class BillingFactory : IBillingFactory
                     || b.ModuleLines.Any()
                     || (b.BillingKindId == CustomerBillingKinds.CallCenter && salonOnlyCustomerIds.Contains(b.CustomerId)));
             }
+            else if (productTypeId.Value == ProductTypes.Ids.Crm)
+            {
+                var crmKinds = CustomerBillingKinds.CrmKinds.ToList();
+                query = query.Where(b => crmKinds.Contains(b.BillingKindId));
+            }
         }
 
         var periods = await query
@@ -567,6 +678,39 @@ public class BillingFactory : IBillingFactory
 
         var hasCcProduct = await _customerProductEs.GetAllQueryable()
             .AnyAsync(cp => cp.CustomerId == customerId && cp.ProductTypeId == ProductTypes.Ids.CallCenter && cp.IsActive);
+
+        if (CustomerBillingKinds.IsCrmKind(period.BillingKindId))
+        {
+            var crmGroup = CrmModuleGroups.GetByBillingKindId(period.BillingKindId);
+            var label = crmGroup?.Description ?? CustomerBillingKinds.GetDescription(period.BillingKindId);
+            var unitPrice = period.UnitPrice > 0m ? period.UnitPrice : period.Amount;
+
+            return new BillingTahakkukDetailDto
+            {
+                PeriodId = period.Id,
+                CustomerId = customerId,
+                CustomerName = period.Customer.Name,
+                BillingKindId = period.BillingKindId,
+                Year = period.Year,
+                Month = period.Month,
+                PeriodStartDate = period.PeriodStartDate,
+                PeriodEndDate = period.PeriodEndDate,
+                UserCount = period.UserCount,
+                UnitPriceSum = unitPrice,
+                OperatorAmount = period.Amount,
+                ServiceAmount = period.ServiceAmount,
+                ProductLines =
+                [
+                    new BillingTahakkukProductLineDto
+                    {
+                        ProductTypeId = ProductTypes.Ids.Crm,
+                        ProductLabel = label,
+                        MonthlyUnitPrice = unitPrice,
+                        LineAmount = period.Amount
+                    }
+                ]
+            };
+        }
 
         // Salon tahakkuk ekrani: tur yanlis (1) kalmis veya sadece modul satirlari olan kayitlar
         var useSalonTahakkukLayout = period.BillingKindId == CustomerBillingKinds.SalonPlatform

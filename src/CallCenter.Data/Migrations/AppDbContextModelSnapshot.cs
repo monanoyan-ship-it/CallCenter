@@ -5290,6 +5290,9 @@ namespace CallCenter.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int?>("BranchId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -5326,6 +5329,10 @@ namespace CallCenter.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("CustomerId", "BranchId");
 
                     b.HasIndex("SoldByPersonnelId");
 
@@ -10645,6 +10652,11 @@ namespace CallCenter.Data.Migrations
 
             modelBuilder.Entity("CallCenter.Shared.Entities.SlnGiftCard", b =>
                 {
+                    b.HasOne("CallCenter.Shared.Entities.SlnBranch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("CallCenter.Shared.Entities.Customer", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
@@ -10654,6 +10666,8 @@ namespace CallCenter.Data.Migrations
                     b.HasOne("CallCenter.Shared.Entities.CustomerPersonnel", "SoldByPersonnel")
                         .WithMany()
                         .HasForeignKey("SoldByPersonnelId");
+
+                    b.Navigation("Branch");
 
                     b.Navigation("Customer");
 

@@ -32,6 +32,7 @@ public class AccountController : CrmBaseController
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
+        HttpContext.Session.Clear();
         HttpContext.Session.SetString("Token", root.GetProperty("token").GetString() ?? "");
         HttpContext.Session.SetString("UserName", root.GetProperty("fullName").GetString() ?? "");
         HttpContext.Session.SetString("UserRole", root.GetProperty("role").GetString() ?? "");
@@ -63,6 +64,8 @@ public class AccountController : CrmBaseController
             }
         }
         catch { /* JWT parse hatasi olursa login akisini engelleme */ }
+
+        await RefreshCrmEntitlementsAsync();
 
         return RedirectToAction("Index", "Home");
     }

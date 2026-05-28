@@ -3,7 +3,7 @@
     var platform = ViewData["Platform"]?.ToString() ?? "";
 }
 
-<div id="connect-vm" data-platform="@Html.Raw(platform)">
+<div id="connect-vm" data-platform="@platform">
     <!-- Back Button -->
     <a href="/Integrations" class="btn btn-outline-secondary btn-sm mb-3">
         <i class="bi bi-arrow-left me-1"></i>Geri

@@ -1,21 +1,38 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Fiyat Dönemleri";
+    ViewData["Title"] = Translation.T("management.pricing_periods.title", "Fiyat Donemleri");
+}
+
+@section Styles {
+    <style>
+        .text-purple { color: #7b1fa2; }
+        .pricing-period-date { font-size: .75rem; }
+        .pricing-period-status { font-size: .65rem; }
+        .pricing-empty-calendar { font-size: 1.5rem; }
+        .pricing-select-icon { font-size: 2rem; }
+        .pricing-price-col { width: 180px; }
+        .pricing-prev-col { width: 140px; }
+        .pricing-tier-col { min-width: 100px; }
+        .pricing-tier-order { min-width: 72px; }
+        .pricing-tier-actions { width: 48px; }
+    </style>
 }
 
 <div id="periods-vm">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <small class="text-muted">Her dönem için satılan hizmet fiyatlarını ve teknik modül kalemlerini ayrı tanımlayabilirsiniz. Yeni dönem açıldığında önceki dönemin fiyatları kopyalanır. Mevcut abonelikler kayıt oldukları dönem fiyatını kullanmaya devam eder (grandfather).</small>
+        <small class="text-muted">
+            <t key="management.pricing_periods.help">Her donem icin satilan hizmet fiyatlarini ve teknik modul kalemlerini ayri tanimlayabilirsiniz. Yeni donem acildiginda onceki donemin fiyatlari kopyalanir. Mevcut abonelikler kayit olduklari donem fiyatini kullanmaya devam eder.</t>
+        </small>
         <button class="btn btn-primary btn-sm" data-bind="click: openNewPeriod">
-            <i class="bi bi-plus-lg me-1"></i>Yeni Dönem
+            <i class="bi bi-plus-lg me-1"></i><t key="management.pricing_periods.new_period">Yeni Donem</t>
         </button>
     </div>
 
     <div class="row g-3">
-        <!-- Dönem Listesi -->
         <div class="col-md-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white fw-semibold small">
-                    <i class="bi bi-calendar-range me-1"></i>Dönemler
+                    <i class="bi bi-calendar-range me-1"></i><t key="management.pricing_periods.periods">Donemler</t>
                 </div>
                 <div class="list-group list-group-flush" data-bind="foreach: periods">
                     <a href="javascript:void(0)" class="list-group-item list-group-item-action py-2"
@@ -23,10 +40,10 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <div class="fw-semibold small" data-bind="text: name"></div>
-                                <div class="text-muted" style="font-size:.75rem;"
+                                <div class="text-muted pricing-period-date"
                                      data-bind="text: new Date(startDate).toLocaleDateString('tr-TR') + ' - ' + new Date(endDate).toLocaleDateString('tr-TR')"></div>
                             </div>
-                            <span class="badge" style="font-size:.65rem;"
+                            <span class="badge pricing-period-status"
                                   data-bind="text: statusName,
                                              css: statusId === 1 ? 'bg-success' : statusId === 2 ? 'bg-secondary' : 'bg-warning text-dark'"></span>
                         </div>
@@ -34,20 +51,19 @@
                 </div>
                 <!-- ko if: periods().length === 0 -->
                 <div class="p-3 text-center text-muted small">
-                    <i class="bi bi-calendar-x" style="font-size:1.5rem;"></i>
-                    <p class="mt-2 mb-0">Henüz dönem yok. Yeni dönem açarak başlayın.</p>
+                    <i class="bi bi-calendar-x pricing-empty-calendar"></i>
+                    <p class="mt-2 mb-0"><t key="management.pricing_periods.empty">Henuz donem yok. Yeni donem acarak baslayin.</t></p>
                 </div>
                 <!-- /ko -->
             </div>
         </div>
 
-        <!-- Dönem Detayı -->
         <div class="col-md-9">
             <!-- ko if: !selectedPeriod() -->
             <div class="card border-0 shadow-sm">
                 <div class="card-body text-center py-5 text-muted">
-                    <i class="bi bi-arrow-left" style="font-size:2rem;"></i>
-                    <p class="mt-2 mb-0">Sol taraftan bir dönem seçin veya yeni dönem açın.</p>
+                    <i class="bi bi-arrow-left pricing-select-icon"></i>
+                    <p class="mt-2 mb-0"><t key="management.pricing_periods.select_period">Sol taraftan bir donem secin veya yeni donem acin.</t></p>
                 </div>
             </div>
             <!-- /ko -->
@@ -63,11 +79,11 @@
                     <div class="d-flex gap-1">
                         <!-- ko if: selectedPeriod().statusId !== 1 -->
                         <button class="btn btn-success btn-sm" data-bind="click: activateSelected">
-                            <i class="bi bi-check-circle me-1"></i>Aktif Et
+                            <i class="bi bi-check-circle me-1"></i><t key="management.common.activate">Aktif Et</t>
                         </button>
                         <!-- /ko -->
                         <!-- ko if: selectedPeriod().statusId !== 1 -->
-                        <button class="btn btn-outline-danger btn-sm" data-bind="click: deleteSelected">
+                        <button class="btn btn-outline-danger btn-sm" data-bind="click: deleteSelected" title="@Translation.T("management.common.delete", "Sil")">
                             <i class="bi bi-trash"></i>
                         </button>
                         <!-- /ko -->
@@ -75,18 +91,17 @@
                 </div>
             </div>
 
-            <!-- Hizmetler -->
             <div class="card border-0 shadow-sm mb-3">
                 <div class="card-header bg-white fw-semibold">
-                    <i class="bi bi-box-seam me-1 text-purple"></i>Salon Hizmetleri
+                    <i class="bi bi-box-seam me-1 text-purple"></i><t key="management.pricing_periods.salon_packages">Salon Hizmetleri</t>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>Hizmet</th>
-                                <th style="width:180px;">Aylık Fiyat (₺)</th>
-                                <th style="width:140px;">Önceki Dönem</th>
+                                <th><t key="management.pricing_periods.service">Hizmet</t></th>
+                                <th class="pricing-price-col"><t key="management.pricing_periods.monthly_price">Aylik Fiyat (TL)</t></th>
+                                <th class="pricing-prev-col"><t key="management.pricing_periods.previous_period">Onceki Donem</t></th>
                             </tr>
                         </thead>
                         <tbody data-bind="foreach: selectedPeriod().salonPackages">
@@ -96,38 +111,68 @@
                                     <div class="input-group input-group-sm">
                                         <input type="number" class="form-control" min="0" step="0.01"
                                                data-bind="value: monthlyPrice, event: { change: function() { $root.saveItemPrice(id, monthlyPrice); } }" />
-                                        <span class="input-group-text">₺</span>
+                                        <span class="input-group-text">TL</span>
                                     </div>
                                 </td>
-                                <td class="text-muted small" data-bind="text: previousPrice != null ? previousPrice.toLocaleString('tr-TR') + ' ₺' : '-'"></td>
+                                <td class="text-muted small" data-bind="text: previousPrice != null ? previousPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- Şube indirim eşikleri (dönem bazlı) -->
+            <!-- ko if: selectedPeriod().crmPackages && selectedPeriod().crmPackages.length > 0 -->
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white fw-semibold">
+                    <i class="bi bi-person-lines-fill me-1 text-purple"></i><t key="management.pricing_periods.crm_packages">CRM Paketleri</t>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th><t key="management.pricing_periods.package">Paket</t></th>
+                                <th class="pricing-price-col"><t key="management.pricing_periods.monthly_price">Aylik Fiyat (TL)</t></th>
+                                <th class="pricing-prev-col"><t key="management.pricing_periods.previous_period">Onceki Donem</t></th>
+                            </tr>
+                        </thead>
+                        <tbody data-bind="foreach: selectedPeriod().crmPackages">
+                            <tr>
+                                <td class="fw-semibold" data-bind="text: name"></td>
+                                <td>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" class="form-control" min="0" step="0.01"
+                                               data-bind="value: monthlyPrice, event: { change: function() { $root.saveItemPrice(id, monthlyPrice); } }" />
+                                        <span class="input-group-text">TL</span>
+                                    </div>
+                                </td>
+                                <td class="text-muted small" data-bind="text: previousPrice != null ? previousPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- /ko -->
+
             <div class="card border-0 shadow-sm mb-3">
                 <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <span><i class="bi bi-buildings me-1 text-purple"></i>Şube indirim eşikleri</span>
+                    <span><i class="bi bi-buildings me-1 text-purple"></i><t key="management.pricing_periods.branch_tiers">Sube indirim esikleri</t></span>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveBranchTiers, disable: isSavingTiers">
-                        <span data-bind="visible: isSavingTiers" class="spinner-border spinner-border-sm me-1"></span>Kaydet
+                        <span data-bind="visible: isSavingTiers" class="spinner-border spinner-border-sm me-1"></span><t key="management.common.btn.save">Kaydet</t>
                     </button>
                 </div>
                 <div class="card-body py-2">
                     <p class="small text-muted mb-2">
-                        <strong>2 ve üzeri aktif şubede</strong> brüt şube tutarı <strong>şube sayısı × Temel Paket (dönem)</strong> ile hesaplanır;
-                        bu aralığa göre belirlenen yüzde bu brüt tutara uygulanır. Tek şubede şube satırı yoktur (Temel Paket üst satırda).
+                        <t key="management.pricing_periods.branch_tiers_help">2 ve uzeri aktif subede brut sube tutari sube sayisi x Temel Paket donem fiyati ile hesaplanir. Bu araliga gore belirlenen yuzde brut tutara uygulanir. Tek subede sube satiri yoktur.</t>
                     </p>
                     <div class="table-responsive">
                         <table class="table table-sm mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="min-width:100px;">Min şube</th>
-                                    <th style="min-width:100px;">Max şube</th>
-                                    <th style="min-width:100px;">İndirim %</th>
-                                    <th style="min-width:72px;">Sıra</th>
-                                    <th style="width:48px;"></th>
+                                    <th class="pricing-tier-col"><t key="management.pricing_periods.min_branch">Min sube</t></th>
+                                    <th class="pricing-tier-col"><t key="management.pricing_periods.max_branch">Max sube</t></th>
+                                    <th class="pricing-tier-col"><t key="management.pricing_periods.discount_percent">Indirim %</t></th>
+                                    <th class="pricing-tier-order"><t key="management.pricing_periods.sort_order">Sira</t></th>
+                                    <th class="pricing-tier-actions"></th>
                                 </tr>
                             </thead>
                             <tbody data-bind="foreach: branchTierRows">
@@ -136,21 +181,20 @@
                                     <td><input type="number" class="form-control form-control-sm" min="1" data-bind="value: maxBranches" /></td>
                                     <td><input type="number" class="form-control form-control-sm" min="0" max="100" step="0.01" data-bind="value: discountPercent" /></td>
                                     <td><input type="number" class="form-control form-control-sm" min="0" data-bind="value: sortOrder" /></td>
-                                    <td><button type="button" class="btn btn-outline-danger btn-sm py-0" data-bind="click: $parent.removeBranchTierRow" title="Satırı sil">&times;</button></td>
+                                    <td><button type="button" class="btn btn-outline-danger btn-sm py-0" data-bind="click: $parent.removeBranchTierRow" title="@Translation.T("management.pricing_periods.delete_row", "Satiri sil")">&times;</button></td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                     <button type="button" class="btn btn-outline-secondary btn-sm mt-2" data-bind="click: addBranchTierRow">
-                        <i class="bi bi-plus-lg me-1"></i>Satır ekle
+                        <i class="bi bi-plus-lg me-1"></i><t key="management.pricing_periods.add_row">Satir ekle</t>
                     </button>
                 </div>
             </div>
 
-            <!-- Teknik modül kalemleri (grup bazlı) -->
             <div class="card border-0 shadow-sm mb-3">
                 <div class="card-header bg-white fw-semibold">
-                    <i class="bi bi-puzzle me-1 text-purple"></i>Teknik Modül Kalemleri (paket içi)
+                    <i class="bi bi-puzzle me-1 text-purple"></i><t key="management.pricing_periods.technical_modules">Teknik Modul Kalemleri (paket ici)</t>
                 </div>
                 <div class="accordion accordion-flush" data-bind="foreach: selectedPeriod().salonGroups">
                     <div class="accordion-item">
@@ -158,7 +202,7 @@
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                                     data-bind="attr: { 'data-bs-target': '#grp-' + groupId }">
                                 <span data-bind="text: groupName"></span>
-                                <span class="text-muted small ms-2" data-bind="text: '(' + items.length + ' özellik)'"></span>
+                                <span class="text-muted small ms-2" data-bind="text: '(' + items.length + ' ozellik)'"></span>
                             </button>
                         </h2>
                         <div class="accordion-collapse collapse" data-bind="attr: { id: 'grp-' + groupId }">
@@ -167,14 +211,14 @@
                                     <tbody data-bind="foreach: items">
                                         <tr>
                                             <td class="small" data-bind="text: serviceName"></td>
-                                            <td style="width:180px;">
+                                            <td class="pricing-price-col">
                                                 <div class="input-group input-group-sm">
                                                     <input type="number" class="form-control" min="0" step="0.01"
                                                            data-bind="value: monthlyPrice, event: { change: function() { $root.saveItemPrice(id, monthlyPrice); } }" />
-                                                    <span class="input-group-text">₺</span>
+                                                    <span class="input-group-text">TL</span>
                                                 </div>
                                             </td>
-                                            <td class="text-muted small" style="width:140px;" data-bind="text: previousPrice != null ? previousPrice.toLocaleString('tr-TR') + ' ₺' : '-'"></td>
+                                            <td class="text-muted small pricing-prev-col" data-bind="text: previousPrice != null ? previousPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -184,22 +228,21 @@
                 </div>
             </div>
 
-            <!-- CallCenter modülleri -->
             <!-- ko if: selectedPeriod().callCenter && selectedPeriod().callCenter.length > 0 -->
             <div class="card border-0 shadow-sm mb-3">
                 <div class="card-header bg-white fw-semibold">
-                    <i class="bi bi-headset me-1 text-purple"></i>CallCenter Fiyatlari
+                    <i class="bi bi-headset me-1 text-purple"></i><t key="management.pricing_periods.callcenter_prices">CallCenter Fiyatlari</t>
                 </div>
                 <div class="px-3 pt-2 small text-muted">
-                    Operator Lisansi satiri CallCenter tahakkukunda aktif operator basina kullanilan birim fiyattir.
+                    <t key="management.pricing_periods.callcenter_help">Operator Lisansi satiri CallCenter tahakkukunda aktif operator basina kullanilan birim fiyattir.</t>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-sm mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>Hizmet</th>
-                                <th style="width:180px;">Aylık Fiyat (₺)</th>
-                                <th style="width:140px;">Önceki Dönem</th>
+                                <th><t key="management.pricing_periods.service">Hizmet</t></th>
+                                <th class="pricing-price-col"><t key="management.pricing_periods.monthly_price">Aylik Fiyat (TL)</t></th>
+                                <th class="pricing-prev-col"><t key="management.pricing_periods.previous_period">Onceki Donem</t></th>
                             </tr>
                         </thead>
                         <tbody data-bind="foreach: selectedPeriod().callCenter">
@@ -209,10 +252,10 @@
                                     <div class="input-group input-group-sm">
                                         <input type="number" class="form-control" min="0" step="0.01"
                                                data-bind="value: monthlyPrice, event: { change: function() { $root.saveItemPrice(id, monthlyPrice); } }" />
-                                        <span class="input-group-text">₺</span>
+                                        <span class="input-group-text">TL</span>
                                     </div>
                                 </td>
-                                <td class="text-muted small" data-bind="text: previousPrice != null ? previousPrice.toLocaleString('tr-TR') + ' ₺' : '-'"></td>
+                                <td class="text-muted small" data-bind="text: previousPrice != null ? previousPrice.toLocaleString('tr-TR') + ' TL' : '-'"></td>
                             </tr>
                         </tbody>
                     </table>
@@ -223,38 +266,37 @@
         </div>
     </div>
 
-    <!-- Yeni Dönem Modal -->
     <div class="modal fade" id="newPeriodModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title">Yeni Fiyat Dönemi</h6>
+                    <h6 class="modal-title"><t key="management.pricing_periods.new_price_period">Yeni Fiyat Donemi</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-2">
-                        <label class="form-label small">Dönem Adı *</label>
-                        <input type="text" class="form-control form-control-sm" data-bind="value: newPeriod.name" placeholder="2026 Yaz Dönemi" />
+                        <label class="form-label small"><t key="management.pricing_periods.period_name_required">Donem Adi *</t></label>
+                        <input type="text" class="form-control form-control-sm" data-bind="value: newPeriod.name" placeholder="@Translation.T("management.pricing_periods.period_placeholder", "2026 Yaz Donemi")" />
                     </div>
                     <div class="row g-2">
                         <div class="col-6">
-                            <label class="form-label small">Başlangıç *</label>
+                            <label class="form-label small"><t key="management.pricing_periods.start_required">Baslangic *</t></label>
                             <input type="date" class="form-control form-control-sm" data-bind="value: newPeriod.startDate" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Bitiş *</label>
+                            <label class="form-label small"><t key="management.pricing_periods.end_required">Bitis *</t></label>
                             <input type="date" class="form-control form-control-sm" data-bind="value: newPeriod.endDate" />
                         </div>
                     </div>
                     <div class="alert alert-info small mt-3 mb-0">
-                        <i class="bi bi-info-circle me-1"></i>Yeni dönem açıldığında önceki dönemin fiyatları otomatik kopyalanır. Kopyalanan fiyatları düzenleyip "Aktif Et" diyene kadar taslak olarak kalır.
+                        <i class="bi bi-info-circle me-1"></i><t key="management.pricing_periods.copy_help">Yeni donem acildiginda onceki donemin fiyatlari otomatik kopyalanir. Kopyalanan fiyatlari duzenleyip Aktif Et diyene kadar taslak olarak kalir.</t>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="management.common.btn.cancel">Iptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: createPeriod, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Oluştur
+                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="management.common.btn.create">Olustur</t>
                     </button>
                 </div>
             </div>
@@ -262,8 +304,6 @@
     </div>
 </div>
 
-<style>.text-purple { color:#7b1fa2; }</style>
-
 @section Scripts {
-<script src="~/js/PricingPeriods.js" asp-append-version="true"></script>
+    <script src="~/js/PricingPeriods.js" asp-append-version="true"></script>
 }

@@ -1,24 +1,32 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = "Musteri Detay";
+    ViewData["Title"] = Translation.T("management.page.customer_detail.title", "Musteri Detay");
     var customerId = ViewData["CustomerId"];
+}
+
+@section Styles {
+    <style>
+        .customer-product-label { min-width: 120px; }
+        .customer-product-price { width: 160px; }
+    </style>
 }
 
 <div id="detail-vm" data-customer-id="@customerId">
     <div class="d-flex align-items-center mb-3">
         <a href="/Customers" class="btn btn-outline-secondary btn-sm me-2"><i class="bi bi-arrow-left"></i></a>
         <h5 class="mb-0" data-bind="text: customer().name || 'Yukleniyor...'"></h5>
-        <span class="badge bg-success-subtle text-success ms-2" data-bind="visible: customer().isActive">Aktif</span>
-        <span class="badge bg-danger-subtle text-danger ms-2" data-bind="visible: customer().isActive === false">Pasif</span>
+        <span class="badge bg-success-subtle text-success ms-2" data-bind="visible: customer().isActive"><t key="management.common.status.active">Aktif</t></span>
+        <span class="badge bg-danger-subtle text-danger ms-2" data-bind="visible: customer().isActive === false"><t key="management.common.status.inactive">Pasif</t></span>
     </div>
 
     <!-- Sekmeler -->
     <ul class="nav nav-tabs mb-3">
-        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tabGeneral">Genel</a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabPersonnel">Personel</a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabOrg">Organizasyon</a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabQueues">Kuyruklar</a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabBilling">Odemeler</a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabModules">Hizmetler</a></li>
+        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tabGeneral"><t key="management.customer_detail.tab.general">Genel</t></a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabPersonnel"><t key="management.customer_detail.tab.personnel">Personel</t></a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabOrg"><t key="management.customer_detail.tab.organization">Organizasyon</t></a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabQueues"><t key="management.customer_detail.tab.queues">Kuyruklar</t></a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabBilling"><t key="management.customer_detail.tab.billing">Odemeler</t></a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabModules"><t key="management.customer_detail.tab.services">Hizmetler</t></a></li>
     </ul>
 
     <div class="tab-content">
@@ -28,34 +36,34 @@
                 <div class="col-md-8">
                     <div class="card border-0 shadow-sm">
                         <div class="card-body">
-                            <h6 class="mb-3"><i class="bi bi-building me-2"></i>Firma Bilgileri</h6>
+                            <h6 class="mb-3"><i class="bi bi-building me-2"></i><t key="management.customer_detail.company_info">Firma Bilgileri</t></h6>
                             <div class="row g-2">
                                 <div class="col-md-6 mb-2">
-                                    <label class="form-label small">Firma Adi</label>
+                                    <label class="form-label small"><t key="management.table.company_name">Firma Adi</t></label>
                                     <input class="form-control form-control-sm" data-bind="value: edit.name" />
                                 </div>
                                 <div class="col-md-6 mb-2">
-                                    <label class="form-label small">Vergi No</label>
+                                    <label class="form-label small"><t key="management.form.tax_number">Vergi No</t></label>
                                     <input class="form-control form-control-sm" data-bind="value: edit.taxNumber" />
                                 </div>
                                 <div class="col-md-6 mb-2">
-                                    <label class="form-label small">Telefon</label>
+                                    <label class="form-label small"><t key="management.form.phone">Telefon</t></label>
                                     <input class="form-control form-control-sm" data-bind="value: edit.phone" />
                                 </div>
                                 <div class="col-md-6 mb-2">
-                                    <label class="form-label small">E-posta</label>
+                                    <label class="form-label small"><t key="management.form.email">E-posta</t></label>
                                     <input class="form-control form-control-sm" data-bind="value: edit.email" />
                                 </div>
                                 <div class="col-12 mb-2">
-                                    <label class="form-label small">Adres</label>
+                                    <label class="form-label small"><t key="management.form.address">Adres</t></label>
                                     <textarea class="form-control form-control-sm" rows="2" data-bind="value: edit.address"></textarea>
                                 </div>
                                 <div class="col-md-4 mb-2">
-                                    <label class="form-label small">Max Kullanıcı</label>
+                                    <label class="form-label small"><t key="management.form.max_users">Max Kullanici</t></label>
                                     <input type="number" class="form-control form-control-sm" data-bind="value: edit.maxUsers" />
                                 </div>
                                 <div class="col-md-4 mb-2">
-                                    <label class="form-label small">Zaman Dilimi</label>
+                                    <label class="form-label small"><t key="management.customer_detail.time_zone">Zaman Dilimi</t></label>
                                     <select class="form-select form-select-sm" data-bind="value: edit.timeZone">
                                         <option value="Europe/Istanbul">Türkiye (UTC+3)</option>
                                         <option value="Europe/Berlin">Almanya (UTC+1/+2)</option>
@@ -72,21 +80,21 @@
                                 <div class="col-md-4 mb-2">
                                     <div class="form-check mt-4">
                                         <input type="checkbox" class="form-check-input" data-bind="checked: edit.isTest" />
-                                        <label class="form-check-label small">Test/Beta Müşteri</label>
+                                        <label class="form-check-label small"><t key="management.customer_detail.test_customer">Test/Beta Musteri</t></label>
                                     </div>
                                 </div>
                                 <div class="col-md-4 mb-2" data-bind="visible: edit.isTest">
-                                    <label class="form-label small">Test Notu</label>
+                                    <label class="form-label small"><t key="management.customer_detail.test_note">Test Notu</t></label>
                                     <input type="text" class="form-control form-control-sm" placeholder="Neden test?" data-bind="value: edit.testNotes" />
                                 </div>
                                 <div class="col-12 mb-2">
-                                    <label class="form-label small">Urunler ve Bilgi Fiyati</label>
-                                    <div class="form-text small mb-1">CallCenter tahakkuku bu alandaki tutardan degil, aktif operator sayisi ve operator birim fiyatindan hesaplanir.</div>
+                                    <label class="form-label small"><t key="management.customer_detail.products_info_price">Urunler ve Bilgi Fiyati</t></label>
+                                    <div class="form-text small mb-1"><t key="management.customer_detail.products_info_price_note">CallCenter tahakkuku bu alandaki tutardan degil, aktif operator sayisi ve operator birim fiyatindan hesaplanir.</t></div>
                                     <!-- ko foreach: productTypes -->
                                     <div class="d-flex align-items-center gap-2 mb-1">
                                         <input type="checkbox" class="form-check-input" data-bind="checked: $parent.isProductActive($data.id)" />
-                                        <span class="small fw-medium" style="min-width:120px" data-bind="text: description"></span>
-                                        <div class="input-group input-group-sm" style="width:160px">
+                                        <span class="small fw-medium customer-product-label" data-bind="text: description"></span>
+                                        <div class="input-group input-group-sm customer-product-price">
                                             <input type="number" step="0.01" class="form-control form-control-sm"
                                                    data-bind="value: $parent.getProductPrice($data.id), enable: $parent.isProductActive($data.id)" placeholder="0.00" />
                                             <span class="input-group-text">TL</span>
@@ -96,7 +104,7 @@
                                 </div>
                             </div>
                             <button class="btn btn-primary btn-sm mt-2" data-bind="click: saveGeneral">
-                                <i class="bi bi-check-lg me-1"></i>Kaydet
+                                <i class="bi bi-check-lg me-1"></i><t key="management.common.btn.save">Kaydet</t>
                             </button>
                         </div>
                     </div>
@@ -104,21 +112,21 @@
                 <div class="col-md-4">
                     <div class="card border-0 shadow-sm">
                         <div class="card-body">
-                            <h6 class="mb-3"><i class="bi bi-key me-2"></i>Admin Sifre Sifirla</h6>
+                            <h6 class="mb-3"><i class="bi bi-key me-2"></i><t key="management.customer_detail.reset_admin_password">Admin Sifre Sifirla</t></h6>
                             <button class="btn btn-outline-warning btn-sm w-100" data-bind="click: resetAdminPassword">
-                                <i class="bi bi-arrow-repeat me-1"></i>Sifre Sifirla
+                                <i class="bi bi-arrow-repeat me-1"></i><t key="management.customer_detail.reset_password">Sifre Sifirla</t>
                             </button>
                     <div class="alert alert-info py-2 mt-2 small" data-bind="visible: newPassword">
-                        Yeni sifre: <strong data-bind="text: newPassword"></strong>
+                        <t key="management.customer_detail.new_password">Yeni sifre</t>: <strong data-bind="text: newPassword"></strong>
                     </div>
                     <!-- ko if: typeof customer().salonSubscriptionDisplayMonthly === 'number' -->
                     <div class="border rounded p-2 mt-3 bg-light">
-                        <div class="small fw-semibold text-muted mb-1">Salon abonelik özeti</div>
+                        <div class="small fw-semibold text-muted mb-1"><t key="management.customer_detail.salon_subscription_summary">Salon abonelik ozeti</t></div>
                         <p class="small text-muted mb-2 mb-0">
-                            Bu aylık tutar yalnızca bilgilendirme içindir; aktif fiyat dönemi ve açık hizmetlere göre hesaplanır. Tahakkuk bu değere bağlı değildir.
+                            <t key="management.customer_detail.salon_subscription_note">Bu aylik tutar yalnizca bilgilendirme icindir; aktif fiyat donemi ve acik hizmetlere gore hesaplanir. Tahakkuk bu degere bagli degildir.</t>
                         </p>
                         <div class="fw-bold mt-1" data-bind="text: customer().salonSubscriptionDisplayMonthly.toLocaleString('tr-TR') + ' TL / ay'"></div>
-                        <span class="badge bg-secondary-subtle text-secondary small mt-2" data-bind="visible: customer().salonSubscriptionIsTrialOrUncontracted">Deneme veya sözleşmesiz dönem</span>
+                        <span class="badge bg-secondary-subtle text-secondary small mt-2" data-bind="visible: customer().salonSubscriptionIsTrialOrUncontracted"><t key="management.customer_detail.trial_or_uncontracted">Deneme veya sozlesmesiz donem</t></span>
                     </div>
                     <!-- /ko -->
                 </div>
@@ -134,7 +142,7 @@
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
-                                <tr><th>Ad Soyad</th><th>Kullanici Adi</th><th>E-posta</th><th>Rol</th><th>Durum</th></tr>
+                                <tr><th><t key="management.table.full_name">Ad Soyad</t></th><th><t key="management.table.username">Kullanici Adi</t></th><th><t key="management.table.email">E-posta</t></th><th><t key="management.table.role">Rol</t></th><th><t key="management.table.status">Durum</t></th></tr>
                             </thead>
                             <tbody data-bind="foreach: personnel">
                                 <tr>
@@ -147,7 +155,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="text-center py-3 text-muted" data-bind="visible: personnel().length === 0">Personel bulunamadi.</div>
+                    <div class="text-center py-3 text-muted" data-bind="visible: personnel().length === 0"><t key="management.customer_detail.no_personnel">Personel bulunamadi.</t></div>
                 </div>
             </div>
         </div>
@@ -159,7 +167,7 @@
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
-                                <tr><th>Birim Adi</th><th>Kod</th><th>Tip</th><th>Ust Birim</th></tr>
+                                <tr><th><t key="management.customer_detail.unit_name">Birim Adi</t></th><th><t key="management.customer_detail.code">Kod</t></th><th><t key="management.customer_detail.type">Tip</t></th><th><t key="management.customer_detail.parent_unit">Ust Birim</t></th></tr>
                             </thead>
                             <tbody data-bind="foreach: organizations">
                                 <tr>
@@ -171,7 +179,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="text-center py-3 text-muted" data-bind="visible: organizations().length === 0">Organizasyon birimi yok.</div>
+                    <div class="text-center py-3 text-muted" data-bind="visible: organizations().length === 0"><t key="management.customer_detail.no_organization">Organizasyon birimi yok.</t></div>
                 </div>
             </div>
         </div>
@@ -183,7 +191,7 @@
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
-                                <tr><th>Kuyruk Adi</th><th>Aciklama</th><th>Max Bekleme</th><th>Agent</th><th>Durum</th></tr>
+                                <tr><th><t key="management.customer_detail.queue_name">Kuyruk Adi</t></th><th><t key="management.customer_detail.description">Aciklama</t></th><th><t key="management.customer_detail.max_wait">Max Bekleme</t></th><th>Agent</th><th><t key="management.table.status">Durum</t></th></tr>
                             </thead>
                             <tbody data-bind="foreach: queues">
                                 <tr>
@@ -196,7 +204,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="text-center py-3 text-muted" data-bind="visible: queues().length === 0">Kuyruk yok.</div>
+                    <div class="text-center py-3 text-muted" data-bind="visible: queues().length === 0"><t key="management.customer_detail.no_queues">Kuyruk yok.</t></div>
                 </div>
             </div>
         </div>
@@ -208,7 +216,7 @@
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
-                                <tr><th>Tür</th><th>Dönem</th><th>Operatör tutar</th><th>Hizmet tutar</th><th>Toplam</th><th>Durum</th></tr>
+                                <tr><th><t key="management.customer_detail.kind">Tur</t></th><th><t key="management.customer_detail.period">Donem</t></th><th><t key="management.customer_detail.operator_amount">Operator tutar</t></th><th><t key="management.customer_detail.service_amount">Hizmet tutar</t></th><th><t key="management.common.total">Toplam</t></th><th><t key="management.table.status">Durum</t></th></tr>
                             </thead>
                             <tbody data-bind="foreach: billing">
                                 <tr>
@@ -222,7 +230,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="text-center py-3 text-muted" data-bind="visible: billing().length === 0">Faturalama donemi yok.</div>
+                    <div class="text-center py-3 text-muted" data-bind="visible: billing().length === 0"><t key="management.customer_detail.no_billing_period">Faturalama donemi yok.</t></div>
                 </div>
             </div>
         </div>
@@ -231,13 +239,13 @@
         <div class="tab-pane fade" id="tabModules">
             <!-- Ust Bar: Senkronize + Default Aktif -->
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-muted small" data-bind="text: 'Toplam Aylik: ' + moduleTotalPrice() + ' TL'"></span>
+                <span class="text-muted small" data-bind="text: totalMonthlyLabel()"></span>
                 <div>
                     <button class="btn btn-outline-primary btn-sm me-1" data-bind="click: syncModules">
-                        <i class="bi bi-arrow-repeat me-1"></i>Senkronize Et
+                        <i class="bi bi-arrow-repeat me-1"></i><t key="management.customer_detail.sync">Senkronize Et</t>
                     </button>
                     <button class="btn btn-success btn-sm" data-bind="click: activateAllDefaults">
-                        <i class="bi bi-check-all me-1"></i>Default Aktif Et
+                        <i class="bi bi-check-all me-1"></i><t key="management.customer_detail.activate_defaults">Default Aktif Et</t>
                     </button>
                 </div>
             </div>
@@ -245,14 +253,14 @@
             <!-- Default Moduller (grupsuz) -->
             <!-- ko if: defaultModules().length > 0 -->
             <div class="card border-0 shadow-sm mb-3">
-                <div class="card-header bg-white py-2"><strong><i class="bi bi-check-circle me-1 text-success"></i>Temel Paket (Dahil)</strong></div>
+                <div class="card-header bg-white py-2"><strong><i class="bi bi-check-circle me-1 text-success"></i><t key="management.customer_detail.core_package_included">Temel Paket (Dahil)</t></strong></div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-sm mb-0">
                             <tbody data-bind="foreach: defaultModules">
                                 <tr>
                                     <td><i class="bi me-1" data-bind="attr: { 'class': 'bi ' + ($data.icon || 'bi-puzzle') }"></i><span data-bind="text: $data.description || $data.systemName"></span></td>
-                                    <td><span class="badge bg-success">Aktif</span></td>
+                                    <td><span class="badge bg-success"><t key="management.common.status.active">Aktif</t></span></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -263,7 +271,7 @@
 
             <!-- Modul Gruplari -->
             <div class="accordion" id="moduleGroupAccordion">
-                <!-- ko foreach: salonModuleGroups -->
+                <!-- ko foreach: moduleGroups -->
                 <div class="accordion-item border-0 shadow-sm mb-2">
                     <h2 class="accordion-header">
                         <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
@@ -289,11 +297,11 @@
                                 <table class="table table-hover table-sm mb-0">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>Hizmet</th>
-                                            <th>Durum</th>
-                                            <th>Katalog Fiyat</th>
-                                            <th>Firma Fiyat</th>
-                                            <th>Geçerli Fiyat</th>
+                                            <th><t key="management.customer_detail.service">Hizmet</t></th>
+                                            <th><t key="management.table.status">Durum</t></th>
+                                            <th><t key="management.customer_detail.catalog_price">Katalog Fiyat</t></th>
+                                            <th><t key="management.customer_detail.customer_price">Firma Fiyat</t></th>
+                                            <th><t key="management.customer_detail.effective_price">Gecerli Fiyat</t></th>
                                             <th></th>
                                         </tr>
                                     </thead>
@@ -317,16 +325,16 @@
                 </div>
                 <!-- /ko -->
             </div>
-            <div class="text-center py-3 text-muted" data-bind="visible: modules().length === 0">Hizmet atanmamış. Senkronize Et butonuna basın.</div>
+            <div class="text-center py-3 text-muted" data-bind="visible: modules().length === 0"><t key="management.customer_detail.no_services">Hizmet atanmamis. Senkronize Et butonuna basin.</t></div>
 
             <!-- Bekleyen Talepler -->
             <div class="card border-0 shadow-sm mt-3" data-bind="visible: moduleRequests().length > 0">
-                <div class="card-header bg-white"><strong>Bekleyen Talepler</strong></div>
+                <div class="card-header bg-white"><strong><t key="management.customer_detail.pending_requests">Bekleyen Talepler</t></strong></div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
-                                <tr><th>Hizmet</th><th>Talep Tarihi</th><th>Not</th><th></th></tr>
+                                <tr><th><t key="management.customer_detail.service">Hizmet</t></th><th><t key="management.customer_detail.request_date">Talep Tarihi</t></th><th><t key="management.customer_detail.note">Not</t></th><th></th></tr>
                             </thead>
                             <tbody data-bind="foreach: moduleRequests">
                                 <tr>
@@ -334,8 +342,8 @@
                                     <td data-bind="text: new Date(requestedAt).toLocaleDateString('tr-TR')"></td>
                                     <td data-bind="text: requestNotes || '-'"></td>
                                     <td>
-                                        <button class="btn btn-success btn-sm me-1" data-bind="click: $parent.approveRequest"><i class="bi bi-check-lg"></i> Onayla</button>
-                                        <button class="btn btn-danger btn-sm" data-bind="click: $parent.rejectRequest"><i class="bi bi-x-lg"></i> Reddet</button>
+                                        <button class="btn btn-success btn-sm me-1" data-bind="click: $parent.approveRequest"><i class="bi bi-check-lg"></i> <t key="management.customer_detail.approve">Onayla</t></button>
+                                        <button class="btn btn-danger btn-sm" data-bind="click: $parent.rejectRequest"><i class="bi bi-x-lg"></i> <t key="management.customer_detail.reject">Reddet</t></button>
                                     </td>
                                 </tr>
                             </tbody>

@@ -563,6 +563,13 @@ public class AppDbContext : DbContext
             e.HasOne(p => p.SourceInvoiceItem).WithMany().HasForeignKey(p => p.SourceInvoiceItemId).OnDelete(DeleteBehavior.SetNull);
         });
 
+        modelBuilder.Entity<SlnGiftCard>(e =>
+        {
+            e.HasIndex(g => new { g.CustomerId, g.BranchId });
+            e.HasIndex(g => g.BranchId);
+            e.HasOne(g => g.Branch).WithMany().HasForeignKey(g => g.BranchId).OnDelete(DeleteBehavior.SetNull);
+        });
+
         modelBuilder.Entity<SlnPackageUsage>(e =>
         {
             e.HasIndex(u => u.InvoiceId);

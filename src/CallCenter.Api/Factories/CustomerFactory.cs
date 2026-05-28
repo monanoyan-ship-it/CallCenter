@@ -265,7 +265,16 @@ public class CustomerFactory : ICustomerFactory
         }
         await _uow.SaveChangesAsync();
 
-        foreach (var module in PortalModules.All)
+        var productTypeIds = products.Select(p => p.ProductTypeId).ToHashSet();
+        var modulesToCreate = new List<TypeItem>();
+        if (productTypeIds.Contains(ProductTypes.Ids.CallCenter))
+            modulesToCreate.AddRange(PortalModules.All);
+        if (productTypeIds.Contains(ProductTypes.Ids.Salon))
+            modulesToCreate.AddRange(SalonPortalModules.All);
+        if (productTypeIds.Contains(ProductTypes.Ids.Crm))
+            modulesToCreate.AddRange(CrmModules.All);
+
+        foreach (var module in modulesToCreate.DistinctBy(m => m.Id))
         {
             _moduleEs.Add(new CustomerPortalModule
             {
@@ -442,8 +451,11 @@ public class CustomerFactory : ICustomerFactory
             {
                 var ccDef = PortalModules.GetById(pm.ModuleId);
                 var slnDef = SalonPortalModules.GetById(pm.ModuleId);
-                var moduleDef = ccDef ?? slnDef;
+                var crmDef = CrmModules.GetById(pm.ModuleId);
+                var moduleDef = ccDef ?? slnDef ?? crmDef;
                 if (moduleDef == null) return null;
+                var salonGroupId = slnDef != null ? SalonModuleGroups.GetGroupId(pm.ModuleId) : null;
+                var crmGroupId = crmDef != null ? CrmModuleGroups.GetGroupId(pm.ModuleId) : null;
                 pricingMap.TryGetValue(pm.ModuleId, out var pricing);
                 return new PortalModuleDto
                 {
@@ -453,13 +465,19 @@ public class CustomerFactory : ICustomerFactory
                     Icon = moduleDef.Icon,
                     IsActive = pm.IsActive,
                     IsDefault = moduleDef.IsDefault,
-                    ProductTypeId = ccDef != null ? PortalModules.ProductTypeId : SalonPortalModules.ProductTypeId,
-                    GroupId = SalonModuleGroups.GetGroupId(pm.ModuleId),
-                    GroupName = SalonModuleGroups.GetById(SalonModuleGroups.GetGroupId(pm.ModuleId) ?? 0)?.Description,
+                    ProductTypeId = ccDef != null
+                        ? PortalModules.ProductTypeId
+                        : slnDef != null
+                            ? SalonPortalModules.ProductTypeId
+                            : CrmModules.ProductTypeId,
+                    GroupId = salonGroupId ?? crmGroupId,
+                    GroupName = crmDef != null
+                        ? CrmModuleGroups.GetById(crmGroupId ?? CrmModuleGroups.Ids.Core)?.Description
+                        : SalonModuleGroups.GetById(salonGroupId ?? 0)?.Description,
                     CatalogPrice = pricing?.MonthlyPrice ?? 0,
                     CustomerPrice = pm.MonthlyPrice,
                     TrialEndsAt = pm.TrialEndsAt,
-                    IsImplemented = SalonPortalModules.IsImplemented(pm.ModuleId),
+                    IsImplemented = crmDef != null || SalonPortalModules.IsImplemented(pm.ModuleId),
                     Permissions = CustomerPermissionTypes.GetByModule(moduleDef.Id).Select(p => new PermissionTypeDto
                     {
                         Id = p.Id,
@@ -483,7 +501,9 @@ public class CustomerFactory : ICustomerFactory
 
         foreach (var moduleId in request.ModuleIds)
         {
-            if (PortalModules.GetById(moduleId) == null && SalonPortalModules.GetById(moduleId) == null) continue;
+            if (PortalModules.GetById(moduleId) == null
+                && SalonPortalModules.GetById(moduleId) == null
+                && CrmModules.GetById(moduleId) == null) continue;
 
             var existing = customer.PortalModules.FirstOrDefault(m => m.ModuleId == moduleId);
             if (existing != null)
@@ -507,9 +527,32 @@ public class CustomerFactory : ICustomerFactory
             }
         }
 
+        if (request.ModuleIds.Any(moduleId => CrmModules.GetById(moduleId) != null))
+            await EnsureCustomerProductAsync(customerId, ProductTypes.Ids.Crm);
+
         await _uow.SaveChangesAsync();
         await TryRefreshSalonDisplayMonthlyAsync(customerId);
         return (true, null);
+    }
+
+    private async Task EnsureCustomerProductAsync(int customerId, int productTypeId)
+    {
+        var product = await _customerProductEs.GetAllQueryable()
+            .FirstOrDefaultAsync(p => p.CustomerId == customerId && p.ProductTypeId == productTypeId);
+
+        if (product != null)
+        {
+            product.IsActive = true;
+            return;
+        }
+
+        _customerProductEs.Add(new CustomerProduct
+        {
+            CustomerId = customerId,
+            ProductTypeId = productTypeId,
+            IsActive = true,
+            MonthlyPrice = 0m
+        });
     }
 
     public async Task<(bool Success, string? Error)> DeactivateModuleAsync(int customerId, int moduleId)
@@ -541,6 +584,8 @@ public class CustomerFactory : ICustomerFactory
             allModules.AddRange(PortalModules.All);
         if (products.Contains(SalonPortalModules.ProductTypeId))
             allModules.AddRange(SalonPortalModules.All);
+        if (products.Contains(CrmModules.ProductTypeId))
+            allModules.AddRange(CrmModules.All);
         // Hicbir urun yoksa default olarak Salon ekle
         if (allModules.Count == 0)
             allModules.AddRange(SalonPortalModules.All);

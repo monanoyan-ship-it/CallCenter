@@ -936,6 +936,8 @@ public class SlnPackageBenefitDto
 public class SlnGiftCardDto
 {
     public int Id { get; set; }
+    public int? BranchId { get; set; }
+    public string? BranchName { get; set; }
     public string Code { get; set; } = string.Empty;
     public decimal OriginalAmount { get; set; }
     public decimal RemainingBalance { get; set; }

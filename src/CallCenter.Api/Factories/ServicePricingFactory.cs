@@ -65,9 +65,32 @@ public class ServicePricingFactory
             // Sifir DB degeri enum varsayilanini ezmesin (taslak/bos kalemler tahakkuku 0 yapmasin)
             foreach (var item in activePeriod.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId && i.PackageGroupId.HasValue))
             {
-                if (item.MonthlyPrice > 0m && !IsLegacySalonPackagePlaceholder(item.PackageGroupId!.Value, item.MonthlyPrice))
+                if (SalonModuleGroups.GetById(item.PackageGroupId!.Value) != null
+                    && item.MonthlyPrice > 0m
+                    && !IsLegacySalonPackagePlaceholder(item.PackageGroupId!.Value, item.MonthlyPrice))
                     result[item.PackageGroupId!.Value] = item.MonthlyPrice;
             }
+        }
+
+        return result;
+    }
+
+    public async Task<Dictionary<int, decimal>> GetActiveCrmPackagePricesAsync()
+    {
+        var activePeriod = await _periodEs.GetAllQueryable()
+            .Where(p => p.StatusId == 1)
+            .OrderByDescending(p => p.StartDate)
+            .Include(p => p.Items)
+            .FirstOrDefaultAsync();
+
+        var result = CrmModuleGroups.All.ToDictionary(g => g.Id, g => g.MonthlyPrice);
+        if (activePeriod == null)
+            return result;
+
+        foreach (var item in activePeriod.Items.Where(i => i.ProductTypeId == CrmModules.ProductTypeId && i.PackageGroupId.HasValue))
+        {
+            if (CrmModuleGroups.GetById(item.PackageGroupId!.Value) != null && item.MonthlyPrice > 0m)
+                result[item.PackageGroupId!.Value] = item.MonthlyPrice;
         }
 
         return result;
@@ -150,7 +173,17 @@ public class ServicePricingFactory
 
         var ccItems = period.Items.Where(i => i.ProductTypeId == PortalModules.ProductTypeId).OrderBy(i => i.ServiceId).ToList();
         var slnItems = period.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId && !i.PackageGroupId.HasValue).OrderBy(i => i.ServiceId).ToList();
-        var pkgItems = period.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId && i.PackageGroupId.HasValue).OrderBy(i => i.PackageGroupId).ToList();
+        var pkgItems = period.Items.Where(i => i.ProductTypeId == SalonPortalModules.ProductTypeId
+                && i.PackageGroupId.HasValue
+                && SalonModuleGroups.GetById(i.PackageGroupId.Value) != null)
+            .OrderBy(i => i.PackageGroupId)
+            .ToList();
+        var crmItems = period.Items.Where(i => i.ProductTypeId == CrmModules.ProductTypeId && !i.PackageGroupId.HasValue).OrderBy(i => i.ServiceId).ToList();
+        var crmPkgItems = period.Items.Where(i => i.ProductTypeId == CrmModules.ProductTypeId
+                && i.PackageGroupId.HasValue
+                && CrmModuleGroups.GetById(i.PackageGroupId.Value) != null)
+            .OrderBy(i => i.PackageGroupId)
+            .ToList();
 
         // Salon modullerini gruplara ayir
         var salonGrouped = slnItems.Select(i =>
@@ -172,6 +205,25 @@ public class ServicePricingFactory
             items = g.OrderBy(i => i.ServiceId).ToList()
         }).OrderBy(g => g.groupId).ToList();
 
+        var crmGrouped = crmItems.Select(i =>
+        {
+            var groupId = CrmModuleGroups.GetGroupId(i.ServiceId);
+            var group = CrmModuleGroups.GetById(groupId ?? CrmModuleGroups.Ids.Core);
+            var moduleDef = CrmModules.GetById(i.ServiceId);
+            return new
+            {
+                i.Id, i.ServiceId, i.ServiceName, i.MonthlyPrice, i.PreviousPrice,
+                isDefault = moduleDef?.IsDefault ?? false,
+                groupId = groupId ?? CrmModuleGroups.Ids.Core,
+                groupName = group?.Description ?? "CRM"
+            };
+        }).GroupBy(i => i.groupId).Select(g => new
+        {
+            groupId = g.Key,
+            groupName = g.First().groupName,
+            items = g.OrderBy(i => i.ServiceId).ToList()
+        }).OrderBy(g => g.groupId).ToList();
+
         return new
         {
             period.Id, period.Name, period.StartDate, period.EndDate, period.StatusId,
@@ -181,6 +233,12 @@ public class ServicePricingFactory
             salonPackages = pkgItems.Select(i =>
             {
                 var group = SalonModuleGroups.GetById(i.PackageGroupId!.Value);
+                return new { i.Id, packageGroupId = i.PackageGroupId!.Value, name = group?.Description ?? i.ServiceName, i.MonthlyPrice, i.PreviousPrice };
+            }),
+            crmGroups = crmGrouped,
+            crmPackages = crmPkgItems.Select(i =>
+            {
+                var group = CrmModuleGroups.GetById(i.PackageGroupId!.Value);
                 return new { i.Id, packageGroupId = i.PackageGroupId!.Value, name = group?.Description ?? i.ServiceName, i.MonthlyPrice, i.PreviousPrice };
             }),
             branchDiscountTiers = period.BranchDiscountTiers
@@ -222,7 +280,7 @@ public class ServicePricingFactory
         {
 
             // Onceki donemin fiyatlarini kopyala (hem modul hem paket kalemleri)
-            foreach (var prev in previousPeriod.Items)
+            foreach (var prev in previousPeriod.Items.Where(ShouldCopyPricingItem))
             {
                 period.Items.Add(new ServicePricingItem
                 {
@@ -287,6 +345,8 @@ public class ServicePricingFactory
             }
         }
 
+        EnsureCurrentCatalogItems(period);
+
         if (period.BranchDiscountTiers.Count == 0)
             SeedDefaultBranchDiscountTiers(period);
 
@@ -334,6 +394,63 @@ public class ServicePricingFactory
             { MinBranches = 11, MaxBranches = 20, DiscountPercent = 15, SortOrder = 2 });
         period.BranchDiscountTiers.Add(new ServicePricingBranchDiscountTier
             { MinBranches = 21, MaxBranches = 999, DiscountPercent = 20, SortOrder = 3 });
+    }
+
+    private static bool ShouldCopyPricingItem(ServicePricingItem item)
+    {
+        if (!item.PackageGroupId.HasValue)
+            return true;
+
+        return item.ProductTypeId switch
+        {
+            SalonPortalModules.ProductTypeId => SalonModuleGroups.GetById(item.PackageGroupId.Value) != null,
+            CrmModules.ProductTypeId => CrmModuleGroups.GetById(item.PackageGroupId.Value) != null,
+            _ => true
+        };
+    }
+
+    private static void EnsureCurrentCatalogItems(ServicePricingPeriod period)
+    {
+        foreach (var mod in SalonPortalModules.All.Where(m => !m.IsDefault))
+            EnsurePricingItem(period, SalonPortalModules.ProductTypeId, mod.Id, null, mod.Description ?? mod.SystemName, 0m);
+
+        foreach (var pkg in SalonModuleGroups.All)
+            EnsurePricingItem(period, SalonPortalModules.ProductTypeId, 0, pkg.Id, pkg.Description, pkg.MonthlyPrice);
+
+        foreach (var mod in CrmModules.All)
+            EnsurePricingItem(period, CrmModules.ProductTypeId, mod.Id, null, mod.Description ?? mod.SystemName, 0m);
+
+        foreach (var pkg in CrmModuleGroups.All)
+            EnsurePricingItem(period, CrmModules.ProductTypeId, 0, pkg.Id, pkg.Description, pkg.MonthlyPrice);
+    }
+
+    private static ServicePricingItem EnsurePricingItem(
+        ServicePricingPeriod period,
+        int productTypeId,
+        int serviceId,
+        int? packageGroupId,
+        string serviceName,
+        decimal monthlyPrice)
+    {
+        var existing = period.Items.FirstOrDefault(i =>
+            i.ProductTypeId == productTypeId
+            && i.ServiceId == serviceId
+            && i.PackageGroupId == packageGroupId);
+
+        if (existing != null)
+            return existing;
+
+        var item = new ServicePricingItem
+        {
+            ProductTypeId = productTypeId,
+            ServiceId = serviceId,
+            PackageGroupId = packageGroupId,
+            ServiceName = serviceName,
+            MonthlyPrice = monthlyPrice,
+            PreviousPrice = monthlyPrice
+        };
+        period.Items.Add(item);
+        return item;
     }
 
     public async Task<(bool Success, string? Error)> UpdateItemPriceAsync(int itemId, decimal newPrice)
@@ -396,7 +513,11 @@ public class ServicePricingFactory
         period.StatusId = 1;
 
         // Aktif fiyatlari ModulePricing tablosuna yansit (sadece modul satirlari; paket satirlari ServiceId=0 olur, senkronize edilmez)
-        var items = await _itemEs.GetAllQueryable().Where(i => i.PeriodId == periodId && i.ProductTypeId == SalonPortalModules.ProductTypeId && !i.PackageGroupId.HasValue).ToListAsync();
+        var items = await _itemEs.GetAllQueryable()
+            .Where(i => i.PeriodId == periodId
+                && !i.PackageGroupId.HasValue
+                && (i.ProductTypeId == SalonPortalModules.ProductTypeId || i.ProductTypeId == CrmModules.ProductTypeId))
+            .ToListAsync();
         foreach (var item in items)
         {
             var pricing = await _modulePricingEs.GetByModuleIdAsync(item.ServiceId);

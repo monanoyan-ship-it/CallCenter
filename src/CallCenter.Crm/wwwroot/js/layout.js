@@ -1,4 +1,18 @@
 (function () {
+    var layoutData = document.getElementById('crm-layout-data');
+    var translations = {};
+    if (layoutData) {
+        try {
+            translations = JSON.parse(layoutData.getAttribute('data-translations') || '{}') || {};
+        } catch (e) {
+            translations = {};
+        }
+    }
+
+    window.crmT = function (key, fallback) {
+        return translations[key] || fallback || key;
+    };
+
     function toggleGroup(btn) {
         var items = btn.nextElementSibling;
         var chevron = btn.querySelector('.chevron');

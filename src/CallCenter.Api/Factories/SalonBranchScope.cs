@@ -99,6 +99,9 @@ internal static class SalonBranchScope
                     || p.SlnClient.Invoices.Any(i => i.BranchId == id))));
     }
 
+    public static IQueryable<SlnGiftCard> ApplyToGiftCards(IQueryable<SlnGiftCard> query, int? branchId)
+        => branchId.HasValue ? query.Where(g => g.BranchId == null || g.BranchId == branchId.Value) : query;
+
     public static IQueryable<SlnWhatsAppMessage> ApplyToWhatsAppMessages(IQueryable<SlnWhatsAppMessage> query, int? branchId)
     {
         if (!branchId.HasValue)

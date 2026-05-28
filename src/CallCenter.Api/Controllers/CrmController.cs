@@ -35,6 +35,15 @@ public class CrmController : ControllerBase
         return Ok(await _crm.GetModuleCatalogAsync());
     }
 
+    [HttpGet("entitlements")]
+    public async Task<ActionResult<CrmEntitlementsDto>> GetEntitlements()
+    {
+        var cid = GetCustomerId();
+        if (cid == null) return Forbid();
+
+        return Ok(await _crm.GetEntitlementsAsync(cid.Value, GetBranchId()));
+    }
+
     // ─── Caller ID Lookup ───
 
     [HttpGet("contacts/lookup")]
@@ -366,6 +375,12 @@ public class CrmController : ControllerBase
     {
         var claim = User.FindFirst("CustomerPersonnelId")?.Value;
         return claim != null ? int.Parse(claim) : null;
+    }
+
+    private int? GetBranchId()
+    {
+        var claim = User.FindFirst("BranchId")?.Value;
+        return int.TryParse(claim, out var branchId) && branchId > 0 ? branchId : null;
     }
 
     private (int? customerId, int? personnelId) GetIds()

@@ -1,3 +1,6 @@
+using System.Text.Json;
+using CallCenter.Shared.DTOs;
+using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -5,6 +8,8 @@ namespace CallCenter.Crm.Controllers;
 
 public abstract class CrmBaseController : Controller
 {
+    protected const string CrmEntitlementsSessionKey = "CrmEntitlements";
+
     public override void OnActionExecuting(ActionExecutingContext context)
     {
         var token = HttpContext.Session.GetString("Token");
@@ -39,6 +44,7 @@ public abstract class CrmBaseController : Controller
             catch { /* Hata olursa yoksay */ }
         }
 
+        ViewData[CrmEntitlementsSessionKey] = GetCrmEntitlements();
         base.OnActionExecuting(context);
     }
 
@@ -51,4 +57,50 @@ public abstract class CrmBaseController : Controller
             client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
         return client;
     }
+
+    protected CrmEntitlementsDto? GetCrmEntitlements()
+    {
+        var json = HttpContext.Session.GetString(CrmEntitlementsSessionKey);
+        if (string.IsNullOrWhiteSpace(json)) return null;
+
+        try
+        {
+            return JsonSerializer.Deserialize<CrmEntitlementsDto>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    protected async Task<CrmEntitlementsDto?> RefreshCrmEntitlementsAsync()
+    {
+        using var client = CreateApiClient();
+        var response = await client.GetAsync("api/crm/entitlements");
+        if (!response.IsSuccessStatusCode) return GetCrmEntitlements();
+
+        var json = await response.Content.ReadAsStringAsync();
+        HttpContext.Session.SetString(CrmEntitlementsSessionKey, json);
+        return GetCrmEntitlements();
+    }
+
+    protected bool HasCrmScope(string scopeKey)
+    {
+        var entitlements = GetCrmEntitlements();
+        if (entitlements == null) return true;
+
+        return scopeKey switch
+        {
+            CrmScopes.Core => entitlements.HasStandaloneCrm,
+            CrmScopes.Salon => entitlements.HasSalonCrm,
+            CrmScopes.CallCenter => entitlements.HasCallCenterCrm,
+            _ => false
+        };
+    }
+
+    protected IActionResult? RequireCrmScope(string scopeKey)
+        => HasCrmScope(scopeKey) ? null : RedirectToAction("Index", "Home");
 }

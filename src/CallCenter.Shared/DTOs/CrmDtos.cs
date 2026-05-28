@@ -38,7 +38,7 @@ public class CrmContactCreateDto
 
 public class CrmContactUpdateDto : CrmContactCreateDto
 {
-    public bool IsFavorite { get; set; }
+    public bool? IsFavorite { get; set; }
 }
 
 // ─── Ticket ───
@@ -224,4 +224,26 @@ public class CrmModuleDto
     public string GroupName { get; set; } = string.Empty;
     public int? SourceSalonModuleId { get; set; }
     public string? SourceSalonModuleName { get; set; }
+}
+
+public class CrmScopeDto
+{
+    public string Key { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+    public string DashboardUrl { get; set; } = string.Empty;
+    public string Icon { get; set; } = string.Empty;
+}
+
+public class CrmEntitlementsDto
+{
+    public bool HasCrmProduct { get; set; }
+    public bool HasStandaloneCrm { get; set; }
+    public bool HasSalonCrm { get; set; }
+    public bool HasCallCenterCrm { get; set; }
+    public int? BranchId { get; set; }
+    public string DefaultScope { get; set; } = string.Empty;
+    public List<int> ActiveProductTypeIds { get; set; } = new();
+    public List<int> ActiveCrmModuleIds { get; set; } = new();
+    public List<int> ActiveSalonModuleIds { get; set; } = new();
+    public List<CrmScopeDto> Scopes { get; set; } = new();
 }

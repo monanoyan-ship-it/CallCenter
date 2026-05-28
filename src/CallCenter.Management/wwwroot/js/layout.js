@@ -1,5 +1,19 @@
 (function () {
     var redirecting = false;
+    var layoutData = document.getElementById('management-layout-data');
+    var translations = {};
+
+    if (layoutData) {
+        try {
+            translations = JSON.parse(layoutData.getAttribute('data-translations') || '{}') || {};
+        } catch (e) {
+            translations = {};
+        }
+    }
+
+    window.mgmtT = function (key, fallback) {
+        return translations[key] || fallback || key;
+    };
 
     function toggleGroup(btn) {
         var items = btn.nextElementSibling;

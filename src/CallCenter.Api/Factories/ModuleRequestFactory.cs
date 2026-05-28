@@ -4,6 +4,7 @@ using CallCenter.Api.Infrastructure;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Factories;
 
@@ -12,6 +13,7 @@ public class ModuleRequestFactory : IModuleRequestFactory
     private readonly IModuleRequestEntityService _requestEs;
     private readonly IModulePricingEntityService _pricingEs;
     private readonly ICustomerPortalModuleEntityService _moduleEs;
+    private readonly ICustomerProductEntityService _customerProductEs;
     private readonly ISubscriptionFactory _subscriptionFactory;
     private readonly IUnitOfWork _uow;
 
@@ -19,12 +21,14 @@ public class ModuleRequestFactory : IModuleRequestFactory
         IModuleRequestEntityService requestEs,
         IModulePricingEntityService pricingEs,
         ICustomerPortalModuleEntityService moduleEs,
+        ICustomerProductEntityService customerProductEs,
         ISubscriptionFactory subscriptionFactory,
         IUnitOfWork uow)
     {
         _requestEs = requestEs;
         _pricingEs = pricingEs;
         _moduleEs = moduleEs;
+        _customerProductEs = customerProductEs;
         _subscriptionFactory = subscriptionFactory;
         _uow = uow;
     }
@@ -111,6 +115,8 @@ public class ModuleRequestFactory : IModuleRequestFactory
                 module.DeactivatedAt = DateTime.UtcNow;
                 module.Notes = "Iptal talebi ile deaktif edildi";
             }
+
+            await DeactivateMappedCrmModuleAsync(request.CustomerId, request.ModuleId);
         }
         else
         {
@@ -131,6 +137,8 @@ public class ModuleRequestFactory : IModuleRequestFactory
                     Notes = "Talep ile aktif edildi"
                 });
             }
+
+            await ActivateMappedCrmModuleAsync(request.CustomerId, request.ModuleId);
         }
 
         await _subscriptionFactory.RefreshSubscriptionDisplayMonthlyPriceAsync(request.CustomerId, saveChanges: false);
@@ -229,5 +237,68 @@ public class ModuleRequestFactory : IModuleRequestFactory
             ReviewedAt = r.ReviewedAt,
             ReviewedByName = r.ReviewedByUser?.FullName
         };
+    }
+
+    private async Task ActivateMappedCrmModuleAsync(int customerId, int salonModuleId)
+    {
+        var crmModule = CrmModules.GetBySalonModuleId(salonModuleId);
+        if (crmModule == null)
+            return;
+
+        await EnsureCrmProductAsync(customerId);
+
+        var crmCustomerModule = await _moduleEs.GetByCustomerAndModuleAsync(customerId, crmModule.Id);
+        if (crmCustomerModule != null)
+        {
+            crmCustomerModule.IsActive = true;
+            crmCustomerModule.ActivatedAt = DateTime.UtcNow;
+            crmCustomerModule.DeactivatedAt = null;
+            return;
+        }
+
+        _moduleEs.Add(new CustomerPortalModule
+        {
+            CustomerId = customerId,
+            ModuleId = crmModule.Id,
+            IsActive = true,
+            ActivatedAt = DateTime.UtcNow,
+            Notes = "Salon CRM talebi ile aktif edildi"
+        });
+    }
+
+    private async Task DeactivateMappedCrmModuleAsync(int customerId, int salonModuleId)
+    {
+        var crmModule = CrmModules.GetBySalonModuleId(salonModuleId);
+        if (crmModule == null)
+            return;
+
+        var crmCustomerModule = await _moduleEs.GetByCustomerAndModuleAsync(customerId, crmModule.Id);
+        if (crmCustomerModule == null)
+            return;
+
+        crmCustomerModule.IsActive = false;
+        crmCustomerModule.DeactivatedAt = DateTime.UtcNow;
+        crmCustomerModule.Notes = "Salon CRM iptal talebi ile deaktif edildi";
+    }
+
+    private async Task EnsureCrmProductAsync(int customerId)
+    {
+        var product = await _customerProductEs.GetAllQueryable()
+            .FirstOrDefaultAsync(p => p.CustomerId == customerId && p.ProductTypeId == ProductTypes.Ids.Crm);
+
+        if (product != null)
+        {
+            product.IsActive = true;
+            return;
+        }
+
+        _customerProductEs.Add(new CustomerProduct
+        {
+            CustomerId = customerId,
+            ProductTypeId = ProductTypes.Ids.Crm,
+            IsActive = true,
+            MonthlyPrice = 0m,
+            CreatedAt = DateTime.UtcNow
+        });
     }
 }

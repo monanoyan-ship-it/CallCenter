@@ -36,32 +36,40 @@ public class SlnGiftCardFactory : ISlnGiftCardFactory
         _uow = uow;
     }
 
-    public async Task<List<SlnGiftCardDto>> GetGiftCardsAsync(int customerId)
+    public async Task<List<SlnGiftCardDto>> GetGiftCardsAsync(int customerId, int? branchId = null)
     {
-        return await _cards.GetAllQueryable()
-            .Where(g => g.CustomerId == customerId)
+        return await SalonBranchScope.ApplyToGiftCards(
+                _cards.GetAllQueryable().Where(g => g.CustomerId == customerId),
+                branchId)
+            .Include(g => g.Branch)
             .Include(g => g.SoldByPersonnel).ThenInclude(p => p!.User)
             .OrderByDescending(g => g.CreatedAt)
             .Select(g => MapToDto(g))
             .ToListAsync();
     }
 
-    public async Task<SlnGiftCardDto?> GetGiftCardAsync(int id, int customerId)
+    public async Task<SlnGiftCardDto?> GetGiftCardAsync(int id, int customerId, int? branchId = null)
     {
-        var card = await _cards.GetAllQueryable()
+        var card = await SalonBranchScope.ApplyToGiftCards(
+                _cards.GetAllQueryable().Where(g => g.Id == id && g.CustomerId == customerId),
+                branchId)
+            .Include(g => g.Branch)
             .Include(g => g.SoldByPersonnel).ThenInclude(p => p!.User)
             .Include(g => g.Transactions)
-            .FirstOrDefaultAsync(g => g.Id == id && g.CustomerId == customerId);
+            .FirstOrDefaultAsync();
         return card != null ? MapToDto(card) : null;
     }
 
-    public async Task<SlnGiftCardDto?> GetGiftCardByCodeAsync(string code, int customerId)
+    public async Task<SlnGiftCardDto?> GetGiftCardByCodeAsync(string code, int customerId, int? branchId = null)
     {
         var normalizedCode = NormalizeCode(code);
-        var card = await _cards.GetAllQueryable()
+        var card = await SalonBranchScope.ApplyToGiftCards(
+                _cards.GetAllQueryable().Where(g => g.Code == normalizedCode && g.CustomerId == customerId && g.IsActive),
+                branchId)
+            .Include(g => g.Branch)
             .Include(g => g.SoldByPersonnel).ThenInclude(p => p!.User)
             .Include(g => g.Transactions)
-            .FirstOrDefaultAsync(g => g.Code == normalizedCode && g.CustomerId == customerId && g.IsActive);
+            .FirstOrDefaultAsync();
         return card != null ? MapToDto(card) : null;
     }
 
@@ -75,6 +83,7 @@ public class SlnGiftCardFactory : ISlnGiftCardFactory
         var card = new SlnGiftCard
         {
             CustomerId = customerId,
+            BranchId = branchId,
             Code = await GenerateUniqueCodeAsync(customerId),
             OriginalAmount = dto.Amount,
             RemainingBalance = dto.Amount,
@@ -102,15 +111,17 @@ public class SlnGiftCardFactory : ISlnGiftCardFactory
 
         await CreateGiftCardSaleInvoiceAsync(customerId, branchId, userId, dto.PaymentMethodId, card);
 
-        return ((await GetGiftCardAsync(card.Id, customerId))!, null);
+        return ((await GetGiftCardAsync(card.Id, customerId, branchId))!, null);
     }
 
-    public async Task<(bool Success, string? Error)> RedeemGiftCardAsync(SlnGiftCardRedeemDto dto, int customerId)
+    public async Task<(bool Success, string? Error)> RedeemGiftCardAsync(SlnGiftCardRedeemDto dto, int customerId, int? branchId = null)
     {
         if (dto.Amount <= 0) return (false, "Hediye karti kullanim tutari 0'dan buyuk olmali");
         var normalizedCode = NormalizeCode(dto.Code);
-        var card = await _cards.GetAllQueryable()
-            .FirstOrDefaultAsync(g => g.Code == normalizedCode && g.CustomerId == customerId);
+        var card = await SalonBranchScope.ApplyToGiftCards(
+                _cards.GetAllQueryable().Where(g => g.Code == normalizedCode && g.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
 
         if (card == null) return (false, "Hediye karti bulunamadi");
         if (!card.IsActive) return (false, "Bu hediye karti aktif degil");
@@ -133,10 +144,12 @@ public class SlnGiftCardFactory : ISlnGiftCardFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> DeactivateGiftCardAsync(int id, int customerId)
+    public async Task<(bool Success, string? Error)> DeactivateGiftCardAsync(int id, int customerId, int? branchId = null)
     {
-        var card = await _cards.GetAllQueryable()
-            .FirstOrDefaultAsync(g => g.Id == id && g.CustomerId == customerId);
+        var card = await SalonBranchScope.ApplyToGiftCards(
+                _cards.GetAllQueryable().Where(g => g.Id == id && g.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
 
         if (card == null) return (false, "Hediye karti bulunamadi");
         if (card.RemainingBalance < card.OriginalAmount)
@@ -315,6 +328,8 @@ public class SlnGiftCardFactory : ISlnGiftCardFactory
     private static SlnGiftCardDto MapToDto(SlnGiftCard g) => new()
     {
         Id = g.Id,
+        BranchId = g.BranchId,
+        BranchName = g.Branch?.Name,
         Code = g.Code,
         OriginalAmount = g.OriginalAmount,
         RemainingBalance = g.RemainingBalance,

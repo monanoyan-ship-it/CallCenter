@@ -9,13 +9,13 @@ public static class SalonModuleGroups
 {
     // Id=0 Temel → pricing key 0 ile eşleşir. Diğer gruplar mevcut kayıtlarla uyumlu tutulur.
     public static readonly ModuleGroup Core = new(0, "Core", "Temel Paket", "bi-house-fill", "bg-success", 1700m, 0);
-    public static readonly ModuleGroup StockFinance = new(1, "StockFinance", "Stok Tedarik / Finans", "bi-box-seam", "bg-secondary", 400m, 1);
+    public static readonly ModuleGroup StockFinance = new(1, "StockFinanceLegacy", "Temel Paket (Stok/Finans dahil)", "bi-box-seam", "bg-secondary", 0m, 99);
     // SystemName ve Id eski kayıtlarla uyumluluk için korunur; satış yüzeyinde bu grup Salon CRM hizmetidir.
     public static readonly ModuleGroup LoyaltyMarketing = new(3, "LoyaltyMarketing", "Salon CRM", "bi-person-heart", "bg-danger", 1500m, 2);
-    public static readonly ModuleGroup Professional = new(5, "Professional", "Profesyonel", "bi-star-fill", "bg-warning text-dark", 1500m, 3);
-    public static readonly ModuleGroup Enterprise = new(6, "Enterprise", "Kurumsal", "bi-building", "bg-primary", 200m, 4);
+    public static readonly ModuleGroup Professional = new(5, "ReportingAnalytics", "Raporlama ve Analiz", "bi-bar-chart-line", "bg-warning text-dark", 1500m, 3);
+    public static readonly ModuleGroup Enterprise = new(6, "EnterpriseLegacy", "Raporlama ve Analiz (Eski)", "bi-building", "bg-primary", 0m, 99);
 
-    public static IEnumerable<ModuleGroup> All => new[] { Core, StockFinance, LoyaltyMarketing, Professional, Enterprise };
+    public static IEnumerable<ModuleGroup> All => new[] { Core, LoyaltyMarketing, Professional };
     public static ModuleGroup? GetById(int id) => All.FirstOrDefault(x => x.Id == id);
     public static bool IsCrmServiceGroup(int? groupId) => groupId == Ids.LoyaltyMarketing;
 
@@ -54,8 +54,8 @@ public static class SalonModuleGroups
         [SalonPortalModules.Ids.SlnPackages] = Ids.Core,
 
         // ── Stok Tedarik / Finans (1) — 400 TL ─────────────────────────────
-        [SalonPortalModules.Ids.SlnSuppliers] = Ids.StockFinance,
-        [SalonPortalModules.Ids.SlnExpenses] = Ids.StockFinance,
+        [SalonPortalModules.Ids.SlnSuppliers] = Ids.Core,
+        [SalonPortalModules.Ids.SlnExpenses] = Ids.Core,
 
         // ── Salon CRM (3) — 1.500 TL ────────────────────
         [SalonPortalModules.Ids.SlnGiftCards] = Ids.LoyaltyMarketing,
@@ -69,7 +69,7 @@ public static class SalonModuleGroups
         // ── Profesyonel (5) — 1.500 TL ───────────────────────────────────────────────
         [SalonPortalModules.Ids.SlnBeforeAfter] = Ids.Professional,
 
-        [SalonPortalModules.Ids.SlnReports] = Ids.Enterprise,
+        [SalonPortalModules.Ids.SlnReports] = Ids.Professional,
     };
 
     /// <summary>

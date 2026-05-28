@@ -16,6 +16,13 @@ public class ModulesController : MgmtBaseController
         return View();
     }
 
+    public IActionResult Crm()
+    {
+        ViewData["Title"] = "CRM Odeme Takibi";
+        ViewData["BillingProductTypeId"] = 3;
+        return View("CallCenter");
+    }
+
     public IActionResult Pricing()
     {
         ViewData["Title"] = "Hizmet Fiyatları";
