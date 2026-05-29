@@ -73,3 +73,16 @@
     background: #eff6ff;
     font-weight: 500;
 }
+
+.audio-switch {
+    font-size: 0.78rem;
+    color: #374151;
+}
+
+.audio-switch .form-check-input {
+    cursor: pointer;
+}
+
+.audio-switch .form-check-label {
+    cursor: pointer;
+}

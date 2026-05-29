@@ -65,6 +65,7 @@ public class NativeSipService : ISipService
     // ─── Volume (0.0 - 1.0) ───
     private float _micVolume = 1.0f;
     private float _speakerVolume = 1.0f;
+    private bool _echoGuardEnabled = true;
 
     // ─── Codec ───
     private List<string> _enabledCodecNames = new() { "OPUS", "G722", "PCMU", "PCMA" };
@@ -184,6 +185,7 @@ public class NativeSipService : ISipService
     public int LineCount => MaxLines;
     public float MicrophoneVolume => _micVolume;
     public float SpeakerVolume => _speakerVolume;
+    public bool IsEchoGuardEnabled => _echoGuardEnabled;
     public bool IsSrtpEnabled => _srtpEnabled;
     public string? StunServer => _stunServer;
     public string? TurnServer => _turnServer;
@@ -810,11 +812,23 @@ public class NativeSipService : ISipService
     public void SetMicrophoneVolume(float volume)
     {
         _micVolume = Math.Clamp(volume, 0f, 1f);
+        if (_winAudioEndPoint != null)
+            _winAudioEndPoint.MicrophoneVolume = _micVolume;
     }
 
     public void SetSpeakerVolume(float volume)
     {
         _speakerVolume = Math.Clamp(volume, 0f, 1f);
+        if (_winAudioEndPoint != null)
+            _winAudioEndPoint.SpeakerVolume = _speakerVolume;
+    }
+
+    public void SetEchoGuard(bool enabled)
+    {
+        _echoGuardEnabled = enabled;
+        if (_winAudioEndPoint != null)
+            _winAudioEndPoint.EchoGuardEnabled = enabled;
+        Log($"[SIP] Echo guard: {(enabled ? "aktif" : "kapali")}");
     }
 
     // ═══════════════════════════════════════════════════
@@ -1812,6 +1826,9 @@ public class NativeSipService : ISipService
     {
         Log($"[SIP] CreateMediaSession: outputDevice={_outputDeviceIndex}, inputDevice={_inputDeviceIndex}, codecs=[{string.Join(",", _enabledCodecNames)}], srtp={_srtpEnabled}");
         var winAudio = new Audio.LowLatencyAudioEndPoint(new AudioEncoder(), _outputDeviceIndex, _inputDeviceIndex);
+        winAudio.MicrophoneVolume = _micVolume;
+        winAudio.SpeakerVolume = _speakerVolume;
+        winAudio.EchoGuardEnabled = _echoGuardEnabled;
         _winAudioEndPoint = winAudio; // Recording icin mikrofon event'ine erisim
 
         // Codec filtresi: Sadece etkinlestirilmis codec'ler

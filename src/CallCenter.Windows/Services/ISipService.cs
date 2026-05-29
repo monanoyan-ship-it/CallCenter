@@ -64,8 +64,10 @@ public interface ISipService : IAsyncDisposable
     // ─── Volume ───
     float MicrophoneVolume { get; }
     float SpeakerVolume { get; }
+    bool IsEchoGuardEnabled { get; }
     void SetMicrophoneVolume(float volume);
     void SetSpeakerVolume(float volume);
+    void SetEchoGuard(bool enabled);
 
     // ─── Recording ───
     string? LastRecordingPath { get; }
