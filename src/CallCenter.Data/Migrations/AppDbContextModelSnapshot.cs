@@ -3148,6 +3148,49 @@ namespace CallCenter.Data.Migrations
                     b.ToTable("PaymentTransactions");
                 });
 
+            modelBuilder.Entity("CallCenter.Shared.Entities.PaymentTransactionLine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int?>("BillingKindId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("BillingPeriodId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("PaymentTransactionId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BillingPeriodId");
+
+                    b.HasIndex("PaymentTransactionId");
+
+                    b.ToTable("PaymentTransactionLines");
+                });
+
             modelBuilder.Entity("CallCenter.Shared.Entities.PlatformEmailEvent", b =>
                 {
                     b.Property<int>("Id")
@@ -9893,6 +9936,24 @@ namespace CallCenter.Data.Migrations
                     b.Navigation("PlatformUser");
                 });
 
+            modelBuilder.Entity("CallCenter.Shared.Entities.PaymentTransactionLine", b =>
+                {
+                    b.HasOne("CallCenter.Shared.Entities.CustomerBillingPeriod", "BillingPeriod")
+                        .WithMany()
+                        .HasForeignKey("BillingPeriodId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CallCenter.Shared.Entities.PaymentTransaction", "PaymentTransaction")
+                        .WithMany("Lines")
+                        .HasForeignKey("PaymentTransactionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BillingPeriod");
+
+                    b.Navigation("PaymentTransaction");
+                });
+
             modelBuilder.Entity("CallCenter.Shared.Entities.PlatformEmailTemplate", b =>
                 {
                     b.HasOne("CallCenter.Shared.Entities.PlatformEmailEvent", "Event")
@@ -11792,6 +11853,11 @@ namespace CallCenter.Data.Migrations
             modelBuilder.Entity("CallCenter.Shared.Entities.PlatformUser", b =>
                 {
                     b.Navigation("Salons");
+                });
+
+            modelBuilder.Entity("CallCenter.Shared.Entities.PaymentTransaction", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("CallCenter.Shared.Entities.Queue", b =>

@@ -188,6 +188,7 @@ public class AppDbContext : DbContext
 
     // ─── Payment ───
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
+    public DbSet<PaymentTransactionLine> PaymentTransactionLines => Set<PaymentTransactionLine>();
     public DbSet<PlatformPaymentConfig> PlatformPaymentConfigs => Set<PlatformPaymentConfig>();
 
     // ─── Platform User ───
@@ -334,6 +335,24 @@ public class AppDbContext : DbContext
             e.Property(t => t.ErrorMessage).HasMaxLength(1000);
             e.HasOne(t => t.Customer).WithMany().HasForeignKey(t => t.CustomerId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(t => t.PlatformUser).WithMany().HasForeignKey(t => t.PlatformUserId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<PaymentTransactionLine>(e =>
+        {
+            e.HasKey(l => l.Id);
+            e.HasIndex(l => l.PaymentTransactionId);
+            e.HasIndex(l => l.BillingPeriodId);
+            e.Property(l => l.Description).HasMaxLength(200).IsRequired();
+            e.Property(l => l.Amount).HasPrecision(18, 2);
+            e.Property(l => l.Currency).HasMaxLength(5);
+            e.HasOne(l => l.PaymentTransaction)
+                .WithMany(t => t.Lines)
+                .HasForeignKey(l => l.PaymentTransactionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(l => l.BillingPeriod)
+                .WithMany()
+                .HasForeignKey(l => l.BillingPeriodId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // PlatformPaymentConfig

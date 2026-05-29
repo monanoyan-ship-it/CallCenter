@@ -108,6 +108,7 @@
                 var callCenterOpen = (ctrl == "Home" && action == "CallCenter") || ctrl is "Calls" or "Activities" or "Tasks" or "Campaigns";
                 var integrationOpen = ctrl is "Integrations";
                 var reportOpen = ctrl is "Reports";
+                var paymentsOpen = ctrl is "Payments";
                 var multipleScopes = entitlements?.Scopes?.Count > 1;
             }
 
@@ -129,6 +130,10 @@
                     }
                 </div>
             }
+
+            <a class="nav-link @(paymentsOpen ? "active" : "")" href="/Payments">
+                <i class="bi bi-credit-card-2-front-fill me-2"></i>Odemeler
+            </a>
 
             @if (showCore)
             {

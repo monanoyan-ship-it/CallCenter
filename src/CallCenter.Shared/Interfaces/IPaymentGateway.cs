@@ -94,10 +94,12 @@ public class PaymentVerifyResult
     public bool Success { get; set; }
     public string? ProviderTransactionId { get; set; }
     public string? ProviderPaymentId { get; set; }
+    public decimal? PaidAmount { get; set; }
+    public string? Currency { get; set; }
     public string? Error { get; set; }
 
-    public static PaymentVerifyResult Ok(string txId, string? paymentId = null) => new()
-        { Success = true, ProviderTransactionId = txId, ProviderPaymentId = paymentId };
+    public static PaymentVerifyResult Ok(string txId, string? paymentId = null, decimal? paidAmount = null, string? currency = null) => new()
+        { Success = true, ProviderTransactionId = txId, ProviderPaymentId = paymentId, PaidAmount = paidAmount, Currency = currency };
     public static PaymentVerifyResult Fail(string error) => new() { Success = false, Error = error };
 }
 

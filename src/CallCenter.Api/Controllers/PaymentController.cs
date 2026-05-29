@@ -211,6 +211,43 @@ public class PaymentController : ControllerBase
         return Ok(new { success = true, htmlContent = result.HtmlContent, token = result.Token });
     }
 
+    /// <summary>Firma kullanicisi icin acik tahakkuk kalemlerini odeme oncesi gosterir.</summary>
+    [HttpGet("checkout-preview")]
+    [Authorize(Roles = "CustomerUser")]
+    public async Task<ActionResult> CheckoutPreview(
+        [FromQuery] string? paymentContext = null,
+        [FromQuery] bool materializeSalonDebt = false)
+    {
+        if (!CanManageCustomerBillingPayments()) return Forbid();
+
+        var customerId = GetCustomerId();
+        var result = await _paymentService.GetCheckoutPreviewAsync(customerId, paymentContext, materializeSalonDebt: materializeSalonDebt);
+        if (!result.Success) return BadRequest(result);
+        return Ok(result);
+    }
+
+    /// <summary>Firma kullanicisi tum acik tahakkuklari tek Iyzico checkout oturumunda oder.</summary>
+    [HttpPost("checkout-session")]
+    [Authorize(Roles = "CustomerUser")]
+    public async Task<ActionResult> CheckoutSession([FromBody] PaymentCheckoutRequest? request = null)
+    {
+        if (!CanManageCustomerBillingPayments()) return Forbid();
+
+        var customerId = GetCustomerId();
+        var buyerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var callbackUrl = $"{GetPaymentCallbackBaseUrl()}/api/payments/iyzico-callback";
+        var returnApp = NormalizeReturnApp(request?.ReturnApp);
+        var result = await _paymentService.InitUnifiedBillingCheckoutAsync(
+            customerId,
+            request?.PaymentContext,
+            returnApp,
+            callbackUrl,
+            buyerIp,
+            request?.BillingPeriodIds);
+        if (!result.Success) return BadRequest(new { success = false, error = result.Error });
+        return Ok(new { success = true, htmlContent = result.HtmlContent, token = result.Token });
+    }
+
     /// <summary>Odeme sonucu sorgula (frontend polling icin)</summary>
     [HttpPost("package-result")]
     [Authorize(Roles = "CustomerUser")]
@@ -226,9 +263,12 @@ public class PaymentController : ControllerBase
             {
                 success = true,
                 paymentTypeId = tx.PaymentTypeId,
-                message = tx.PaymentTypeId == PaymentTypes.Ids.PlatformAbonelik
-                    ? "Abonelik odemeniz basarili. Tahakkuk kapatildi."
-                    : "Modulunuz aktif edildi.",
+                message = tx.PaymentTypeId switch
+                {
+                    PaymentTypes.Ids.PlatformAbonelik => "Abonelik odemeniz basarili. Tahakkuk kapatildi.",
+                    PaymentTypes.Ids.TopluTahakkuk => "Tahakkuk odemeniz basarili. Kalemler kapatildi.",
+                    _ => "Modulunuz aktif edildi."
+                },
                 requiresSessionRefresh = tx.PaymentTypeId == PaymentTypes.Ids.ModulSatinAlma
             });
         if (tx.StatusId == PaymentStatuses.Ids.Iptal)
@@ -307,6 +347,9 @@ public class PaymentController : ControllerBase
         if (tx.PaymentTypeId == PaymentTypes.Ids.SalonAdisyon && tx.Notes?.StartsWith("PayAppointment:") == true)
             return BuildPlatformPanelReturnUrl(salon, t, paymentSuccess, error);
 
+        if (tx.PaymentTypeId == PaymentTypes.Ids.TopluTahakkuk)
+            return BuildUnifiedBillingReturnUrl(tx, salon, t, paymentSuccess, error);
+
         return tx.PaymentTypeId switch
         {
             PaymentTypes.Ids.ModulSatinAlma => $"{salon}/Modules?iyzicoToken={t}",
@@ -315,6 +358,29 @@ public class PaymentController : ControllerBase
             PaymentTypes.Ids.UyelikOdemesi => BuildMembershipReturnUrl(tx, salon, t, paymentSuccess, error),
             _ => $"{salon}/Modules?iyzicoToken={t}"
         };
+    }
+
+    private string BuildUnifiedBillingReturnUrl(PaymentTransaction tx, string salonBase, string t, bool success, string? error)
+    {
+        var returnApp = (TryDecodeNoteValue(TryReadNoteValue(tx.Notes, "ReturnApp:")) ?? "salon").ToLowerInvariant();
+        var baseUrl = returnApp switch
+        {
+            "crm" => GetCrmBaseUrl(),
+            "callcenter" => GetCallCenterBaseUrl(),
+            _ => salonBase
+        };
+
+        var path = returnApp switch
+        {
+            "crm" => "/Payments",
+            "callcenter" => "/customer/payments",
+            _ => "/Modules"
+        };
+
+        var url = $"{baseUrl}{path}?iyzicoToken={t}&paid={success.ToString().ToLower()}";
+        if (!success && !string.IsNullOrEmpty(error))
+            url += $"&payerr={Uri.EscapeDataString(error)}";
+        return url;
     }
 
     private static string BuildBookingReturnUrl(PaymentTransaction tx, string salonBase, string t, bool success, string? error)
@@ -409,7 +475,7 @@ public class PaymentController : ControllerBase
         }
 
         var organizationPaymentTypeIds = User.IsInRole("CustomerUser")
-            ? new[] { PaymentTypes.Ids.PlatformAbonelik, PaymentTypes.Ids.ModulSatinAlma }
+            ? new[] { PaymentTypes.Ids.PlatformAbonelik, PaymentTypes.Ids.ModulSatinAlma, PaymentTypes.Ids.TopluTahakkuk }
             : null;
 
         var transactions = await _paymentService.GetTransactionsAsync(
@@ -440,7 +506,9 @@ public class PaymentController : ControllerBase
             CanDownloadReceipt = t.StatusId == PaymentStatuses.Ids.Basarili || t.StatusId == PaymentStatuses.Ids.Iade,
             CanDownloadHavaleReceipt = TryReadNoteValue(t.Notes, "HavaleReceiptPath:") != null,
             CanRetry = t.StatusId == PaymentStatuses.Ids.Basarisiz
-                && (t.PaymentTypeId == PaymentTypes.Ids.PlatformAbonelik || t.PaymentTypeId == PaymentTypes.Ids.ModulSatinAlma)
+                && (t.PaymentTypeId == PaymentTypes.Ids.PlatformAbonelik
+                    || t.PaymentTypeId == PaymentTypes.Ids.ModulSatinAlma
+                    || t.PaymentTypeId == PaymentTypes.Ids.TopluTahakkuk)
         }));
     }
 
@@ -573,6 +641,16 @@ public class PaymentController : ControllerBase
     private int GetPlatformUserId()
         => int.Parse(User.FindFirstValue("PlatformUserId") ?? "0");
 
+    private bool CanManageCustomerBillingPayments()
+    {
+        if (User.FindFirstValue("IsCustomerAdmin") == "true")
+            return true;
+
+        var roleId = User.FindFirstValue("CustomerRoleId");
+        return int.TryParse(roleId, out var rid)
+            && (rid == CustomerRoles.Ids.FirmaAdmin || rid == SalonRoles.Ids.SalonOwner);
+    }
+
     private int GetCustomerId()
         => int.Parse(User.FindFirstValue("CustomerId") ?? "0");
 
@@ -587,6 +665,28 @@ public class PaymentController : ControllerBase
         if (!string.IsNullOrWhiteSpace(configured))
             return configured.TrimEnd('/');
         return "https://sln.corplynk.com";
+    }
+
+    private string GetCrmBaseUrl()
+    {
+        var configured = _configuration["Crm:BaseUrl"] ?? _configuration["CrmBaseUrl"];
+        return string.IsNullOrWhiteSpace(configured)
+            ? "https://crm.corplynk.com"
+            : configured.TrimEnd('/');
+    }
+
+    private string GetCallCenterBaseUrl()
+    {
+        var configured = _configuration["WebApp:BaseUrl"] ?? _configuration["CallCenter:BaseUrl"];
+        return string.IsNullOrWhiteSpace(configured)
+            ? "https://cc.corplynk.com"
+            : configured.TrimEnd('/');
+    }
+
+    private static string NormalizeReturnApp(string? returnApp)
+    {
+        var normalized = (returnApp ?? "salon").Trim().ToLowerInvariant();
+        return normalized is "salon" or "crm" or "callcenter" ? normalized : "salon";
     }
 
     private static int? ResolvePackageGroupId(PackageRequest request)
@@ -692,4 +792,11 @@ public class PackageRequest
 public class PackageResultRequest
 {
     public string? Token { get; set; }
+}
+
+public class PaymentCheckoutRequest
+{
+    public string? PaymentContext { get; set; }
+    public string? ReturnApp { get; set; }
+    public List<int>? BillingPeriodIds { get; set; }
 }

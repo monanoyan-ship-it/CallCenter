@@ -8,6 +8,7 @@ using CallCenter.Shared.Enums;
 using CallCenter.Shared.Helpers;
 using CallCenter.Shared.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 using System.Text;
 using System.Text.Encodings.Web;
 
@@ -138,6 +139,243 @@ public class PaymentService
         subscription.StatusId = SubscriptionStatuses.Ids.Active;
         subscription.CancelledAt = null;
     }
+
+    public async Task<PaymentCheckoutPreviewDto> GetCheckoutPreviewAsync(
+        int customerId,
+        string? paymentContext = null,
+        IReadOnlyCollection<int>? billingPeriodIds = null,
+        bool materializeSalonDebt = false)
+    {
+        var lines = await GetOpenBillingLinesAsync(customerId, billingPeriodIds, materializeSalonDebt);
+        if (lines.Count == 0)
+            return PaymentCheckoutPreviewDto.Fail("Odenecek tahakkuk bulunamadi.");
+
+        return new PaymentCheckoutPreviewDto
+        {
+            PaymentContext = string.IsNullOrWhiteSpace(paymentContext) ? "all" : paymentContext.Trim(),
+            TotalAmount = lines.Sum(x => x.Amount),
+            Currency = "TRY",
+            Lines = lines
+        };
+    }
+
+    public async Task<CheckoutFormResult> InitUnifiedBillingCheckoutAsync(
+        int customerId,
+        string? paymentContext,
+        string? returnApp,
+        string callbackUrl,
+        string? buyerIp = null,
+        IReadOnlyCollection<int>? billingPeriodIds = null)
+    {
+        var preview = await GetCheckoutPreviewAsync(customerId, paymentContext, billingPeriodIds, materializeSalonDebt: true);
+        if (!preview.Success || preview.TotalAmount <= 0 || preview.Lines.Count == 0)
+            return CheckoutFormResult.Fail(preview.Error ?? "Odenecek tahakkuk bulunamadi.");
+
+        var config = await _db.PlatformPaymentConfigs.FirstOrDefaultAsync(c => c.IsActive);
+        if (config == null) return CheckoutFormResult.Fail("Aktif odeme yapilandirmasi bulunamadi.");
+
+        var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == customerId);
+        if (customer == null) return CheckoutFormResult.Fail("Musteri bulunamadi.");
+
+        var gateway = _gatewayFactory.Create(config);
+        if (gateway is not IyzicoGateway iyzicoGw)
+            return CheckoutFormResult.Fail("Checkout form sadece Iyzico destekler.");
+
+        PaymentTransaction tx;
+        try
+        {
+            var createResult = await CreateUnifiedBillingTransactionAsync(customerId, preview, config, returnApp);
+            if (createResult.Transaction == null)
+                return CheckoutFormResult.Fail(createResult.Error ?? "Odeme oturumu baslatilamadi.");
+            tx = createResult.Transaction;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Unified billing checkout transaction could not be created for customer {CustomerId}", customerId);
+            return CheckoutFormResult.Fail("Odeme oturumu baslatilirken tahakkuklar guncellendi. Sayfayi yenileyip tekrar deneyin.");
+        }
+
+        try
+        {
+            var req = new CheckoutFormRequest
+            {
+                Amount = preview.TotalAmount,
+                ConversationId = tx.Uid.ToString("N"),
+                CallbackUrl = callbackUrl,
+                BuyerId = customerId.ToString(),
+                BuyerName = customer.Name ?? "Musteri",
+                BuyerEmail = customer.Email ?? "noreply@corplynk.com",
+                BuyerIp = buyerIp,
+                Description = $"CorpLynk tahakkuk odemesi - {preview.Lines.Count} kalem"
+            };
+
+            var result = await iyzicoGw.InitCheckoutFormAsync(req);
+            if (result.Success)
+            {
+                tx.ProviderTransactionId = result.Token;
+                await _db.SaveChangesAsync();
+            }
+            return result;
+        }
+        catch (Exception ex)
+        {
+            tx.StatusId = PaymentStatuses.Ids.Basarisiz;
+            tx.ErrorMessage = ex.Message;
+            tx.Notes = AddNoteEvent(tx.Notes, "CheckoutInitFailed", ex.Message);
+            await _db.SaveChangesAsync();
+            return CheckoutFormResult.Fail($"Checkout form hatasi: {ex.Message}");
+        }
+    }
+
+    private async Task<(PaymentTransaction? Transaction, string? Error)> CreateUnifiedBillingTransactionAsync(
+        int customerId,
+        PaymentCheckoutPreviewDto preview,
+        PlatformPaymentConfig config,
+        string? returnApp)
+    {
+        if (_db.Database.IsRelational())
+        {
+            await using var dbTx = await _db.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var result = await CreateUnifiedBillingTransactionCoreAsync(customerId, preview, config, returnApp);
+            if (result.Transaction == null)
+            {
+                await dbTx.RollbackAsync();
+                return result;
+            }
+
+            await dbTx.CommitAsync();
+            return result;
+        }
+
+        return await CreateUnifiedBillingTransactionCoreAsync(customerId, preview, config, returnApp);
+    }
+
+    private async Task<(PaymentTransaction? Transaction, string? Error)> CreateUnifiedBillingTransactionCoreAsync(
+        int customerId,
+        PaymentCheckoutPreviewDto preview,
+        PlatformPaymentConfig config,
+        string? returnApp)
+    {
+        var linePeriodIds = preview.Lines
+            .Select(l => l.BillingPeriodId)
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+
+        await CancelPendingCheckoutAttemptsAsync(customerId, PaymentTypes.Ids.TopluTahakkuk);
+        await CancelPendingCheckoutAttemptsAsync(customerId, PaymentTypes.Ids.PlatformAbonelik);
+        await _db.SaveChangesAsync();
+
+        if (linePeriodIds.Count > 0)
+        {
+            var hasBlockingPayment = await _db.PaymentTransactions
+                .Where(t => t.CustomerId == customerId
+                         && (t.StatusId == PaymentStatuses.Ids.Beklemede || t.StatusId == PaymentStatuses.Ids.Basarili))
+                .AnyAsync(t =>
+                    (t.BillingPeriodId.HasValue && linePeriodIds.Contains(t.BillingPeriodId.Value))
+                    || t.Lines.Any(l => l.BillingPeriodId.HasValue && linePeriodIds.Contains(l.BillingPeriodId.Value)));
+
+            if (hasBlockingPayment)
+                return (null, "Bu tahakkuklar icin odeme islemi zaten baslamis. Sayfayi yenileyip tekrar deneyin.");
+        }
+
+        var tx = new PaymentTransaction
+        {
+            PaymentTypeId = PaymentTypes.Ids.TopluTahakkuk,
+            CustomerId = customerId,
+            Amount = preview.TotalAmount,
+            Currency = preview.Currency,
+            PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti,
+            StatusId = PaymentStatuses.Ids.Beklemede,
+            Provider = PaymentProviders.GetById(config.ProviderTypeId)?.SystemName ?? "Iyzico",
+            Notes = string.Join("|", new[]
+            {
+                "CheckoutScope:AllOpenBilling",
+                $"CheckoutContext:{EncodeNoteValue(preview.PaymentContext)}",
+                $"ReturnApp:{EncodeNoteValue(string.IsNullOrWhiteSpace(returnApp) ? "salon" : returnApp.Trim())}"
+            })
+        };
+
+        foreach (var line in preview.Lines)
+        {
+            tx.Lines.Add(new PaymentTransactionLine
+            {
+                BillingPeriodId = line.BillingPeriodId,
+                BillingKindId = line.BillingKindId,
+                Description = TrimTo(line.Description, 200),
+                Amount = line.Amount,
+                Currency = preview.Currency
+            });
+        }
+
+        _db.PaymentTransactions.Add(tx);
+        await _db.SaveChangesAsync();
+
+        return (tx, null);
+    }
+
+    private async Task<List<PaymentCheckoutLineDto>> GetOpenBillingLinesAsync(
+        int customerId,
+        IReadOnlyCollection<int>? billingPeriodIds = null,
+        bool materializeSalonDebt = false)
+    {
+        int? resolvedSalonPeriodId = null;
+        decimal resolvedSalonPayAmount = 0m;
+        if (materializeSalonDebt && (billingPeriodIds == null || billingPeriodIds.Count == 0))
+        {
+            var resolved = await _subscriptionFactory.TryResolveSalonSubscriptionPaymentAsync(customerId);
+            if (resolved.HasValue)
+            {
+                resolvedSalonPeriodId = resolved.Value.Period.Id;
+                resolvedSalonPayAmount = resolved.Value.PayAmount;
+            }
+        }
+
+        var query = _db.CustomerBillingPeriods
+            .AsNoTracking()
+            .Where(p => p.CustomerId == customerId && !p.IsPaid);
+
+        if (billingPeriodIds != null && billingPeriodIds.Count > 0)
+        {
+            var ids = billingPeriodIds.Where(id => id > 0).Distinct().ToList();
+            if (ids.Count > 0)
+                query = query.Where(p => ids.Contains(p.Id));
+        }
+
+        var periods = await query
+            .OrderBy(p => p.Year)
+            .ThenBy(p => p.Month)
+            .ThenBy(p => p.BillingKindId)
+            .ToListAsync();
+
+        var lines = new List<PaymentCheckoutLineDto>();
+        foreach (var period in periods)
+        {
+            var amount = Math.Round(Math.Max(0m, period.Amount) + Math.Max(0m, period.ServiceAmount), 2, MidpointRounding.AwayFromZero);
+            if (amount <= 0m && resolvedSalonPeriodId == period.Id)
+                amount = Math.Round(resolvedSalonPayAmount, 2, MidpointRounding.AwayFromZero);
+            if (amount <= 0) continue;
+
+            var billingKindName = CustomerBillingKinds.GetDescription(period.BillingKindId);
+            lines.Add(new PaymentCheckoutLineDto
+            {
+                BillingPeriodId = period.Id,
+                BillingKindId = period.BillingKindId,
+                BillingKindName = billingKindName,
+                Year = period.Year,
+                Month = period.Month,
+                Amount = amount,
+                BaseAmount = period.Amount,
+                ServiceAmount = period.ServiceAmount,
+                Description = $"{billingKindName} {period.Month:D2}/{period.Year}"
+            });
+        }
+
+        return lines;
+    }
+
+    private static string TrimTo(string value, int maxLength)
+        => value.Length <= maxLength ? value : value[..maxLength];
 
     private static int? TryReadPackageGroupId(string? notes)
         => TryReadNoteInt(notes, "PackageGroup:");
@@ -1619,6 +1857,7 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
         var config = await _db.PlatformPaymentConfigs.FirstOrDefaultAsync(c => c.IsActive);
         if (config == null) return CheckoutFormResult.Fail("Aktif odeme yapilandirmasi bulunamadi.");
 
+        await CancelPendingCheckoutAttemptsAsync(customerId, PaymentTypes.Ids.TopluTahakkuk);
         await CancelPendingCheckoutAttemptsAsync(customerId, PaymentTypes.Ids.ModulSatinAlma, packageGroupId: packageGroupId);
 
         var tx = new PaymentTransaction
@@ -1688,6 +1927,7 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
         var config = await _db.PlatformPaymentConfigs.FirstOrDefaultAsync(c => c.IsActive);
         if (config == null) return CheckoutFormResult.Fail("Aktif odeme yapilandirmasi bulunamadi.");
 
+        await CancelPendingCheckoutAttemptsAsync(customerId, PaymentTypes.Ids.TopluTahakkuk);
         await CancelPendingCheckoutAttemptsAsync(customerId, PaymentTypes.Ids.PlatformAbonelik, billingPeriodId: unpaidPeriod.Id);
 
         var tx = new PaymentTransaction
@@ -1743,6 +1983,7 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
     public async Task<PaymentResult> CompleteCheckoutAsync(string token)
     {
         var tx = await _db.PaymentTransactions
+            .Include(t => t.Lines)
             .FirstOrDefaultAsync(t => t.ProviderTransactionId == token);
 
         if (tx == null) return PaymentResult.Fail("Bekleyen islem bulunamadi.");
@@ -1764,21 +2005,85 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
 
         if (verifyResult.Success)
         {
+            if (verifyResult.PaidAmount.HasValue
+                && Math.Round(verifyResult.PaidAmount.Value, 2, MidpointRounding.AwayFromZero) != Math.Round(tx.Amount, 2, MidpointRounding.AwayFromZero))
+            {
+                tx.StatusId = PaymentStatuses.Ids.Basarisiz;
+                tx.ErrorMessage = $"Odeme tutari uyusmuyor. Beklenen {tx.Amount:N2} {tx.Currency}, saglayici {verifyResult.PaidAmount.Value:N2} {verifyResult.Currency ?? tx.Currency}.";
+                tx.Notes = AddNoteEvent(tx.Notes, "ProviderAmountMismatch", tx.ErrorMessage);
+                await _db.SaveChangesAsync();
+                return PaymentResult.Fail("Odeme tutari dogrulanamadi.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(verifyResult.Currency)
+                && !string.Equals(verifyResult.Currency, tx.Currency, StringComparison.OrdinalIgnoreCase))
+            {
+                tx.StatusId = PaymentStatuses.Ids.Basarisiz;
+                tx.ErrorMessage = $"Odeme para birimi uyusmuyor. Beklenen {tx.Currency}, saglayici {verifyResult.Currency}.";
+                tx.Notes = AddNoteEvent(tx.Notes, "ProviderCurrencyMismatch", tx.ErrorMessage);
+                await _db.SaveChangesAsync();
+                return PaymentResult.Fail("Odeme para birimi dogrulanamadi.");
+            }
+
             tx.StatusId = PaymentStatuses.Ids.Basarili;
             tx.ProviderPaymentId = verifyResult.ProviderPaymentId;
             tx.CompletedAt = DateTime.UtcNow;
             tx.Notes = AddNoteEvent(tx.Notes, "ProviderCallbackSucceeded", "Checkout callback dogrulamasi basarili.");
 
-            if (tx.BillingPeriodId.HasValue)
+            if ((tx.BillingPeriodId.HasValue || tx.Lines.Count > 0) && !tx.CustomerId.HasValue)
             {
-                var period = await _db.CustomerBillingPeriods.FindAsync(tx.BillingPeriodId.Value);
-                if (period != null)
+                tx.StatusId = PaymentStatuses.Ids.Basarisiz;
+                tx.ErrorMessage = "Odeme isleminin musteri baglantisi yok.";
+                tx.Notes = AddNoteEvent(tx.Notes, "MissingCustomerId", tx.ErrorMessage);
+                await _db.SaveChangesAsync();
+                return PaymentResult.Fail("Odeme musteri baglantisi dogrulanamadi.");
+            }
+
+            if (tx.BillingPeriodId.HasValue && tx.CustomerId.HasValue)
+            {
+                var period = await _db.CustomerBillingPeriods
+                    .FirstOrDefaultAsync(p => p.Id == tx.BillingPeriodId.Value && p.CustomerId == tx.CustomerId.Value);
+                if (period != null && !period.IsPaid && period.StatusId != BillingPeriodStatuses.Ids.Paid)
                 {
                     period.StatusId = BillingPeriodStatuses.Ids.Paid;
                     period.IsPaid = true;
                     period.PaidAt = DateTime.UtcNow;
                     period.PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti;
                     await ActivateSalonSubscriptionAfterPlatformPaymentAsync(period, tx.Amount);
+                }
+            }
+
+            if (tx.Lines.Count > 0)
+            {
+                var linePeriodIds = tx.Lines
+                    .Where(l => l.BillingPeriodId.HasValue)
+                    .Select(l => l.BillingPeriodId!.Value)
+                    .Distinct()
+                    .ToList();
+
+                if (linePeriodIds.Count > 0)
+                {
+                    var periods = await _db.CustomerBillingPeriods
+                        .Where(p => p.CustomerId == tx.CustomerId!.Value && linePeriodIds.Contains(p.Id))
+                        .ToDictionaryAsync(p => p.Id);
+
+                    var applied = 0;
+                    foreach (var line in tx.Lines.Where(l => l.BillingPeriodId.HasValue))
+                    {
+                        if (!periods.TryGetValue(line.BillingPeriodId!.Value, out var period))
+                            continue;
+                        if (period.IsPaid || period.StatusId == BillingPeriodStatuses.Ids.Paid)
+                            continue;
+
+                        period.StatusId = BillingPeriodStatuses.Ids.Paid;
+                        period.IsPaid = true;
+                        period.PaidAt = DateTime.UtcNow;
+                        period.PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti;
+                        await ActivateSalonSubscriptionAfterPlatformPaymentAsync(period, line.Amount);
+                        applied++;
+                    }
+
+                    tx.Notes = AddNoteEvent(tx.Notes, "BillingLinesApplied", $"{applied} tahakkuk kalemi kapatildi.");
                 }
             }
 

@@ -43,6 +43,16 @@
         </div>
 
         @* ─── PORTAL YÖNETİMİ (FirmaAdmin + EkipLideri, modul bazli) ─── *@
+        @if (IsFirmaAdmin)
+        {
+            <div class="nav-item">
+                <NavLink class="nav-link" href="customer/payments" Match="NavLinkMatch.All">
+                    <i class="bi bi-credit-card-2-front-fill"></i>
+                    <span>Odemeler</span>
+                </NavLink>
+            </div>
+        }
+
         @if (IsFirmaAdmin || IsEkipLideri)
         {
             var hasPortalItems = (IsFirmaAdmin && (HasModule(PortalModules.Ids.Personnel) || HasModule(PortalModules.Ids.Organizations) || HasModule(PortalModules.Ids.SipSettings) || HasModule(PortalModules.Ids.Settings)))

@@ -1,0 +1,322 @@
+@page "/customer/payments"
+@attribute [Authorize(Roles = "CustomerUser")]
+@inject HttpClient Http
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject PermissionService PermService
+@using System.Net.Http.Json
+@using CallCenter.Shared.DTOs
+
+<PageTitle>Odemeler - CorpLynk</PageTitle>
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="bi bi-credit-card-2-front-fill me-2 text-primary"></i>Odemeler
+    </h4>
+    <button class="btn btn-success btn-sm" @onclick="OpenConfirm" disabled="@(isLoading || !HasPayableLines)">
+        <i class="bi bi-credit-card me-1"></i>Ode
+    </button>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white">
+        <div class="fw-semibold">Acik Tahakkuklar</div>
+        <div class="small text-muted">CRM, Salon ve CallCenter tahakkuklari tek odeme havuzundan kapanir.</div>
+    </div>
+    <div class="card-body">
+        @if (isLoading)
+        {
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary"></div>
+                <div class="small text-muted mt-2">Tahakkuklar yukleniyor...</div>
+            </div>
+        }
+        else if (!HasPayableLines)
+        {
+            <div class="alert alert-info mb-0">Odenecek acik tahakkuk bulunmuyor.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Kalem</th>
+                            <th>Donem</th>
+                            <th class="text-end">Tutar</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var line in preview!.Lines)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@line.Description</div>
+                                    <div class="small text-muted">@line.BillingKindName</div>
+                                </td>
+                                <td>@line.Month/@line.Year</td>
+                                <td class="text-end fw-semibold">@AmountText(line.Amount)</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-success">
+                            <td colspan="2" class="fw-bold">Toplam</td>
+                            <td class="text-end fw-bold">@AmountText(preview.TotalAmount)</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@if (showPaymentModal)
+{
+    <div class="modal-backdrop-custom" @onclick="CloseModal"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-credit-card me-2"></i>Odeme Onayi</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (modalStep == "confirm")
+                    {
+                        <div class="alert alert-info py-2 small">
+                            Odeme baslamadan once kapatilacak tahakkuk kalemlerini kontrol edin.
+                        </div>
+                        <div class="table-responsive mb-3">
+                            <table class="table table-sm align-middle mb-0">
+                                <tbody>
+                                    @foreach (var line in preview!.Lines)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="fw-semibold">@line.Description</div>
+                                                <div class="small text-muted">@line.BillingKindName - @line.Month/@line.Year</div>
+                                            </td>
+                                            <td class="text-end fw-semibold">@AmountText(line.Amount)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-success">
+                                        <td class="fw-bold">Toplam</td>
+                                        <td class="text-end fw-bold">@AmountText(preview.TotalAmount)</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        <button class="btn btn-success w-100 mb-2" @onclick="StartCheckout" disabled="@isLoading">
+                            <i class="bi bi-credit-card me-1"></i>Onayliyorum, odemeye gec
+                        </button>
+                        <a class="btn btn-outline-secondary w-100" href="@SupportHref">
+                            <i class="bi bi-envelope me-1"></i>Kalemleri kontrol etmek istiyorum
+                        </a>
+                        <div class="small text-muted text-center mt-2">info@corplynk.com adresine yazabilirsiniz; 24 saat icinde donus yapilir.</div>
+                    }
+                    else if (modalStep == "checkout")
+                    {
+                        @if (isLoading)
+                        {
+                            <div class="text-center py-3">
+                                <div class="spinner-border text-primary"></div>
+                                <div class="small text-muted mt-2">Odeme formu hazirlaniyor...</div>
+                            </div>
+                        }
+                        <div id="cc-iyzico-checkout"></div>
+                    }
+                    else if (modalStep == "result")
+                    {
+                        <div class="text-center py-4">
+                            <i class="bi @(result?.Success == true ? "bi-check-circle-fill text-success" : "bi-x-circle-fill text-danger")" style="font-size:3rem;"></i>
+                            <h5 class="mt-2 @(result?.Success == true ? "text-success" : "text-danger")">@(result?.Success == true ? "Odeme basarili" : "Odeme basarisiz")</h5>
+                            <p class="text-muted small mb-0">@ResultMessage</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .modal-backdrop-custom {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, .5);
+        z-index: 1040;
+    }
+</style>
+
+@code {
+    private PaymentCheckoutPreviewDto? preview;
+    private PaymentResultResponse? result;
+    private bool isLoading = true;
+    private bool showPaymentModal;
+    private bool pendingCheckoutRender;
+    private string modalStep = "confirm";
+    private string? checkoutHtml;
+
+    private bool HasPayableLines => preview?.Success == true && preview.Lines.Count > 0;
+    private string SupportHref => "mailto:info%40corplynk.com?subject=Odeme%20kalemleri%20hakkinda&body=Merhaba%2C%20odeme%20oncesi%20tahakkuk%20kalemlerimi%20kontrol%20etmek%20istiyorum.";
+    private string ResultMessage => result?.Success == true
+        ? result.Message ?? "Tahakkuk odemeniz basarili. Kalemler kapatildi."
+        : result?.Error ?? "Odeme basarisiz oldu.";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await PermService.LoadAsync();
+        if (!PermService.IsFirmaAdmin)
+        {
+            Navigation.NavigateTo("customer/dashboard", replace: true);
+            return;
+        }
+
+        await LoadPreviewAsync();
+
+        var token = GetQueryValue(Navigation.Uri, "iyzicoToken");
+        if (!string.IsNullOrWhiteSpace(token))
+            await CheckPaymentResultAsync(token);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (pendingCheckoutRender && !string.IsNullOrWhiteSpace(checkoutHtml))
+        {
+            pendingCheckoutRender = false;
+            await JS.InvokeVoidAsync("corplynkPayments.injectCheckoutHtml", "cc-iyzico-checkout", checkoutHtml);
+        }
+    }
+
+    private async Task LoadPreviewAsync()
+    {
+        isLoading = true;
+        try
+        {
+            preview = await Http.GetFromJsonAsync<PaymentCheckoutPreviewDto>("api/payments/checkout-preview?paymentContext=all&materializeSalonDebt=true");
+        }
+        catch
+        {
+            preview = null;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OpenConfirm()
+    {
+        if (!HasPayableLines) return;
+        modalStep = "confirm";
+        result = null;
+        checkoutHtml = null;
+        showPaymentModal = true;
+    }
+
+    private void CloseModal()
+    {
+        showPaymentModal = false;
+        checkoutHtml = null;
+    }
+
+    private async Task StartCheckout()
+    {
+        modalStep = "checkout";
+        isLoading = true;
+        checkoutHtml = null;
+
+        try
+        {
+            var billingPeriodIds = preview?.Lines
+                .Select(line => line.BillingPeriodId)
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList() ?? [];
+
+            var response = await Http.PostAsJsonAsync("api/payments/checkout-session", new
+            {
+                paymentContext = "all",
+                returnApp = "callcenter",
+                billingPeriodIds
+            });
+
+            var data = await response.Content.ReadFromJsonAsync<CheckoutSessionResponse>();
+            if (response.IsSuccessStatusCode && data?.Success == true && !string.IsNullOrWhiteSpace(data.HtmlContent))
+            {
+                checkoutHtml = data.HtmlContent;
+                pendingCheckoutRender = true;
+            }
+            else
+            {
+                result = new PaymentResultResponse { Success = false, Error = data?.Error ?? "Odeme formu olusturulamadi." };
+                modalStep = "result";
+            }
+        }
+        catch (Exception ex)
+        {
+            result = new PaymentResultResponse { Success = false, Error = ex.Message };
+            modalStep = "result";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task CheckPaymentResultAsync(string token)
+    {
+        isLoading = true;
+        showPaymentModal = true;
+        modalStep = "result";
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/payments/package-result", new { token });
+            result = await response.Content.ReadFromJsonAsync<PaymentResultResponse>()
+                ?? new PaymentResultResponse { Success = false, Error = "Gecersiz yanit" };
+            if (result.Success) await LoadPreviewAsync();
+        }
+        catch (Exception ex)
+        {
+            result = new PaymentResultResponse { Success = false, Error = ex.Message };
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string AmountText(decimal amount)
+        => $"{amount:N2} {preview?.Currency ?? "TRY"}";
+
+    private static string? GetQueryValue(string url, string key)
+    {
+        var query = new Uri(url).Query.TrimStart('?');
+        if (string.IsNullOrWhiteSpace(query)) return null;
+        foreach (var pair in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var parts = pair.Split('=', 2);
+            var name = Uri.UnescapeDataString(parts[0]);
+            if (!string.Equals(name, key, StringComparison.OrdinalIgnoreCase)) continue;
+            return parts.Length > 1 ? Uri.UnescapeDataString(parts[1]) : string.Empty;
+        }
+        return null;
+    }
+
+    private sealed class CheckoutSessionResponse
+    {
+        public bool Success { get; set; }
+        public string? HtmlContent { get; set; }
+        public string? Error { get; set; }
+    }
+
+    private sealed class PaymentResultResponse
+    {
+        public bool Success { get; set; }
+        public string? Message { get; set; }
+        public string? Error { get; set; }
+    }
+}

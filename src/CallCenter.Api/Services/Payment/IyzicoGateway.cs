@@ -118,7 +118,7 @@ public class IyzicoGateway : IPaymentGateway
             var result = JsonSerializer.Deserialize<IyzicoPaymentResponse>(responseBody, JsonOpts);
 
             return result?.Status == "success"
-                ? PaymentVerifyResult.Ok(result.PaymentId ?? providerTransactionId)
+                ? PaymentVerifyResult.Ok(result.PaymentId ?? providerTransactionId, result.PaymentId, result.PaidPrice ?? result.Price, result.Currency)
                 : PaymentVerifyResult.Fail(result?.ErrorMessage ?? "Dogrulama basarisiz");
         }
         catch (Exception ex)
@@ -358,7 +358,7 @@ public class IyzicoGateway : IPaymentGateway
             var result = JsonSerializer.Deserialize<IyzicoPaymentResponse>(responseBody, JsonOpts);
 
             return result?.Status == "success"
-                ? PaymentVerifyResult.Ok(result.PaymentId ?? token, result.PaymentId)
+                ? PaymentVerifyResult.Ok(result.PaymentId ?? token, result.PaymentId, result.PaidPrice ?? result.Price, result.Currency)
                 : PaymentVerifyResult.Fail(result?.ErrorMessage ?? "Checkout dogrulama basarisiz");
         }
         catch (Exception ex)
@@ -375,6 +375,9 @@ public class IyzicoGateway : IPaymentGateway
         public string? ErrorMessage { get; set; }
         public string? PaymentId { get; set; }
         public string? ConversationId { get; set; }
+        public decimal? Price { get; set; }
+        public decimal? PaidPrice { get; set; }
+        public string? Currency { get; set; }
     }
 
     private class IyzicoCheckoutResponse

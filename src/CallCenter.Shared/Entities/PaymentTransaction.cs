@@ -9,7 +9,7 @@ public class PaymentTransaction
     public int Id { get; set; }
     public Guid Uid { get; set; } = Guid.NewGuid();
 
-    /// <summary>Odeme tipi: 1=SalonAdisyon, 2=PlatformAbonelik, 3=UyelikOdemesi, 4=ModulSatinAlma</summary>
+    /// <summary>Odeme tipi: <see cref="Enums.PaymentTypes"/>.</summary>
     public int PaymentTypeId { get; set; }
 
     /// <summary>Ilgili firma (salon veya CC musterisi)</summary>
@@ -62,4 +62,6 @@ public class PaymentTransaction
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
+
+    public ICollection<PaymentTransactionLine> Lines { get; set; } = [];
 }

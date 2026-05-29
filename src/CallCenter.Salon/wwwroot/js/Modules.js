@@ -424,7 +424,7 @@ function ModulesViewModel() {
 
     self.retryPayment = function (payment) {
         if (!payment) return;
-        if (payment.paymentTypeId === 2) {
+        if (payment.paymentTypeId === 2 || payment.paymentTypeId === 6) {
             self.startPlatformAccrualPayment();
             return;
         }
@@ -588,7 +588,25 @@ function ModulesViewModel() {
     self.purchaseGroupId = ko.observable(null);
     self.purchaseModalTitle = ko.observable(moduleT('salon.modules.service_purchase_modal_title', 'Hizmet Satın Al'));
     /** Iyzico odeme formu (API'den gelen HTML); view'da iyzicoCheckoutHtml ile bagli */
+    self.billingCheckoutPreview = ko.observable(null);
     self.checkoutFormHtml = ko.observable('');
+
+    self.checkoutAmountText = function (amount, currency) {
+        return formatAmount(amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + (currency || 'TRY');
+    };
+
+    self.checkoutLineAmountText = function (line) {
+        var preview = self.billingCheckoutPreview();
+        return self.checkoutAmountText(line && line.amount, preview && preview.currency);
+    };
+
+    self.checkoutSupportHref = ko.computed(function () {
+        var preview = self.billingCheckoutPreview();
+        var email = (preview && preview.supportEmail) || 'info@corplynk.com';
+        return 'mailto:' + encodeURIComponent(email)
+            + '?subject=' + encodeURIComponent('Odeme kalemleri hakkinda')
+            + '&body=' + encodeURIComponent('Merhaba, odeme oncesi tahakkuk kalemlerimi kontrol etmek istiyorum.');
+    });
 
     self.purchaseResultTitle = ko.computed(function () {
         var r = self.purchaseResult();
@@ -623,6 +641,7 @@ function ModulesViewModel() {
         self.purchaseGroupId(pkg.groupId);
         self.purchaseStep('preview');
         self.purchasePreview(null);
+        self.billingCheckoutPreview(null);
         self.purchaseResult(null);
         self.purchaseLoading(true);
 
@@ -662,6 +681,7 @@ function ModulesViewModel() {
         self.purchaseGroupId(mod.groupId || mod.moduleGroupId);
         self.purchaseStep('preview');
         self.purchasePreview(null);
+        self.billingCheckoutPreview(null);
         self.purchaseResult(null);
         self.purchaseLoading(true);
 
@@ -730,6 +750,47 @@ function ModulesViewModel() {
     };
 
     /** Açık platform tahakkuku: api/payments/subscription-checkout (ücretli abonelik veya aboneliksiz salon platform borcu) */
+    self.startBillingCheckout = function () {
+        self.checkoutFormHtml('');
+        self.purchaseStep('checkout');
+        self.purchaseLoading(true);
+        self.platformPayLoading(true);
+        var preview = self.billingCheckoutPreview && self.billingCheckoutPreview();
+        var billingPeriodIds = preview && Array.isArray(preview.lines)
+            ? preview.lines.map(function (line) { return line.billingPeriodId; }).filter(function (id) { return id > 0; })
+            : [];
+
+        $.ajax({
+            url: '/proxy/payments/checkout-session',
+            method: 'POST',
+            contentType: 'application/json',
+            dataType: 'text',
+            data: JSON.stringify({ paymentContext: 'all', returnApp: 'salon', billingPeriodIds: billingPeriodIds })
+        }).done(function (text, st, xhr) {
+            self.purchaseLoading(false);
+            self.platformPayLoading(false);
+            var data = parseAjaxBody(text, xhr);
+            if (!data || typeof data !== 'object') {
+                toastr.error(moduleT('salon.modules.invalid_payment_response', 'Odeme yaniti gecersiz.'));
+                self.purchaseStep('billing-approval');
+                return;
+            }
+            var raw = data.htmlContent || data.checkoutFormHtml || data.HtmlContent || data.CheckoutFormHtml;
+            if (data.success && raw) {
+                self.checkoutFormHtml(raw);
+            } else {
+                toastr.error(data.error || moduleT('salon.modules.payment_form_create_failed', 'Odeme formu olusturulamadi.'));
+                self.purchaseStep('billing-approval');
+            }
+        }).fail(function (xhr) {
+            var msg = ajaxErrorMessage(xhr, moduleT('salon.modules.payment_start_failed', 'Odeme baslatilamadi.'));
+            toastr.error(msg);
+            self.purchaseLoading(false);
+            self.platformPayLoading(false);
+            self.purchaseStep('billing-approval');
+        });
+    };
+
     self.startPlatformAccrualPayment = function () {
         self.purchaseModalTitle(moduleT('salon.modules.subscription_payment_title', 'Abonelik Ödemesi'));
         self.purchasePreview(null);
@@ -777,6 +838,52 @@ function ModulesViewModel() {
         });
     };
 
+    self.startUnifiedBillingPayment = function () {
+        self.purchaseModalTitle(moduleT('salon.modules.subscription_payment_title', 'Tahakkuk Odemesi'));
+        self.purchasePreview(null);
+        self.billingCheckoutPreview(null);
+        self.purchaseResult(null);
+        self.purchaseGroupId(null);
+        self.checkoutFormHtml('');
+        self.purchaseStep('billing-approval');
+        self.purchaseLoading(true);
+        self.platformPayLoading(true);
+
+        var modal = new bootstrap.Modal(document.getElementById('purchaseModal'));
+        modal.show();
+
+        $.ajax({
+            url: '/proxy/payments/checkout-preview?paymentContext=all&materializeSalonDebt=true',
+            method: 'GET',
+            contentType: 'application/json',
+            dataType: 'text',
+            data: '{}'
+        }).done(function (text, st, xhr) {
+            self.purchaseLoading(false);
+            self.platformPayLoading(false);
+            var data = parseAjaxBody(text, xhr);
+            if (!data || typeof data !== 'object') {
+                toastr.error(moduleT('salon.modules.invalid_payment_response', 'Odeme yaniti gecersiz.'));
+                bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
+                return;
+            }
+            if (data.success && Array.isArray(data.lines) && data.lines.length > 0) {
+                self.billingCheckoutPreview(data);
+            } else {
+                toastr.error(data.error || moduleT('salon.modules.no_payable_accrual', 'Odenecek tahakkuk bulunamadi.'));
+                bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
+            }
+        }).fail(function (xhr) {
+            var msg = ajaxErrorMessage(xhr, moduleT('salon.modules.payment_start_failed', 'Odeme baslatilamadi.'));
+            toastr.error(msg);
+            self.purchaseLoading(false);
+            self.platformPayLoading(false);
+            bootstrap.Modal.getInstance(document.getElementById('purchaseModal')).hide();
+        });
+    };
+
+    self.startPlatformAccrualPayment = self.startUnifiedBillingPayment;
+
     // Iyzico callback sonrasi (proxy API /package-result; token ile sunucu durumu)
     self.checkPaymentResult = function (token, onComplete) {
         self.purchaseLoading(true);
@@ -790,7 +897,10 @@ function ModulesViewModel() {
             var data = parseAjaxBody(text, xhr);
             self.purchaseResult(data && typeof data === 'object' ? data : { success: false, error: moduleT('salon.modules.invalid_response', 'Geçersiz yanıt') });
             self.purchaseStep('result');
-            if (data && data.success) self.load();
+            if (data && data.success) {
+                self.load();
+                self.loadPaymentHistory();
+            }
         }).fail(function (xhr) {
             var msg = ajaxErrorMessage(xhr, moduleT('salon.modules.payment_result_failed', 'Ödeme sonucu alınamadı.'));
             self.purchaseResult({ success: false, error: msg });
@@ -806,6 +916,8 @@ function ModulesViewModel() {
         if (e.data === 'payment-success' || (e.data && e.data.type === 'payment-success')) {
             self.purchaseResult({ success: true });
             self.purchaseStep('result');
+            self.load();
+            self.loadPaymentHistory();
         } else if (e.data === 'payment-failed' || (e.data && e.data.type === 'payment-failed')) {
             self.purchaseResult({ success: false, error: e.data.error || moduleT('salon.modules.payment_failed_message', 'Ödeme başarısız oldu.') });
             self.purchaseStep('result');

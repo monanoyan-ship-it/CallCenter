@@ -178,7 +178,8 @@ public class BillingFactory : IBillingFactory
         }
 
         var hasPaymentTransaction = await _paymentTransactionEs.GetAllQueryable()
-            .AnyAsync(t => t.BillingPeriodId == periodId);
+            .AnyAsync(t => t.BillingPeriodId == periodId
+                || t.Lines.Any(l => l.BillingPeriodId == periodId));
         if (hasPaymentTransaction)
             return (false, "Bu tahakkuk icin odeme islemi olusturuldugu icin silinemez.");
 

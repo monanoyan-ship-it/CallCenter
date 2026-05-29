@@ -16,6 +16,7 @@ public static class ProxyPathPolicy
     [
         "crm",
         "integrations",
+        "payments",
         "portal"
     ];
 
