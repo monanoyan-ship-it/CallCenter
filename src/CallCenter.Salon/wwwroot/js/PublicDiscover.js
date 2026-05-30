@@ -145,7 +145,7 @@
             map.closePopup();
         });
 
-        fetch('/proxy/salon/')
+        fetch('/proxy/salon')
             .then(function (r) { return r.ok ? r.json() : []; })
             .then(function (data) {
                 self.salons(data);

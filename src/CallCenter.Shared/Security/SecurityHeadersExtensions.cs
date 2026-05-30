@@ -15,7 +15,7 @@ public static class SecurityHeadersExtensions
                 headers.TryAdd("X-Content-Type-Options", "nosniff");
                 headers.TryAdd("X-Frame-Options", "SAMEORIGIN");
                 headers.TryAdd("Referrer-Policy", "strict-origin-when-cross-origin");
-                headers.TryAdd("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+                headers.TryAdd("Permissions-Policy", "camera=(), microphone=(), geolocation=(self)");
                 headers.TryAdd("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
                 headers.TryAdd("Content-Security-Policy",
                     "default-src 'self'; " +
@@ -23,7 +23,7 @@ public static class SecurityHeadersExtensions
                     "img-src 'self' data: blob: https:; " +
                     "font-src 'self' data:; " +
                     "style-src 'self' 'unsafe-inline'; " +
-                    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://maps.googleapis.com; " +
+                    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://maps.googleapis.com https://static.cloudflareinsights.com; " +
                     "connect-src 'self' http://localhost:* https://localhost:* ws://localhost:* wss://localhost:* https://*.corplynk.com https://maps.googleapis.com; " +
                     "frame-src 'self' https://*.iyzipay.com https://*.iyzico.com; " +
                     "form-action 'self' https://*.iyzipay.com https://*.iyzico.com");

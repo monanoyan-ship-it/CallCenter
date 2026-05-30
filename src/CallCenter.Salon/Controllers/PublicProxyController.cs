@@ -8,13 +8,23 @@ namespace CallCenter.Salon.Controllers;
 /// </summary>
 public class PublicProxyController : Controller
 {
+    [HttpGet("proxy/salon")]
+    public Task<IActionResult> GetSalonRoot()
+        => ForwardSalonGetAsync(string.Empty);
+
     [HttpGet("proxy/salon/{**path}")]
     public async Task<IActionResult> Get(string path)
     {
         if (!ProxyPathPolicy.TryNormalize(path, ProxyPathSurface.SalonPublic, out var safePath)) return ForbidProxyPath();
+        return await ForwardSalonGetAsync(safePath);
+    }
+
+    private async Task<IActionResult> ForwardSalonGetAsync(string safePath)
+    {
         var factory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
         var client = factory.CreateClient("SalonApi");
-        var response = await client.GetAsync($"api/salon/{safePath}{Request.QueryString}");
+        var apiPath = string.IsNullOrEmpty(safePath) ? "api/salon" : $"api/salon/{safePath}";
+        var response = await client.GetAsync($"{apiPath}{Request.QueryString}");
         return await ProxyResultHelper.ToApiResult(response, HttpContext);
     }
 
