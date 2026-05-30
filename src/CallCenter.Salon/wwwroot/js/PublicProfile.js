@@ -13,7 +13,42 @@
     function profileT(key, fallback) {
         return window.salonT(key, fallback);
     }
-    toastr.options = { closeButton: true, progressBar: true, positionClass: 'toast-top-right', timeOut: 3500 };
+    if (window.toastr) {
+        toastr.options = { closeButton: true, progressBar: true, positionClass: 'toast-top-right', timeOut: 3500 };
+    }
+
+    function showToast(type, message) {
+        if (window.toastr && typeof toastr[type] === 'function') {
+            try {
+                toastr[type](message);
+                return;
+            } catch (error) {
+                console.warn('Toast notification failed.', error);
+            }
+        }
+        if (type === 'error') console.error(message);
+        else console.info(message);
+    }
+
+    function copyTextFallback(text) {
+        var textarea = document.createElement('textarea');
+        textarea.value = text || '';
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-9999px';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        var copied = false;
+        try {
+            copied = document.execCommand('copy');
+        } catch (error) {
+            copied = false;
+        }
+        document.body.removeChild(textarea);
+        return copied;
+    }
 
 var salonSlug = profileSlug;
 
@@ -109,15 +144,25 @@ var salonSlug = profileSlug;
             };
 
             self.copyText = function (text, successKey, fallback) {
+                var successMessage = profileT(successKey, fallback);
+                var errorMessage = profileT('salon.profile.distribution.copy_failed', 'Kopyalanamadi');
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(text).then(function () {
-                        toastr.success(profileT(successKey, fallback));
+                        showToast('success', successMessage);
                     }).catch(function () {
-                        toastr.error(profileT('salon.profile.distribution.copy_failed', 'Kopyalanamadi'));
+                        if (copyTextFallback(text)) {
+                            showToast('success', successMessage);
+                        } else {
+                            showToast('error', errorMessage);
+                        }
                     });
                     return;
                 }
-                toastr.info(text);
+                if (copyTextFallback(text)) {
+                    showToast('success', successMessage);
+                } else {
+                    showToast('info', text);
+                }
             };
 
             self.copyBookingLink = function () {
