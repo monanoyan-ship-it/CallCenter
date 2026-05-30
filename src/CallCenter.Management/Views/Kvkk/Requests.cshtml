@@ -23,7 +23,9 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Basvuru No</th>
+                                <th>Kapsam</th>
                                 <th>Kisi</th>
+                                <th>Iletisim</th>
                                 <th>Tip</th>
                                 <th>Durum</th>
                                 <th>Tarih</th>
@@ -34,23 +36,25 @@
                         <tbody data-bind="foreach: items">
                             <tr data-bind="css: { 'table-danger': isOverdue }">
                                 <td class="fw-medium" data-bind="text: requestNumber || '-'"></td>
-                                <td data-bind="text: personName || '-'"></td>
+                                <td data-bind="text: customerName || '-'"></td>
+                                <td data-bind="text: requesterName || '-'"></td>
+                                <td class="small text-muted" data-bind="text: requesterContact || '-'"></td>
                                 <td>
-                                    <span class="badge" data-bind="text: requestType || '-',
-                                        css: requestType === 'Silme' ? 'bg-danger' :
-                                             requestType === 'Erisim' ? 'bg-primary' :
-                                             requestType === 'Sinirlandirma' ? 'bg-warning' : 'bg-info'"></span>
+                                    <span class="badge" data-bind="text: requestTypeName || '-',
+                                        css: requestTypeId === 3 ? 'bg-danger' :
+                                             requestTypeId === 1 ? 'bg-primary' :
+                                             requestTypeId === 4 ? 'bg-warning text-dark' : 'bg-info'"></span>
                                 </td>
                                 <td>
-                                    <span class="badge" data-bind="text: status || '-',
-                                        css: status === 'Tamamlandi' ? 'bg-success' :
-                                             status === 'Beklemede' ? 'bg-warning' :
-                                             status === 'Reddedildi' ? 'bg-danger' : 'bg-secondary'"></span>
+                                    <span class="badge" data-bind="text: statusName || '-',
+                                        css: statusId === 3 ? 'bg-success' :
+                                             statusId === 1 ? 'bg-warning text-dark' :
+                                             statusId === 4 ? 'bg-danger' : 'bg-secondary'"></span>
                                 </td>
                                 <td class="small text-muted" data-bind="text: createdAt ? new Date(createdAt).toLocaleDateString('tr-TR') : '-'"></td>
                                 <td class="small" data-bind="text: (remainingDays != null ? remainingDays + ' gun' : '-')"></td>
                                 <td>
-                                    <button class="btn btn-outline-secondary btn-sm" title="Duzenle" data-bind="click: $parent.openEdit"><i class="bi bi-pencil"></i></button>
+                                    <button class="btn btn-outline-secondary btn-sm" title="Detay" data-bind="click: $parent.openEdit"><i class="bi bi-list-ul"></i></button>
                                 </td>
                             </tr>
                         </tbody>
@@ -79,31 +83,47 @@
                 <div class="modal-body">
                     <div class="row g-2">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label small">Kisi *</label>
-                            <input class="form-control form-control-sm" data-bind="value: form.personName" />
+                            <label class="form-label small">Musteri *</label>
+                            <select class="form-select form-select-sm" data-bind="options: customers, optionsText: 'name', optionsValue: 'id', value: form.customerId, optionsCaption: 'CorpLynk Platform / seciniz', enable: !form.uid()"></select>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label small">Tip *</label>
-                            <select class="form-select form-select-sm" data-bind="value: form.requestType">
-                                <option value="Erisim">Erisim</option>
-                                <option value="Silme">Silme</option>
-                                <option value="Sinirlandirma">Sinirlandirma</option>
-                                <option value="Tasima">Tasima</option>
-                            </select>
+                            <select class="form-select form-select-sm" data-bind="options: requestTypes, optionsText: 'name', optionsValue: 'id', value: form.requestTypeId, enable: !form.uid()"></select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Basvuran *</label>
+                            <input class="form-control form-control-sm" data-bind="value: form.requesterName, enable: !form.uid()" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Iletisim *</label>
+                            <input class="form-control form-control-sm" data-bind="value: form.requesterContact, enable: !form.uid()" />
+                        </div>
+                        <div class="col-12 mb-3" data-bind="visible: !form.uid()">
+                            <label class="form-label small">Tanimlayici</label>
+                            <input class="form-control form-control-sm" data-bind="value: form.requesterIdentifier" />
                         </div>
                     </div>
                     <div class="mb-3" data-bind="visible: form.uid()">
                         <label class="form-label small">Durum</label>
-                        <select class="form-select form-select-sm" data-bind="value: form.status">
-                            <option value="Beklemede">Beklemede</option>
-                            <option value="Isleniyor">Isleniyor</option>
-                            <option value="Tamamlandi">Tamamlandi</option>
-                            <option value="Reddedildi">Reddedildi</option>
-                        </select>
+                        <select class="form-select form-select-sm" data-bind="options: statuses, optionsText: 'name', optionsValue: 'id', value: form.statusId"></select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small">Aciklama</label>
-                        <textarea class="form-control form-control-sm" rows="3" data-bind="value: form.description"></textarea>
+                        <label class="form-label small">Basvuru Aciklamasi</label>
+                        <textarea class="form-control form-control-sm" rows="4" data-bind="value: form.requestDescription, enable: !form.uid()"></textarea>
+                    </div>
+                    <div class="mb-3" data-bind="visible: form.uid()">
+                        <label class="form-label small">Yanıt / Islem Notu</label>
+                        <textarea class="form-control form-control-sm" rows="3" data-bind="value: form.responseDescription"></textarea>
+                    </div>
+                    <div class="row g-2" data-bind="visible: form.uid()">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Atanan</label>
+                            <input class="form-control form-control-sm" data-bind="value: form.assignedToUserName" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small">Red Nedeni</label>
+                            <input class="form-control form-control-sm" data-bind="value: form.rejectionReason" />
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer py-2">

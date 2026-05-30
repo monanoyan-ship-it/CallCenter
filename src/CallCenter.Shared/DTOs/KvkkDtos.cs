@@ -187,7 +187,7 @@ public class DataSubjectRequestDto
 {
     public int Id { get; set; }
     public Guid Uid { get; set; }
-    public int CustomerId { get; set; }
+    public int? CustomerId { get; set; }
     public string CustomerName { get; set; } = string.Empty;
     public int RequestTypeId { get; set; }
     public string RequestTypeName { get; set; } = string.Empty;
@@ -230,6 +230,42 @@ public class DataSubjectRequestCreateDto
     [Required(ErrorMessage = "Basvuru aciklamasi zorunludur.")]
     [MaxLength(2000)]
     public string RequestDescription { get; set; } = string.Empty;
+}
+
+public class PublicDataSubjectRequestCreateDto
+{
+    [Required(ErrorMessage = "Ad soyad zorunludur.")]
+    [MaxLength(200)]
+    public string RequesterName { get; set; } = string.Empty;
+
+    [MaxLength(40)]
+    public string? Phone { get; set; }
+
+    [EmailAddress(ErrorMessage = "Gecerli bir e-posta adresi girin.")]
+    [MaxLength(200)]
+    public string? Email { get; set; }
+
+    [Required(ErrorMessage = "Talep tipi zorunludur.")]
+    public int RequestTypeId { get; set; }
+
+    [Required(ErrorMessage = "Aciklama zorunludur.")]
+    [MaxLength(2000)]
+    public string RequestDescription { get; set; } = string.Empty;
+
+    [MaxLength(120)]
+    public string? Source { get; set; }
+
+    [MaxLength(200)]
+    public string? SalonSlug { get; set; }
+
+    [MaxLength(200)]
+    public string? Website { get; set; }
+}
+
+public class PublicDataSubjectRequestResultDto
+{
+    public Guid Uid { get; set; }
+    public DateTime Deadline { get; set; }
 }
 
 public class DataSubjectRequestUpdateDto

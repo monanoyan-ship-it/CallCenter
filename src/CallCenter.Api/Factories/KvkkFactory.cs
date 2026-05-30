@@ -325,6 +325,56 @@ public class KvkkFactory : IKvkkFactory
         return (true, new { entity.Id, entity.Uid, entity.Deadline });
     }
 
+    public async Task<(bool Success, string? Error, PublicDataSubjectRequestResultDto? Result)> CreatePublicRequestAsync(PublicDataSubjectRequestCreateDto dto)
+    {
+        if (!string.IsNullOrWhiteSpace(dto.Website))
+            return (false, "Basvuru alinamadi.", null);
+
+        if (DataSubjectRequestTypes.GetById(dto.RequestTypeId) == null)
+            return (false, "Gecersiz talep tipi.", null);
+
+        var phone = (dto.Phone ?? string.Empty).Trim();
+        var email = (dto.Email ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(phone) && string.IsNullOrWhiteSpace(email))
+            return (false, "Telefon veya e-posta bilgilerinden en az biri zorunludur.", null);
+
+        var identifier = !string.IsNullOrWhiteSpace(email) ? email : phone;
+        var contactParts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(phone)) contactParts.Add($"Telefon: {phone}");
+        if (!string.IsNullOrWhiteSpace(email)) contactParts.Add($"E-posta: {email}");
+
+        var sourceParts = new List<string> { "Kaynak: SLN public/mobil veri silme basvurusu" };
+        if (!string.IsNullOrWhiteSpace(dto.Source)) sourceParts.Add($"Kanal: {dto.Source.Trim()}");
+        if (!string.IsNullOrWhiteSpace(dto.SalonSlug)) sourceParts.Add($"Salon slug: {dto.SalonSlug.Trim()}");
+
+        var description = $"{dto.RequestDescription.Trim()}\n\n{string.Join(" | ", sourceParts)}";
+        if (description.Length > 2000)
+            description = description[..2000];
+
+        var now = DateTime.UtcNow;
+        var entity = new DataSubjectRequest
+        {
+            CustomerId = null,
+            RequestTypeId = dto.RequestTypeId,
+            StatusId = DataSubjectRequestStatuses.Ids.Received,
+            RequesterName = dto.RequesterName.Trim(),
+            RequesterIdentifier = identifier,
+            RequesterContact = string.Join(" | ", contactParts),
+            RequestDescription = description,
+            RequestDate = now,
+            Deadline = now.AddDays(30)
+        };
+
+        _requestEs.Add(entity);
+        await _uow.SaveChangesAsync();
+
+        return (true, null, new PublicDataSubjectRequestResultDto
+        {
+            Uid = entity.Uid,
+            Deadline = entity.Deadline
+        });
+    }
+
     public async Task<(bool Success, string? Error)> UpdateRequestAsync(Guid uid, DataSubjectRequestUpdateDto dto)
     {
         var entity = await _requestEs.GetByUidAsync(uid);
@@ -783,7 +833,7 @@ public class KvkkFactory : IKvkkFactory
         Id = r.Id,
         Uid = r.Uid,
         CustomerId = r.CustomerId,
-        CustomerName = r.Customer != null ? r.Customer.Name : "",
+        CustomerName = r.Customer != null ? r.Customer.Name : "CorpLynk Platform",
         RequestTypeId = r.RequestTypeId,
         RequestTypeName = DataSubjectRequestTypes.GetById(r.RequestTypeId)?.Description ?? "",
         StatusId = r.StatusId,

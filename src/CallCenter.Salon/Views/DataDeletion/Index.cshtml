@@ -1,0 +1,99 @@
+@using CallCenter.Shared.Enums
+@inject CallCenter.Shared.Services.ITranslationService Translation
+@{
+    Layout = null;
+    var pageLang = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
+    string T(string key, string fallback) => Translation.T(key, fallback);
+}
+<!DOCTYPE html>
+<html lang="@pageLang">
+<head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@T("salon.data_deletion.title", "Veri Silme / KVKK Başvurusu") - CorpLynk Salon</title>
+    <link href="/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="/lib/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <style>
+        body { background: #f8f9fa; font-family: 'Segoe UI', system-ui, sans-serif; }
+        .content-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+        h1 { color: #7b1fa2; font-size: 1.9rem; }
+        .legal-note { border-left: 4px solid #7b1fa2; }
+        .hp-field { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+    </style>
+</head>
+<body>
+    <div class="container py-4" style="max-width: 860px;">
+        <a href="/" class="text-decoration-none text-muted small"><i class="bi bi-arrow-left me-1"></i>@T("salon.legal.home", "Ana Sayfa")</a>
+
+        <main class="content-card p-4 mt-3">
+            <div class="mb-4">
+                <span class="badge text-bg-light border mb-2">@T("salon.data_deletion.badge", "CorpLynk Salon")</span>
+                <h1 class="mb-2">@T("salon.data_deletion.title", "Veri Silme / KVKK Başvurusu")</h1>
+                <p class="text-muted mb-0">@T("salon.data_deletion.intro", "Hesabınızı silmeden kişisel verilerinizin bir kısmının ya da tamamının silinmesi, düzeltilmesi, kısıtlanması veya size iletilmesi için başvuru oluşturabilirsiniz.")</p>
+            </div>
+
+            <div class="alert alert-info legal-note">
+                <div class="fw-semibold mb-1"><i class="bi bi-shield-check me-1"></i>@T("salon.data_deletion.notice.title", "Başvuru süreci")</div>
+                <p class="mb-1">@T("salon.data_deletion.notice.30days", "Başvurularınız en geç 30 gün içinde sonuçlandırılır.")</p>
+                <p class="mb-0">@T("salon.data_deletion.notice.retention", "Yasal saklama yükümlülüğü bulunan veriler, ilgili kanuni süreler boyunca tutulabilir; süre sonunda güvenli şekilde silinir, yok edilir veya anonim hale getirilir.")</p>
+            </div>
+
+            <form id="dataDeletionForm"
+                  data-success-message="@T("salon.data_deletion.success", "Başvurunuz alındı.")"
+                  data-tracking-label="@T("salon.data_deletion.tracking", "Takip numarası")"
+                  data-contact-required="@T("salon.data_deletion.validation.contact", "Telefon veya e-posta alanlarından en az birini doldurun.")"
+                  data-error-message="@T("salon.data_deletion.error", "Başvuru gönderilemedi. Lütfen bilgileri kontrol edip tekrar deneyin.")">
+                <div id="dataDeletionStatus" class="alert d-none" role="status"></div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="requesterName">@T("salon.data_deletion.fullname", "Ad Soyad") *</label>
+                        <input class="form-control" id="requesterName" name="requesterName" maxlength="200" autocomplete="name" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="requestTypeId">@T("salon.data_deletion.request_type", "Talep Türü") *</label>
+                        <select class="form-select" id="requestTypeId" name="requestTypeId" required>
+                            @foreach (var type in DataSubjectRequestTypes.All.OrderBy(t => t.DisplayOrder))
+                            {
+                                var key = $"salon.data_deletion.type.{type.SystemName.ToLowerInvariant()}";
+                                var selected = type.Id == DataSubjectRequestTypes.Ids.Erasure;
+                                <option value="@type.Id" selected="@selected">@T(key, type.Description ?? type.SystemName)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="phone">@T("salon.data_deletion.phone", "Telefon")</label>
+                        <input class="form-control" id="phone" name="phone" maxlength="40" autocomplete="tel" inputmode="tel" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="email">@T("salon.data_deletion.email", "E-posta")</label>
+                        <input class="form-control" id="email" name="email" maxlength="200" type="email" autocomplete="email" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="requestDescription">@T("salon.data_deletion.description", "Açıklama") *</label>
+                        <textarea class="form-control" id="requestDescription" name="requestDescription" rows="5" maxlength="2000" required
+                                  placeholder="@T("salon.data_deletion.description.placeholder", "Silinmesini istediğiniz veri, ilgili salon veya hesabınızı bulmamıza yardımcı olacak ek bilgileri yazabilirsiniz.")"></textarea>
+                    </div>
+                </div>
+
+                <div class="hp-field" aria-hidden="true">
+                    <label for="website">Website</label>
+                    <input id="website" name="website" tabindex="-1" autocomplete="off" />
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mt-4">
+                    <p class="text-muted small mb-0">@T("salon.data_deletion.contact_hint", "Başvurunuzu eşleştirebilmemiz için telefon veya e-posta bilgilerinden en az birini girmeniz gerekir.")</p>
+                    <button type="submit" class="btn btn-primary" id="dataDeletionSubmit">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>
+                        <i class="bi bi-send me-1"></i>@T("salon.data_deletion.submit", "Başvuruyu Gönder")
+                    </button>
+                </div>
+            </form>
+        </main>
+    </div>
+
+    <script src="~/js/PublicCommon.js" asp-append-version="true"></script>
+    <script src="~/js/DataDeletion.js" asp-append-version="true"></script>
+</body>
+</html>

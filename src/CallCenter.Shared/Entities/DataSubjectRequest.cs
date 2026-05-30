@@ -5,8 +5,8 @@ public class DataSubjectRequest
     public int Id { get; set; }
     public Guid Uid { get; set; } = Guid.NewGuid();
 
-    public int CustomerId { get; set; }
-    public Customer Customer { get; set; } = null!;
+    public int? CustomerId { get; set; }
+    public Customer? Customer { get; set; }
 
     public int RequestTypeId { get; set; }
     public int StatusId { get; set; }

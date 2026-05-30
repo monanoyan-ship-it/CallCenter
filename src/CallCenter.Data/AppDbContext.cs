@@ -1324,7 +1324,7 @@ public class AppDbContext : DbContext
             e.HasOne(d => d.Customer)
              .WithMany()
              .HasForeignKey(d => d.CustomerId)
-             .OnDelete(DeleteBehavior.Cascade);
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         // DataBreach (KVKK veri ihlali)

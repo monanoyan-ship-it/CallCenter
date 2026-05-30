@@ -24,6 +24,7 @@ public interface IKvkkFactory
     // DataSubjectRequest
     Task<(List<DataSubjectRequestDto> Items, int TotalCount)> GetRequestsAsync(int? customerId, int? statusId, int page, int pageSize);
     Task<(bool Success, object Result)> CreateRequestAsync(DataSubjectRequestCreateDto dto);
+    Task<(bool Success, string? Error, PublicDataSubjectRequestResultDto? Result)> CreatePublicRequestAsync(PublicDataSubjectRequestCreateDto dto);
     Task<(bool Success, string? Error)> UpdateRequestAsync(Guid uid, DataSubjectRequestUpdateDto dto);
     Task<List<DataSubjectRequestDto>> GetOverdueRequestsAsync();
 

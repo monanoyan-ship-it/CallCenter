@@ -1,5 +1,6 @@
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Shared.DTOs;
+using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -172,6 +173,39 @@ public class KvkkController : AuditableControllerBase
 
         await AuditCrudAsync("Create", "DataSubjectRequest", result?.ToString(),
             $"KVKK basvurusu olusturuldu: {dto.RequesterName}", customerId: dto.CustomerId);
+
+        return Ok(result);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("public/request-types")]
+    public IActionResult GetPublicRequestTypes()
+    {
+        var items = DataSubjectRequestTypes.All
+            .OrderBy(t => t.DisplayOrder)
+            .Select(t => new
+            {
+                t.Id,
+                t.SystemName,
+                Name = t.Description,
+                t.Icon,
+                t.CssClass
+            });
+
+        return Ok(items);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("public/requests")]
+    public async Task<IActionResult> CreatePublicRequest([FromBody] PublicDataSubjectRequestCreateDto dto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var (success, error, result) = await _kvkkFactory.CreatePublicRequestAsync(dto);
+        if (!success || result == null) return BadRequest(new { error });
+
+        await AuditCrudAsync("Create", "DataSubjectRequest", result.Uid.ToString(),
+            $"Public KVKK basvurusu olusturuldu: {dto.RequesterName}");
 
         return Ok(result);
     }

@@ -90,7 +90,9 @@ public class PublicSalonController : Controller
         {
             "https://sln.corplynk.com/discover",
             "https://sln.corplynk.com/privacy",
-            "https://sln.corplynk.com/terms"
+            "https://sln.corplynk.com/terms",
+            "https://sln.corplynk.com/data-deletion",
+            "https://sln.corplynk.com/kvkk-request"
         };
 
         try
