@@ -178,10 +178,15 @@ public static class EntityServiceRegistration
         services.AddScoped<ISlnPersonnelServicePriceEntityService, SlnPersonnelServicePriceEntityService>();
         services.AddScoped<ISlnRevenueShareEntityService, SlnRevenueShareEntityService>();
 
-        // Salon — Loyalty
+        // Salon — Sadakat Puani (TL bazli, mevcut)
         services.AddScoped<ISlnLoyaltyConfigEntityService, SlnLoyaltyConfigEntityService>();
         services.AddScoped<ISlnClientLoyaltyEntityService, SlnClientLoyaltyEntityService>();
         services.AddScoped<ISlnLoyaltyTransactionEntityService, SlnLoyaltyTransactionEntityService>();
+
+        // Salon — Sadakat Programi (Punch Card / "10 ziyaret 1 bedava")
+        services.AddScoped<ISlnLoyaltyProgramEntityService, SlnLoyaltyProgramEntityService>();
+        services.AddScoped<ISlnClientLoyaltyProgressEntityService, SlnClientLoyaltyProgressEntityService>();
+        services.AddScoped<ISlnLoyaltyProgramRewardEntityService, SlnLoyaltyProgramRewardEntityService>();
 
         // Salon — Membership
         services.AddScoped<ISlnMembershipPlanServiceEntityService, SlnMembershipPlanServiceEntityService>();

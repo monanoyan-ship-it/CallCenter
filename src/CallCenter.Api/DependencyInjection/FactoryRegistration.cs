@@ -93,6 +93,7 @@ public static class FactoryRegistration
         services.AddScoped<ISlnLoyaltyFactory, SlnLoyaltyFactory>();
         services.AddScoped<ISlnGiftCardFactory, SlnGiftCardFactory>();
         services.AddScoped<ISlnLoyaltyPackageFactory, SlnLoyaltyPackageFactory>();
+        services.AddScoped<ISlnLoyaltyProgramFactory, SlnLoyaltyProgramFactory>();
 
         // Salon — Receteler
         services.AddScoped<ISlnRecipeFactory, SlnRecipeFactory>();

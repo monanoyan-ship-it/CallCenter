@@ -1,11 +1,38 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = Translation.T("salon.loyalty.auto.title", "Sadakat Programı");
+    ViewData["Title"] = Translation.T("salon.loyalty.title", "Sadakat Sistemi");
 }
 
-@await Html.PartialAsync("~/Views/Marketing/_LoyaltyPane.cshtml")
+<div class="mb-3">
+    <h5 class="mb-1"><t key="salon.loyalty.title">Sadakat Sistemi</t></h5>
+    <div class="text-muted small">
+        <t key="salon.loyalty.tabs_hint">Iki ayri sadakat modu var: TL bazli puan biriktirme (Sadakat Puani) ve ziyaret bazli odul ("10 ziyaret 1 bedava" — Sadakat Programi).</t>
+    </div>
+</div>
+
+<ul class="nav nav-tabs" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link active" id="tab-loyalty-points-btn" data-bs-toggle="tab" data-bs-target="#tab-loyalty-points" type="button">
+            <i class="bi bi-coin me-1"></i><t key="salon.loyalty.tab.points">Sadakat Puani</t>
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" id="tab-loyalty-program-btn" data-bs-toggle="tab" data-bs-target="#tab-loyalty-program" type="button">
+            <i class="bi bi-stars me-1"></i><t key="salon.loyalty.tab.program">Sadakat Programi</t>
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content border border-top-0 rounded-bottom p-3">
+    <div class="tab-pane fade show active" id="tab-loyalty-points" role="tabpanel">
+        @await Html.PartialAsync("~/Views/Marketing/_LoyaltyPane.cshtml")
+    </div>
+    <div class="tab-pane fade" id="tab-loyalty-program" role="tabpanel">
+        @await Html.PartialAsync("_LoyaltyProgramPane")
+    </div>
+</div>
 
 @section Scripts {
     <script src="~/js/Loyalty.js" asp-append-version="true"></script>
+    <script src="~/js/LoyaltyProgram.js" asp-append-version="true"></script>
 }
-

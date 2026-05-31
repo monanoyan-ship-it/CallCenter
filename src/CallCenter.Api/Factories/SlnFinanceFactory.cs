@@ -29,6 +29,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
     private readonly ISlnAppointmentFactory _appointmentFactory;
     private readonly ISlnMembershipFactory _memberships;
     private readonly ISlnLoyaltyPackageFactory _loyaltyPackages;
+    private readonly ISlnLoyaltyProgramFactory _loyaltyPrograms;
     private readonly ISlnGiftCardFactory _giftCards;
     private readonly ISlnStockBalanceService _stockBalances;
     private readonly IUnitOfWork _uow;
@@ -55,6 +56,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         ISlnAppointmentFactory appointmentFactory,
         ISlnMembershipFactory memberships,
         ISlnLoyaltyPackageFactory loyaltyPackages,
+        ISlnLoyaltyProgramFactory loyaltyPrograms,
         ISlnGiftCardFactory giftCards,
         ISlnStockBalanceService stockBalances,
         IUnitOfWork uow,
@@ -79,6 +81,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         _appointmentFactory = appointmentFactory;
         _memberships = memberships;
         _loyaltyPackages = loyaltyPackages;
+        _loyaltyPrograms = loyaltyPrograms;
         _giftCards = giftCards;
         _stockBalances = stockBalances;
         _uow = uow;
@@ -532,6 +535,30 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                     ? saleNote
                     : $"{invoice.Notes}|{saleNote}";
                 await _uow.SaveChangesAsync();
+            }
+        }
+
+        // Sadakat Programi (punch card) - bu adisyondaki ziyaretleri say
+        if (dto.SlnClientId.HasValue)
+        {
+            var earnServiceIds = items
+                .Where(i => i.ServiceId.HasValue
+                    && !i.IsSessionUsage
+                    && i.UnitPrice > 0)
+                .SelectMany(i =>
+                {
+                    var qty = i.Quantity == Math.Truncate(i.Quantity) ? (int)i.Quantity : 1;
+                    return Enumerable.Repeat(i.ServiceId!.Value, Math.Max(1, qty));
+                })
+                .ToList();
+
+            if (earnServiceIds.Count > 0)
+            {
+                await _loyaltyPrograms.EarnFromInvoiceItemsAsync(
+                    customerId,
+                    dto.SlnClientId.Value,
+                    branchId,
+                    earnServiceIds);
             }
         }
 

@@ -18,6 +18,7 @@ public class CrmSalonController : ControllerBase
     private readonly ISlnGiftCardFactory _giftCards;
     private readonly ISlnMembershipFactory _memberships;
     private readonly ISlnLoyaltyFactory _loyalty;
+    private readonly ISlnLoyaltyProgramFactory _loyaltyPrograms;
     private readonly ISlnMarketingFactory _marketing;
     private readonly ISlnEmailCampaignFactory _emailCampaigns;
     private readonly ISlnReviewFactory _reviews;
@@ -28,6 +29,7 @@ public class CrmSalonController : ControllerBase
         ISlnGiftCardFactory giftCards,
         ISlnMembershipFactory memberships,
         ISlnLoyaltyFactory loyalty,
+        ISlnLoyaltyProgramFactory loyaltyPrograms,
         ISlnMarketingFactory marketing,
         ISlnEmailCampaignFactory emailCampaigns,
         ISlnReviewFactory reviews,
@@ -37,6 +39,7 @@ public class CrmSalonController : ControllerBase
         _giftCards = giftCards;
         _memberships = memberships;
         _loyalty = loyalty;
+        _loyaltyPrograms = loyaltyPrograms;
         _marketing = marketing;
         _emailCampaigns = emailCampaigns;
         _reviews = reviews;
@@ -247,6 +250,65 @@ public class CrmSalonController : ControllerBase
 
         var (success, error) = await _loyalty.RedeemPointsAsync(dto, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(new { error });
+    }
+
+    // ── Sadakat Programi (D — punch card) ─────────────────────────────
+
+    [HttpGet("loyalty-programs/programs")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnLoyalty, CrmModules.Ids.SalonLoyalty)]
+    public async Task<ActionResult<List<SlnLoyaltyProgramDto>>> GetLoyaltyPrograms([FromQuery] int? branchId)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        return Ok(await _loyaltyPrograms.GetProgramsAsync(customerId, GetBranchId() ?? branchId));
+    }
+
+    [HttpPost("loyalty-programs/programs")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnLoyalty, CrmModules.Ids.SalonLoyalty)]
+    public async Task<ActionResult<SlnLoyaltyProgramDto>> CreateLoyaltyProgram([FromBody] SlnLoyaltyProgramCreateDto dto)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        return Ok(await _loyaltyPrograms.CreateProgramAsync(dto, customerId));
+    }
+
+    [HttpPut("loyalty-programs/programs/{id}")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnLoyalty, CrmModules.Ids.SalonLoyalty)]
+    public async Task<ActionResult> UpdateLoyaltyProgram(int id, [FromBody] SlnLoyaltyProgramCreateDto dto)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        var (success, error) = await _loyaltyPrograms.UpdateProgramAsync(id, dto, customerId);
+        return success ? Ok() : BadRequest(error);
+    }
+
+    [HttpDelete("loyalty-programs/programs/{id}")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnLoyalty, CrmModules.Ids.SalonLoyalty)]
+    public async Task<ActionResult> DeleteLoyaltyProgram(int id)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        var (success, error) = await _loyaltyPrograms.DeleteProgramAsync(id, customerId);
+        return success ? Ok() : BadRequest(error);
+    }
+
+    [HttpGet("loyalty-programs/client-progress")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnLoyalty, CrmModules.Ids.SalonLoyalty)]
+    public async Task<ActionResult<List<SlnClientLoyaltyProgressDto>>> GetLoyaltyClientProgress([FromQuery] int? clientId, [FromQuery] int? branchId)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        return Ok(await _loyaltyPrograms.GetClientProgressAsync(customerId, clientId, GetBranchId() ?? branchId));
+    }
+
+    [HttpGet("loyalty-programs/rewards")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnLoyalty, CrmModules.Ids.SalonLoyalty)]
+    public async Task<ActionResult<List<SlnLoyaltyProgramRewardDto>>> GetLoyaltyRewards([FromQuery] int clientId, [FromQuery] int? branchId)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        if (clientId <= 0) return BadRequest("clientId zorunludur");
+        return Ok(await _loyaltyPrograms.GetAvailableRewardsAsync(customerId, clientId, GetBranchId() ?? branchId));
     }
 
     [HttpGet("campaigns")]

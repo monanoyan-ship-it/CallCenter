@@ -159,6 +159,9 @@ public class AppDbContext : DbContext
     public DbSet<SlnLoyaltyPackageOffer> SlnLoyaltyPackageOffers => Set<SlnLoyaltyPackageOffer>();
     public DbSet<SlnLoyaltyPackagePurchase> SlnLoyaltyPackagePurchases => Set<SlnLoyaltyPackagePurchase>();
     public DbSet<SlnLoyaltyPackageRedemption> SlnLoyaltyPackageRedemptions => Set<SlnLoyaltyPackageRedemption>();
+    public DbSet<SlnLoyaltyProgram> SlnLoyaltyPrograms => Set<SlnLoyaltyProgram>();
+    public DbSet<SlnClientLoyaltyProgress> SlnClientLoyaltyProgresses => Set<SlnClientLoyaltyProgress>();
+    public DbSet<SlnLoyaltyProgramReward> SlnLoyaltyProgramRewards => Set<SlnLoyaltyProgramReward>();
 
     public DbSet<SlnMembershipPlanService> SlnMembershipPlanServices => Set<SlnMembershipPlanService>();
 
@@ -602,6 +605,32 @@ public class AppDbContext : DbContext
             e.HasOne(u => u.InvoiceItem).WithMany().HasForeignKey(u => u.InvoiceItemId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(u => u.Service).WithMany().HasForeignKey(u => u.ServiceId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(u => u.SlnAppointment).WithMany().HasForeignKey(u => u.SlnAppointmentId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SlnLoyaltyProgram>(e =>
+        {
+            e.HasIndex(p => new { p.CustomerId, p.ServiceId });
+            e.HasIndex(p => new { p.CustomerId, p.BranchId });
+            e.HasOne(p => p.Branch).WithMany().HasForeignKey(p => p.BranchId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(p => p.Service).WithMany().HasForeignKey(p => p.ServiceId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(p => p.RewardService).WithMany().HasForeignKey(p => p.RewardServiceId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<SlnClientLoyaltyProgress>(e =>
+        {
+            e.HasIndex(p => new { p.CustomerId, p.SlnClientId, p.ProgramId }).IsUnique();
+            e.HasIndex(p => new { p.CustomerId, p.BranchId });
+            e.HasOne(p => p.Branch).WithMany().HasForeignKey(p => p.BranchId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(p => p.Program).WithMany().HasForeignKey(p => p.ProgramId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(p => p.SlnClient).WithMany().HasForeignKey(p => p.SlnClientId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SlnLoyaltyProgramReward>(e =>
+        {
+            e.HasIndex(r => r.ProgressId);
+            e.HasIndex(r => r.UsedInvoiceItemId);
+            e.HasOne(r => r.Progress).WithMany(p => p.Rewards).HasForeignKey(r => r.ProgressId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.RewardService).WithMany().HasForeignKey(r => r.RewardServiceId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // SlnExpense ek alanlar

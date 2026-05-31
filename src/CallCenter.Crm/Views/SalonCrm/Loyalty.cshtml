@@ -9,73 +9,169 @@
     </style>
 }
 
-<div id="salon-loyalty-vm">
-    <div class="row g-3">
-        <div class="col-lg-4">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white fw-semibold small"><t key="crm.salon.loyalty.settings">Sadakat Ayarlari</t></div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label small"><t key="crm.salon.loyalty.points_per_tl">1 TL karsiligi puan</t></label>
-                        <input type="number" min="0" step="0.01" class="form-control form-control-sm" data-bind="value: config.pointsPerTL" />
+<div class="mb-3">
+    <h5 class="mb-1"><t key="crm.salon.loyalty.page_title">Salon - Sadakat</t></h5>
+    <div class="text-muted small">
+        <t key="crm.salon.loyalty.tabs_hint">Iki ayri sadakat modu: TL bazli puan (Sadakat Puani) ve ziyaret bazli odul ("10 ziyaret 1 bedava" — Sadakat Programi).</t>
+    </div>
+</div>
+
+<ul class="nav nav-tabs" role="tablist">
+    <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#crm-tab-points" type="button">
+            <i class="bi bi-coin me-1"></i><t key="crm.salon.loyalty.tab.points">Sadakat Puani</t>
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#crm-tab-program" type="button">
+            <i class="bi bi-stars me-1"></i><t key="crm.salon.loyalty.tab.program">Sadakat Programi</t>
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content border border-top-0 rounded-bottom p-3">
+    <div class="tab-pane fade show active" id="crm-tab-points" role="tabpanel">
+        <div id="salon-loyalty-vm">
+            <div class="row g-3">
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white fw-semibold small"><t key="crm.salon.loyalty.settings">Sadakat Ayarlari</t></div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label small"><t key="crm.salon.loyalty.points_per_tl">1 TL karsiligi puan</t></label>
+                                <input type="number" min="0" step="0.01" class="form-control form-control-sm" data-bind="value: config.pointsPerTL" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small"><t key="crm.salon.loyalty.point_value">1 puan degeri</t></label>
+                                <input type="number" min="0" step="0.01" class="form-control form-control-sm" data-bind="value: config.pointValue" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small"><t key="crm.salon.loyalty.min_redeem_points">Minimum kullanim puani</t></label>
+                                <input type="number" min="0" step="1" class="form-control form-control-sm" data-bind="value: config.minRedeemPoints" />
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="loyaltyActive" data-bind="checked: config.isActive" />
+                                <label class="form-check-label small" for="loyaltyActive"><t key="crm.salon.loyalty.program_active">Program aktif</t></label>
+                            </div>
+                            <button class="btn btn-primary btn-sm w-100" data-bind="click: saveConfig, disable: isSaving">
+                                <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                                <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="crm.common.btn.save">Kaydet</t>
+                            </button>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small"><t key="crm.salon.loyalty.point_value">1 puan degeri</t></label>
-                        <input type="number" min="0" step="0.01" class="form-control form-control-sm" data-bind="value: config.pointValue" />
+                </div>
+
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <span class="fw-semibold small"><t key="crm.salon.loyalty.client_points">Musteri Puanlari</t></span>
+                            <button class="btn btn-outline-secondary btn-sm" data-bind="click: loadClients">
+                                <i class="bi bi-arrow-clockwise me-1"></i><t key="crm.common.btn.refresh">Yenile</t>
+                            </button>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm mb-0 align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th><t key="crm.salon.loyalty.client">Musteri</t></th>
+                                            <th><t key="crm.salon.loyalty.earned">Kazanilan</t></th>
+                                            <th><t key="crm.salon.loyalty.spent">Harcanan</t></th>
+                                            <th><t key="crm.salon.loyalty.balance">Bakiye</t></th>
+                                            <th><t key="crm.salon.loyalty.balance_value">TL Karsiligi</t></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody data-bind="foreach: clientLoyalties">
+                                        <tr>
+                                            <td class="fw-semibold small" data-bind="text: clientName"></td>
+                                            <td class="small" data-bind="text: totalEarned"></td>
+                                            <td class="small" data-bind="text: totalSpent"></td>
+                                            <td class="small fw-semibold" data-bind="text: currentBalance"></td>
+                                            <td class="small" data-bind="text: $parent.money(balanceValue)"></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- ko if: clientLoyalties().length === 0 -->
+                            <div class="text-center text-muted py-4">
+                                <i class="crm-empty-icon bi bi-star"></i>
+                                <p class="mt-2 small"><t key="crm.salon.loyalty.empty">Sadakat puani olan musteri yok</t></p>
+                            </div>
+                            <!-- /ko -->
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small"><t key="crm.salon.loyalty.min_redeem_points">Minimum kullanim puani</t></label>
-                        <input type="number" min="0" step="1" class="form-control form-control-sm" data-bind="value: config.minRedeemPoints" />
-                    </div>
-                    <div class="form-check form-switch mb-3">
-                        <input class="form-check-input" type="checkbox" id="loyaltyActive" data-bind="checked: config.isActive" />
-                        <label class="form-check-label small" for="loyaltyActive"><t key="crm.salon.loyalty.program_active">Program aktif</t></label>
-                    </div>
-                    <button class="btn btn-primary btn-sm w-100" data-bind="click: saveConfig, disable: isSaving">
-                        <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="crm.common.btn.save">Kaydet</t>
-                    </button>
                 </div>
             </div>
         </div>
+    </div>
 
-        <div class="col-lg-8">
-            <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <span class="fw-semibold small"><t key="crm.salon.loyalty.client_points">Musteri Puanlari</t></span>
-                    <button class="btn btn-outline-secondary btn-sm" data-bind="click: loadClients">
-                        <i class="bi bi-arrow-clockwise me-1"></i><t key="crm.common.btn.refresh">Yenile</t>
-                    </button>
+    <div class="tab-pane fade" id="crm-tab-program" role="tabpanel">
+        <div id="salon-loyalty-program-vm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="text-muted small">
+                    <t key="crm.salon.loyalty.program.hint">Tanimli ziyaret bazli programlari (10 fon 1 bedava gibi) ve musteri ilerlemelerini gosterir.</t>
                 </div>
+                <button class="btn btn-outline-secondary btn-sm" data-bind="click: loadAll">
+                    <i class="bi bi-arrow-clockwise me-1"></i><t key="crm.common.btn.refresh">Yenile</t>
+                </button>
+            </div>
+
+            <div class="row g-2 mb-3">
+                <div class="col-md-3"><div class="border rounded p-2"><div class="small text-muted"><t key="crm.salon.loyalty.program.stat.programs">Program</t></div><div class="fs-5 fw-semibold" data-bind="text: programs().length"></div></div></div>
+                <div class="col-md-3"><div class="border rounded p-2"><div class="small text-muted"><t key="crm.salon.loyalty.program.stat.active">Aktif Sayim</t></div><div class="fs-5 fw-semibold" data-bind="text: progresses().length"></div></div></div>
+                <div class="col-md-3"><div class="border rounded p-2"><div class="small text-muted"><t key="crm.salon.loyalty.program.stat.earned">Toplam Kazanilan</t></div><div class="fs-5 fw-semibold" data-bind="text: totalEarned()"></div></div></div>
+                <div class="col-md-3"><div class="border rounded p-2"><div class="small text-muted"><t key="crm.salon.loyalty.program.stat.available">Kullanilabilir</t></div><div class="fs-5 fw-semibold" data-bind="text: totalAvailable()"></div></div></div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white"><strong><t key="crm.salon.loyalty.program.programs">Programlar</t></strong></div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover table-sm mb-0 align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th><t key="crm.salon.loyalty.client">Musteri</t></th>
-                                    <th><t key="crm.salon.loyalty.earned">Kazanilan</t></th>
-                                    <th><t key="crm.salon.loyalty.spent">Harcanan</t></th>
-                                    <th><t key="crm.salon.loyalty.balance">Bakiye</t></th>
-                                    <th><t key="crm.salon.loyalty.balance_value">TL Karsiligi</t></th>
-                                </tr>
-                            </thead>
-                            <tbody data-bind="foreach: clientLoyalties">
-                                <tr>
-                                    <td class="fw-semibold small" data-bind="text: clientName"></td>
-                                    <td class="small" data-bind="text: totalEarned"></td>
-                                    <td class="small" data-bind="text: totalSpent"></td>
-                                    <td class="small fw-semibold" data-bind="text: currentBalance"></td>
-                                    <td class="small" data-bind="text: $parent.money(balanceValue)"></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <!-- ko if: clientLoyalties().length === 0 -->
-                    <div class="text-center text-muted py-4">
-                        <i class="crm-empty-icon bi bi-star"></i>
-                        <p class="mt-2 small"><t key="crm.salon.loyalty.empty">Sadakat puani olan musteri yok</t></p>
-                    </div>
-                    <!-- /ko -->
+                    <table class="table table-hover table-sm mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th><t key="crm.salon.loyalty.program.col.name">Ad</t></th>
+                                <th><t key="crm.salon.loyalty.program.col.service">Sayilan Hizmet</t></th>
+                                <th><t key="crm.salon.loyalty.program.col.required">Esik</t></th>
+                                <th><t key="crm.salon.loyalty.program.col.reward">Odul</t></th>
+                                <th><t key="crm.salon.loyalty.program.col.status">Durum</t></th>
+                            </tr>
+                        </thead>
+                        <tbody data-bind="foreach: programs">
+                            <tr>
+                                <td class="fw-semibold small" data-bind="text: $data.name"></td>
+                                <td class="small" data-bind="text: $data.serviceName"></td>
+                                <td class="small" data-bind="text: $data.requiredVisits"></td>
+                                <td class="small" data-bind="text: $data.rewardServiceName"></td>
+                                <td><span class="badge" data-bind="css: $data.isActive ? 'bg-success' : 'bg-secondary', text: $data.isActive ? 'Aktif' : 'Pasif'"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white"><strong><t key="crm.salon.loyalty.program.client_progress">Musteri Ilerleme</t></strong></div>
+                <div class="card-body p-0">
+                    <table class="table table-hover table-sm mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th><t key="crm.salon.loyalty.program.col.client">Musteri</t></th>
+                                <th><t key="crm.salon.loyalty.program.col.program">Program</t></th>
+                                <th><t key="crm.salon.loyalty.program.col.progress">Ilerleme</t></th>
+                                <th><t key="crm.salon.loyalty.program.col.earned">Kazanildi</t></th>
+                                <th><t key="crm.salon.loyalty.program.col.available">Kalan</t></th>
+                            </tr>
+                        </thead>
+                        <tbody data-bind="foreach: progresses">
+                            <tr>
+                                <td class="fw-semibold small" data-bind="text: $data.clientName || '—'"></td>
+                                <td class="small" data-bind="text: $data.programName"></td>
+                                <td class="small" data-bind="text: $data.visitCount + ' / ' + $data.requiredVisits"></td>
+                                <td class="small" data-bind="text: $data.rewardsEarned"></td>
+                                <td><span class="badge bg-info" data-bind="text: $data.availableRewards"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -84,4 +180,5 @@
 
 @section Scripts {
     <script src="~/js/SalonLoyalty.js" asp-append-version="true"></script>
+    <script src="~/js/SalonLoyaltyProgram.js" asp-append-version="true"></script>
 }

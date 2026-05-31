@@ -1860,3 +1860,70 @@ public class SlnRevenueShareCreateDto
 public class SlnRevenueShareUpdateDto : SlnRevenueShareCreateDto
 {
 }
+
+// ═══ SlnLoyaltyProgram (Sadakat Programi — punch card / D) ═══
+public class SlnLoyaltyProgramDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public int ServiceId { get; set; }
+    public string ServiceName { get; set; } = string.Empty;
+    public int RewardServiceId { get; set; }
+    public string RewardServiceName { get; set; } = string.Empty;
+    public int RequiredVisits { get; set; }
+    public int? RewardValidDays { get; set; }
+    public int? MaxRewardsPerClient { get; set; }
+    public int? BranchId { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class SlnLoyaltyProgramCreateDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public int ServiceId { get; set; }
+    public int RewardServiceId { get; set; }
+    public int RequiredVisits { get; set; }
+    public int? RewardValidDays { get; set; }
+    public int? MaxRewardsPerClient { get; set; }
+    public int? BranchId { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+public class SlnClientLoyaltyProgressDto
+{
+    public int Id { get; set; }
+    public int ProgramId { get; set; }
+    public string ProgramName { get; set; } = string.Empty;
+    public int ServiceId { get; set; }
+    public string ServiceName { get; set; } = string.Empty;
+    public int RewardServiceId { get; set; }
+    public string RewardServiceName { get; set; } = string.Empty;
+    public int RequiredVisits { get; set; }
+    public int VisitCount { get; set; }
+    public int RewardsEarned { get; set; }
+    public int RewardsUsed { get; set; }
+    public int AvailableRewards { get; set; }
+    public int VisitsToNextReward { get; set; }
+    public DateTime? LastVisitAt { get; set; }
+    public int SlnClientId { get; set; }
+    public string? ClientName { get; set; }
+}
+
+public class SlnLoyaltyProgramRewardDto
+{
+    public int Id { get; set; }
+    public int ProgressId { get; set; }
+    public int ProgramId { get; set; }
+    public string ProgramName { get; set; } = string.Empty;
+    public int RewardServiceId { get; set; }
+    public string RewardServiceName { get; set; } = string.Empty;
+    public int SlnClientId { get; set; }
+    public string? ClientName { get; set; }
+    public DateTime EarnedAt { get; set; }
+    public DateTime? UsedAt { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+    public bool IsAvailable { get; set; }
+}
