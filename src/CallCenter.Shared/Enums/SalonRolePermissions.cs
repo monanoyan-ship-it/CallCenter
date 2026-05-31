@@ -23,6 +23,7 @@ public static class SalonRolePermissions
     {
         "Home",         // Dashboard
         "Sales",        // Hizli Satis POS
+        "ModuleRequired",
     };
 
     // ═══════════════════════════════════════════════════════════════

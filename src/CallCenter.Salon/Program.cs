@@ -5,6 +5,13 @@ using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
+if (builder.Environment.IsDevelopment())
+{
+    builder.Logging.ClearProviders();
+    builder.Logging.AddConsole();
+    builder.Logging.AddDebug();
+}
+
 // DataProtection: Cloud Run container restart larinda key kaybolmasin
 // /tmp dizini her instance da bos baslar ama instance yasadigi surece kalir
 var dpKeysPath = Path.Combine(Path.GetTempPath(), "dp-keys-salon");
@@ -42,7 +49,10 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseCorpLynkSecurityHeaders();
 app.UseStaticFiles();
 app.UseRouting();

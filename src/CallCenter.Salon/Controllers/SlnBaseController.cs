@@ -58,7 +58,12 @@ public abstract class SlnBaseController : Controller
                     if (TryRefreshCurrentSession(context, jwt.Token))
                         return;
 
-                    context.Result = RedirectToAction("Index", "Home");
+                    var moduleId = SalonModuleControllerMap.GetModuleId(controllerName);
+                    context.Result = RedirectToAction("Index", "ModuleRequired", new
+                    {
+                        moduleId,
+                        returnUrl = $"{Request.Path}{Request.QueryString}"
+                    });
                     return;
                 }
             }
