@@ -85,7 +85,7 @@ internal static class SalonBranchScope
                 || l.SlnClient.Invoices.Any(i => i.BranchId == id)));
     }
 
-    public static IQueryable<SlnClientPackage> ApplyToClientPackages(IQueryable<SlnClientPackage> query, int? branchId)
+    public static IQueryable<SlnLoyaltyPackagePurchase> ApplyToLoyaltyPackagePurchases(IQueryable<SlnLoyaltyPackagePurchase> query, int? branchId)
     {
         if (!branchId.HasValue)
             return query;

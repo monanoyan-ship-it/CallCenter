@@ -16,7 +16,7 @@ public class SlnMarketingFactory : ISlnMarketingFactory
     private readonly ISlnClientEntityService _clients;
     private readonly ISlnInvoiceEntityService _invoices;
     private readonly ISlnClientMembershipEntityService _clientMemberships;
-    private readonly ISlnClientPackageEntityService _clientPackages;
+    private readonly ISlnLoyaltyPackagePurchaseEntityService _loyaltyPurchases;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnMarketingFactory> _logger;
 
@@ -35,7 +35,7 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         ISlnClientEntityService clients,
         ISlnInvoiceEntityService invoices,
         ISlnClientMembershipEntityService clientMemberships,
-        ISlnClientPackageEntityService clientPackages,
+        ISlnLoyaltyPackagePurchaseEntityService loyaltyPurchases,
         IUnitOfWork uow,
         ILogger<SlnMarketingFactory> logger)
     {
@@ -44,7 +44,7 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         _clients = clients;
         _invoices = invoices;
         _clientMemberships = clientMemberships;
-        _clientPackages = clientPackages;
+        _loyaltyPurchases = loyaltyPurchases;
         _uow = uow;
         _logger = logger;
     }
@@ -497,16 +497,15 @@ public class SlnMarketingFactory : ISlnMarketingFactory
 
     private async Task<List<int>> GetActivePackageClientIdsAsync(int customerId, DateTime now, int? branchId = null)
     {
-        var query = _clientPackages.GetAllQueryable()
+        var query = _loyaltyPurchases.GetAllQueryable()
             .Where(p => p.CustomerId == customerId
-                && p.SlnClientId.HasValue
                 && p.IsActive
                 && p.RemainingSessions > 0
                 && (!p.ExpiresAt.HasValue || p.ExpiresAt.Value >= now));
-        query = SalonBranchScope.ApplyToClientPackages(query, branchId);
+        query = SalonBranchScope.ApplyToLoyaltyPackagePurchases(query, branchId);
 
         return await query
-            .Select(p => p.SlnClientId!.Value)
+            .Select(p => p.SlnClientId)
             .Distinct()
             .ToListAsync();
     }

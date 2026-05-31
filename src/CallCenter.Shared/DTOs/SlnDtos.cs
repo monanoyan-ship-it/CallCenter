@@ -394,7 +394,7 @@ public class SlnScanResolveDto
     public SlnGiftCardDto? GiftCard { get; set; }
     public SlnClientDto? Client { get; set; }
     public SlnAppointmentDto? Appointment { get; set; }
-    public SlnClientPackageDto? ClientPackage { get; set; }
+    public SlnLoyaltyPackagePurchaseDto? LoyaltyPackage { get; set; }
     public SlnClientMembershipDto? Membership { get; set; }
     public Dictionary<string, string> Metadata { get; set; } = new();
 }
@@ -540,7 +540,7 @@ public class SlnInvoiceItemCreateDto
     public decimal DiscountAmount { get; set; }
     public int? MembershipId { get; set; }
     public bool UseMembershipBenefit { get; set; }
-    public int? ClientPackageId { get; set; }
+    public int? LoyaltyPackagePurchaseId { get; set; }
     public bool UsePackageSession { get; set; }
     public List<SlnInvoiceMaterialConsumptionDto> MaterialConsumptions { get; set; } = [];
 }
@@ -853,8 +853,8 @@ public class SlnLoyaltyRedeemDto
     public int? InvoiceId { get; set; }
 }
 
-// ═══ SlnPackage ═══
-public class SlnPackageDefinitionDto
+// ═══ SlnLoyaltyPackage (Sadakat Paketi / A) ═══
+public class SlnLoyaltyPackageOfferDto
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
@@ -862,38 +862,40 @@ public class SlnPackageDefinitionDto
     public int ServiceId { get; set; }
     public string ServiceName { get; set; } = string.Empty;
     public int TotalSessions { get; set; }
+    public int BonusSessions { get; set; }
     public decimal Price { get; set; }
     public decimal PricePerSession { get; set; }
     public int ValidDays { get; set; }
     public bool IsActive { get; set; }
 }
 
-public class SlnPackageDefinitionCreateDto
+public class SlnLoyaltyPackageOfferCreateDto
 {
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public int ServiceId { get; set; }
     public int TotalSessions { get; set; }
+    public int BonusSessions { get; set; }
     public decimal Price { get; set; }
     public int ValidDays { get; set; } = 365;
     public bool IsActive { get; set; } = true;
 }
 
-public class SlnClientPackageDto
+public class SlnLoyaltyPackagePurchaseDto
 {
     public int Id { get; set; }
-    public int PackageDefinitionId { get; set; }
+    public int OfferId { get; set; }
     public int ServiceId { get; set; }
     public int? BranchId { get; set; }
     public int? SourceInvoiceId { get; set; }
     public int? SourceInvoiceItemId { get; set; }
-    public string PackageName { get; set; } = string.Empty;
+    public string OfferName { get; set; } = string.Empty;
     public string ServiceName { get; set; } = string.Empty;
     public string? ClientName { get; set; }
     public int TotalSessions { get; set; }
     public int UsedSessions { get; set; }
     public int RemainingSessions { get; set; }
-    public decimal PackagePrice { get; set; }
+    public decimal OfferPrice { get; set; }
     public decimal SaleAmount { get; set; }
     public decimal PaidAmount { get; set; }
     public decimal BalanceAmount { get; set; }
@@ -902,34 +904,28 @@ public class SlnClientPackageDto
     public DateTime CreatedAt { get; set; }
 }
 
-public class SlnClientPackageAssignDto
+public class SlnLoyaltyPackagePurchaseSellDto
 {
-    public int PackageDefinitionId { get; set; }
-    public int? SlnClientId { get; set; }
-}
-
-public class SlnClientPackageSellDto
-{
-    public int PackageDefinitionId { get; set; }
+    public int OfferId { get; set; }
     public int? SlnClientId { get; set; }
     public int PaymentMethodId { get; set; } = 1;
 }
 
-public class SlnPackageUseDto
+public class SlnLoyaltyPackageRedeemDto
 {
-    public int ClientPackageId { get; set; }
+    public int PurchaseId { get; set; }
     public string? Notes { get; set; }
 }
 
-public class SlnPackageUsageDto
+public class SlnLoyaltyPackageRedemptionDto
 {
     public int Id { get; set; }
-    public int ClientPackageId { get; set; }
+    public int PurchaseId { get; set; }
     public int? InvoiceId { get; set; }
     public int? InvoiceItemId { get; set; }
     public int? ServiceId { get; set; }
     public int? SlnAppointmentId { get; set; }
-    public string PackageName { get; set; } = string.Empty;
+    public string OfferName { get; set; } = string.Empty;
     public string ServiceName { get; set; } = string.Empty;
     public string? ClientName { get; set; }
     public string? PersonnelName { get; set; }
@@ -937,18 +933,18 @@ public class SlnPackageUsageDto
     public DateTime UsedAt { get; set; }
 }
 
-public class SlnPackageBenefitCheckDto
+public class SlnLoyaltyPackageBenefitCheckDto
 {
     public int SlnClientId { get; set; }
     public List<int> ServiceIds { get; set; } = [];
 }
 
-public class SlnPackageBenefitDto
+public class SlnLoyaltyPackageBenefitDto
 {
-    public int ClientPackageId { get; set; }
-    public int PackageDefinitionId { get; set; }
+    public int PurchaseId { get; set; }
+    public int OfferId { get; set; }
     public int ServiceId { get; set; }
-    public string PackageName { get; set; } = string.Empty;
+    public string OfferName { get; set; } = string.Empty;
     public int RemainingSessions { get; set; }
     public DateTime? ExpiresAt { get; set; }
 }

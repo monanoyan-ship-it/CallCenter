@@ -21,7 +21,7 @@ public class SlnScannerFactory : ISlnScannerFactory
     private readonly ISlnBranchEntityService _branches;
     private readonly ISlnClientEntityService _clients;
     private readonly ISlnAppointmentEntityService _appointments;
-    private readonly ISlnClientPackageEntityService _clientPackages;
+    private readonly ISlnLoyaltyPackagePurchaseEntityService _loyaltyPurchases;
     private readonly ISlnClientMembershipEntityService _memberships;
     private readonly ISlnProductEntityService _products;
     private readonly ISlnGiftCardEntityService _giftCards;
@@ -34,7 +34,7 @@ public class SlnScannerFactory : ISlnScannerFactory
         ISlnBranchEntityService branches,
         ISlnClientEntityService clients,
         ISlnAppointmentEntityService appointments,
-        ISlnClientPackageEntityService clientPackages,
+        ISlnLoyaltyPackagePurchaseEntityService loyaltyPurchases,
         ISlnClientMembershipEntityService memberships,
         ISlnProductEntityService products,
         ISlnGiftCardEntityService giftCards,
@@ -46,7 +46,7 @@ public class SlnScannerFactory : ISlnScannerFactory
         _branches = branches;
         _clients = clients;
         _appointments = appointments;
-        _clientPackages = clientPackages;
+        _loyaltyPurchases = loyaltyPurchases;
         _memberships = memberships;
         _products = products;
         _giftCards = giftCards;
@@ -371,10 +371,10 @@ public class SlnScannerFactory : ISlnScannerFactory
 
     private async Task<SlnScanResolveDto> ResolveClientPackageAsync(int packageId, string raw, int customerId, int? branchId)
     {
-        var package = await SalonBranchScope.ApplyToClientPackages(
-                _clientPackages.GetAllQueryable().Where(p => p.CustomerId == customerId && p.Id == packageId),
+        var package = await SalonBranchScope.ApplyToLoyaltyPackagePurchases(
+                _loyaltyPurchases.GetAllQueryable().Where(p => p.CustomerId == customerId && p.Id == packageId),
                 branchId)
-            .Include(p => p.PackageDefinition).ThenInclude(d => d!.Service)
+            .Include(p => p.Offer).ThenInclude(o => o!.Service)
             .Include(p => p.SlnClient)
             .FirstOrDefaultAsync();
 
@@ -390,7 +390,7 @@ public class SlnScannerFactory : ISlnScannerFactory
             CustomerId = customerId,
             BranchId = package.BranchId ?? branchId,
             Client = package.SlnClient != null ? MapClient(package.SlnClient) : null,
-            ClientPackage = MapClientPackage(package)
+            LoyaltyPackage = MapLoyaltyPurchase(package)
         };
     }
 
@@ -517,8 +517,8 @@ public class SlnScannerFactory : ISlnScannerFactory
     private async Task RequireClientPackageAsync(int? id, int customerId, int? branchId)
     {
         if (!id.HasValue) throw new InvalidOperationException("Seans paketi hedefi eksik.");
-        var exists = await SalonBranchScope.ApplyToClientPackages(
-                _clientPackages.GetAllQueryable().Where(p => p.Id == id.Value && p.CustomerId == customerId),
+        var exists = await SalonBranchScope.ApplyToLoyaltyPackagePurchases(
+                _loyaltyPurchases.GetAllQueryable().Where(p => p.Id == id.Value && p.CustomerId == customerId),
                 branchId)
             .AnyAsync();
         if (!exists) throw new InvalidOperationException("Seans paketi bulunamadi veya yetki disi.");
@@ -807,24 +807,24 @@ public class SlnScannerFactory : ISlnScannerFactory
         };
     }
 
-    private static SlnClientPackageDto MapClientPackage(SlnClientPackage p)
+    private static SlnLoyaltyPackagePurchaseDto MapLoyaltyPurchase(SlnLoyaltyPackagePurchase p)
     {
-        var price = p.SaleAmount > 0 ? p.SaleAmount : p.PackageDefinition?.Price ?? 0;
-        return new SlnClientPackageDto
+        var price = p.SaleAmount > 0 ? p.SaleAmount : p.Offer?.Price ?? 0;
+        return new SlnLoyaltyPackagePurchaseDto
         {
             Id = p.Id,
-            PackageDefinitionId = p.PackageDefinitionId,
-            ServiceId = p.PackageDefinition?.ServiceId ?? 0,
+            OfferId = p.OfferId,
+            ServiceId = p.Offer?.ServiceId ?? 0,
             BranchId = p.BranchId,
             SourceInvoiceId = p.SourceInvoiceId,
             SourceInvoiceItemId = p.SourceInvoiceItemId,
-            PackageName = p.PackageDefinition?.Name ?? "",
-            ServiceName = p.PackageDefinition?.Service?.Name ?? "",
+            OfferName = p.Offer?.Name ?? "",
+            ServiceName = p.Offer?.Service?.Name ?? "",
             ClientName = p.SlnClient?.FullName,
             TotalSessions = p.TotalSessions,
             UsedSessions = p.UsedSessions,
             RemainingSessions = p.RemainingSessions,
-            PackagePrice = p.PackageDefinition?.Price ?? 0,
+            OfferPrice = p.Offer?.Price ?? 0,
             SaleAmount = price,
             PaidAmount = p.PaidAmount,
             BalanceAmount = Math.Max(0, price - p.PaidAmount),

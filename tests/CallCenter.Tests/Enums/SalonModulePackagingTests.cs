@@ -7,9 +7,9 @@ public class SalonModulePackagingTests
     [Fact]
     public void SessionPackages_ShouldBeIncludedInCorePackage()
     {
-        SalonPortalModules.SlnPackages.IsDefault.Should().BeTrue();
-        SalonPortalModules.Defaults.Select(m => m.Id).Should().Contain(SalonPortalModules.Ids.SlnPackages);
-        SalonModuleGroups.GetGroupId(SalonPortalModules.Ids.SlnPackages).Should().Be(SalonModuleGroups.Ids.Core);
+        SalonPortalModules.SlnLoyaltyPackages.IsDefault.Should().BeTrue();
+        SalonPortalModules.Defaults.Select(m => m.Id).Should().Contain(SalonPortalModules.Ids.SlnLoyaltyPackages);
+        SalonModuleGroups.GetGroupId(SalonPortalModules.Ids.SlnLoyaltyPackages).Should().Be(SalonModuleGroups.Ids.Core);
     }
 
     [Fact]
@@ -39,7 +39,7 @@ public class SalonModulePackagingTests
         SalonModuleGroups.GetModules(SalonModuleGroups.Ids.LoyaltyMarketing)
             .Select(m => m.Id)
             .Should()
-            .NotContain(SalonPortalModules.Ids.SlnPackages);
+            .NotContain(SalonPortalModules.Ids.SlnLoyaltyPackages);
     }
 
     [Fact]

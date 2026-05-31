@@ -205,7 +205,7 @@ function ClientDetailViewModel() {
         silentGet('/proxy/sln-memberships?clientId=' + id, function (data) {
             self.walletMemberships(data.items || data || []);
         });
-        silentGet('/proxy/sln-packages/client-packages?clientId=' + id, function (data) {
+        silentGet('/proxy/sln-loyalty-packages/purchases?clientId=' + id, function (data) {
             self.walletPackages(data.items || data || []);
         });
         silentGet('/proxy/sln-gift-cards', function (data) {

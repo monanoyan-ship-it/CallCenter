@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CallCenter.Salon.Controllers;
 
-public class PackagesController : SlnBaseController
+public class LoyaltyPackagesController : SlnBaseController
 {
     public IActionResult Index() => View();
 }

@@ -1,16 +1,16 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = Translation.T("salon.session_plans.title", "Satılan Seanslar");
+    ViewData["Title"] = Translation.T("salon.loyalty_packages.title", "Sadakat Paketleri");
 }
 
 <div id="packages-vm">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
-            <h5 class="mb-1"><t key="salon.session_plans.title">Satılan Seanslar</t></h5>
-            <div class="text-muted small"><t key="salon.session_plans.hint">Seanslı hizmet tanımlarını, hızlı satıştan doğan müşteri seanslarını ve kullanım geçmişini buradan takip edin.</t></div>
+            <h5 class="mb-1"><t key="salon.loyalty_packages.title">Sadakat Paketleri</t></h5>
+            <div class="text-muted small"><t key="salon.loyalty_packages.hint">"10 öde 12 al" tarzı sadakat paket tekliflerini tanımlayın, müşterilere satılan paketleri ve kalan seans bakiyelerini buradan takip edin.</t></div>
         </div>
         <button class="btn btn-primary btn-sm" data-bind="click: openNewDef">
-            <i class="bi bi-plus-lg me-1"></i><t key="salon.session_plans.new_definition">Yeni Seans Tanımı</t>
+            <i class="bi bi-plus-lg me-1"></i><t key="salon.loyalty_packages.new_offer">Yeni Paket Teklifi</t>
         </button>
     </div>
 
@@ -364,5 +364,5 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/Packages.js" asp-append-version="true"></script>
+    <script src="~/js/LoyaltyPackages.js" asp-append-version="true"></script>
 }

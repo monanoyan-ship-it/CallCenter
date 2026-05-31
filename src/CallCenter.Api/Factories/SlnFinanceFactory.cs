@@ -28,7 +28,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
     private readonly ISlnAppointmentEntityService _appointments;
     private readonly ISlnAppointmentFactory _appointmentFactory;
     private readonly ISlnMembershipFactory _memberships;
-    private readonly ISlnPackageFactory _packages;
+    private readonly ISlnLoyaltyPackageFactory _loyaltyPackages;
     private readonly ISlnGiftCardFactory _giftCards;
     private readonly ISlnStockBalanceService _stockBalances;
     private readonly IUnitOfWork _uow;
@@ -54,7 +54,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         ISlnAppointmentEntityService appointments,
         ISlnAppointmentFactory appointmentFactory,
         ISlnMembershipFactory memberships,
-        ISlnPackageFactory packages,
+        ISlnLoyaltyPackageFactory loyaltyPackages,
         ISlnGiftCardFactory giftCards,
         ISlnStockBalanceService stockBalances,
         IUnitOfWork uow,
@@ -78,7 +78,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         _appointments = appointments;
         _appointmentFactory = appointmentFactory;
         _memberships = memberships;
-        _packages = packages;
+        _loyaltyPackages = loyaltyPackages;
         _giftCards = giftCards;
         _stockBalances = stockBalances;
         _uow = uow;
@@ -221,7 +221,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         var packageUsageRecords = new List<(int ClientPackageId, int ServiceId, SlnInvoiceItem Item)>();
         var sessionPlanSaleItems = new List<SlnInvoiceItem>();
         var membershipBenefitLookup = new Dictionary<int, ServiceMembershipBenefit>();
-        var packageBenefitLookup = new Dictionary<int, SlnPackageBenefitDto>();
+        var packageBenefitLookup = new Dictionary<int, SlnLoyaltyPackageBenefitDto>();
 
         if (dto.Items.Any(i => i.UseMembershipBenefit && i.UsePackageSession))
             return (null, "Ayni kalemde uyelik hakki ve paket seansi birlikte kullanilamaz");
@@ -238,7 +238,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             if (!dto.SlnClientId.HasValue)
                 return (null, "Paket seansi kullanimi icin musteri secilmelidir");
 
-            if (packageSessionItems.Any(i => !i.ServiceId.HasValue || i.ProductId.HasValue || !i.ClientPackageId.HasValue))
+            if (packageSessionItems.Any(i => !i.ServiceId.HasValue || i.ProductId.HasValue || !i.LoyaltyPackagePurchaseId.HasValue))
                 return (null, "Paket seansi sadece paketle eslesen hizmet kalemlerinde kullanilabilir");
 
             var packageServiceIds = packageSessionItems
@@ -246,12 +246,12 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                 .Distinct()
                 .ToList();
 
-            var benefits = await _packages.GetUsablePackagesAsync(customerId, dto.SlnClientId.Value, packageServiceIds, branchId);
-            packageBenefitLookup = benefits.ToDictionary(b => b.ClientPackageId);
+            var benefits = await _loyaltyPackages.GetUsablePurchasesAsync(customerId, dto.SlnClientId.Value, packageServiceIds, branchId);
+            packageBenefitLookup = benefits.ToDictionary(b => b.PurchaseId);
 
-            foreach (var group in packageSessionItems.GroupBy(i => new { ClientPackageId = i.ClientPackageId!.Value, ServiceId = i.ServiceId!.Value }))
+            foreach (var group in packageSessionItems.GroupBy(i => new { PurchaseId = i.LoyaltyPackagePurchaseId!.Value, ServiceId = i.ServiceId!.Value }))
             {
-                if (!packageBenefitLookup.TryGetValue(group.Key.ClientPackageId, out var benefit)
+                if (!packageBenefitLookup.TryGetValue(group.Key.PurchaseId, out var benefit)
                     || benefit.ServiceId != group.Key.ServiceId
                     || benefit.RemainingSessions <= 0)
                 {
@@ -313,10 +313,10 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             var unitPrice = itemDto.UnitPrice;
             if (itemDto.UsePackageSession)
             {
-                if (!itemDto.ServiceId.HasValue || !itemDto.ClientPackageId.HasValue)
+                if (!itemDto.ServiceId.HasValue || !itemDto.LoyaltyPackagePurchaseId.HasValue)
                     return (null, "Paket seansi icin hizmet ve paket bilgisi zorunludur");
 
-                if (!packageBenefitLookup.TryGetValue(itemDto.ClientPackageId.Value, out var packageBenefit)
+                if (!packageBenefitLookup.TryGetValue(itemDto.LoyaltyPackagePurchaseId.Value, out var packageBenefit)
                     || packageBenefit.ServiceId != itemDto.ServiceId.Value
                     || packageBenefit.RemainingSessions <= 0)
                 {
@@ -364,7 +364,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             {
                 ServiceId = itemDto.ServiceId,
                 ProductId = itemDto.ProductId,
-                ClientPackageId = itemDto.UsePackageSession ? itemDto.ClientPackageId : null,
+                LoyaltyPackagePurchaseId = itemDto.UsePackageSession ? itemDto.LoyaltyPackagePurchaseId : null,
                 IsSessionUsage = itemDto.UsePackageSession,
                 PersonnelId = itemDto.PersonnelId,
                 Quantity = itemDto.Quantity,
@@ -374,11 +374,11 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             };
             items.Add(invoiceItem);
 
-            if (itemDto.UsePackageSession && itemDto.ClientPackageId.HasValue && itemDto.ServiceId.HasValue)
+            if (itemDto.UsePackageSession && itemDto.LoyaltyPackagePurchaseId.HasValue && itemDto.ServiceId.HasValue)
             {
                 var usageCount = (int)itemDto.Quantity;
                 for (var i = 0; i < usageCount; i++)
-                    packageUsageRecords.Add((itemDto.ClientPackageId.Value, itemDto.ServiceId.Value, invoiceItem));
+                    packageUsageRecords.Add((itemDto.LoyaltyPackagePurchaseId.Value, itemDto.ServiceId.Value, invoiceItem));
             }
 
             if (dto.SlnClientId.HasValue
@@ -484,7 +484,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         foreach (var usage in packageUsageRecords)
         {
             var notes = $"Invoice:{invoice.Id}|InvoiceNo:{invoiceNo}|Service:{usage.ServiceId}";
-            var (success, error) = await _packages.RecordUsageAsync(customerId, usage.ClientPackageId, usage.ServiceId, dto.SlnClientId, userId, notes, branchId, invoice.Id, usage.Item.Id, dto.SlnAppointmentId);
+            var (success, error) = await _loyaltyPackages.RecordRedemptionAsync(customerId, usage.ClientPackageId, usage.ServiceId, dto.SlnClientId, userId, notes, branchId, invoice.Id, usage.Item.Id, dto.SlnAppointmentId);
             if (!success)
             {
                 _logger.LogWarning("Paket seansi kaydedilemedi: InvoiceId={InvoiceId}, ClientPackageId={ClientPackageId}, Error={Error}", invoice.Id, usage.ClientPackageId, error);
@@ -513,11 +513,11 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                     var quantityAsInt = i.Quantity == Math.Truncate(i.Quantity)
                         ? (int)i.Quantity
                         : 1;
-                    return new SlnSessionPlanSaleLine(i.ServiceId!.Value, i.LineTotal, Math.Max(1, quantityAsInt), i.Id);
+                    return new SlnLoyaltyPackageSaleLine(i.ServiceId!.Value, i.LineTotal, Math.Max(1, quantityAsInt), i.Id);
                 })
                 .ToList();
 
-            var createdPlans = await _packages.CreateSessionPlansFromInvoiceAsync(
+            var createdPlans = await _loyaltyPackages.CreateLoyaltyPurchasesFromInvoiceAsync(
                 customerId,
                 dto.SlnClientId.Value,
                 invoice.Id,
@@ -712,10 +712,10 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         if (invoice == null) return (false, "Adisyon bulunamadi");
         if (invoice.StatusId == 3) return (false, "Adisyon zaten iptal edilmis");
 
-        var (packageSaleCancelled, packageSaleError) = await _packages.CancelPackageSaleFromInvoiceAsync(customerId, invoice.Notes);
+        var (packageSaleCancelled, packageSaleError) = await _loyaltyPackages.CancelPurchaseFromInvoiceAsync(customerId, invoice.Notes);
         if (!packageSaleCancelled) return (false, packageSaleError);
 
-        var (packageUsagesReversed, packageUsageError) = await _packages.ReverseInvoiceUsagesAsync(customerId, invoice.Id);
+        var (packageUsagesReversed, packageUsageError) = await _loyaltyPackages.ReverseInvoiceRedemptionsAsync(customerId, invoice.Id);
         if (!packageUsagesReversed) return (false, packageUsageError);
 
         var (giftCardSaleCancelled, giftCardSaleError) = await _giftCards.CancelGiftCardSaleFromInvoiceAsync(customerId, invoice.Notes);
@@ -1544,10 +1544,10 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         // Tam iade ise adisyonu iptal et
         if (isFullRefund)
         {
-            var (packageSaleCancelled, packageSaleError) = await _packages.CancelPackageSaleFromInvoiceAsync(customerId, invoice.Notes);
+            var (packageSaleCancelled, packageSaleError) = await _loyaltyPackages.CancelPurchaseFromInvoiceAsync(customerId, invoice.Notes);
             if (!packageSaleCancelled) return (null, packageSaleError);
 
-            var (packageUsagesReversed, packageUsageError) = await _packages.ReverseInvoiceUsagesAsync(customerId, invoice.Id);
+            var (packageUsagesReversed, packageUsageError) = await _loyaltyPackages.ReverseInvoiceRedemptionsAsync(customerId, invoice.Id);
             if (!packageUsagesReversed) return (null, packageUsageError);
 
             var (giftCardSaleCancelled, giftCardSaleError) = await _giftCards.CancelGiftCardSaleFromInvoiceAsync(customerId, invoice.Notes);

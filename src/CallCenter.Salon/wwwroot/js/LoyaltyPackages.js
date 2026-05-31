@@ -126,7 +126,7 @@ function PackagesViewModel() {
             if (serviceId && !sameId(pkg.serviceId, serviceId)) return false;
             if (!query) return true;
             return (pkg.clientName || '').toLowerCase().indexOf(query) >= 0
-                || (pkg.packageName || '').toLowerCase().indexOf(query) >= 0
+                || (pkg.offerName || '').toLowerCase().indexOf(query) >= 0
                 || (pkg.serviceName || '').toLowerCase().indexOf(query) >= 0;
         });
     });
@@ -146,10 +146,10 @@ function PackagesViewModel() {
     }
 
     self.loadData = function (selectedId) {
-        $.ajax({ url: '/proxy/sln-packages/definitions', method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/sln-loyalty-packages/offers', method: 'GET' }).done(function (data) {
             self.definitions(normalizeList(data));
         });
-        $.ajax({ url: '/proxy/sln-packages/client-packages', method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/sln-loyalty-packages/purchases', method: 'GET' }).done(function (data) {
             self.clientPackages(normalizeList(data));
             refreshSelectedPackage(selectedId);
         });
@@ -182,7 +182,7 @@ function PackagesViewModel() {
         }
 
         self.isLoadingUsage(true);
-        $.ajax({ url: '/proxy/sln-packages/usages?clientPackageId=' + pkg.id, method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/sln-loyalty-packages/redemptions?purchaseId=' + pkg.id, method: 'GET' }).done(function (data) {
             self.usageHistory(normalizeList(data));
         }).fail(function (xhr) {
             toastr.error(readError(xhr, slnJsT('salon.packages.js.usage_history_failed', 'Kullanim gecmisi alinamadi')));
@@ -242,7 +242,7 @@ function PackagesViewModel() {
         }
 
         self.isSaving(true);
-        var url = '/proxy/sln-packages/definitions';
+        var url = '/proxy/sln-loyalty-packages/offers';
         var method = 'POST';
         if (self.isEditingDef()) {
             url += '/' + self.editingDefId();
@@ -262,7 +262,7 @@ function PackagesViewModel() {
 
     self.removeDef = function (def) {
         confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.session_plans.js.delete_def_confirm', "'{name}' seans tanimini silmek istediginize emin misiniz?").replace('{name}', def.name || ''), function () {
-            $.ajax({ url: '/proxy/sln-packages/definitions/' + def.id, method: 'DELETE' }).done(function () {
+            $.ajax({ url: '/proxy/sln-loyalty-packages/offers/' + def.id, method: 'DELETE' }).done(function () {
                 self.loadData();
                 toastr.success(slnJsT('salon.session_plans.js.definition_deleted', 'Seans tanimi silindi'));
             }).fail(function (xhr) {
@@ -289,11 +289,11 @@ function PackagesViewModel() {
 
         self.isSaving(true);
         $.ajax({
-            url: '/proxy/sln-packages/use',
+            url: '/proxy/sln-loyalty-packages/redeem',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
-                clientPackageId: target.id,
+                purchaseId: target.id,
                 notes: (self.manualUseNotes() || slnJsT('salon.session_plans.manual_use_note', 'Manuel seans kullanimi')).trim()
             })
         }).done(function () {

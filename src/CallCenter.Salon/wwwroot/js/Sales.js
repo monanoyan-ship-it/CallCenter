@@ -314,7 +314,7 @@ function SalesViewModel() {
         self.applyPackageBenefitsToItems(self.activeClientPackages ? self.activeClientPackages() : self.clientPackages(), serviceItems);
 
         $.ajax({
-            url: '/proxy/sln-packages/usable',
+            url: '/proxy/sln-loyalty-packages/usable',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({ slnClientId: parseInt(clientId), serviceIds: serviceIds })
@@ -565,7 +565,7 @@ function SalesViewModel() {
         $.ajax({ url: '/proxy/sln-recipes', method: 'GET' }).done(function (data) {
             self.recipes((data.items || data).filter(function (r) { return r.isActive; }));
         });
-        $.ajax({ url: '/proxy/sln-packages/definitions', method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/sln-loyalty-packages/offers', method: 'GET' }).done(function (data) {
             self.packageDefinitions(normalizeList(data).filter(function (d) { return d.isActive !== false; }));
         }).fail(function () {
             self.packageDefinitions([]);
@@ -578,7 +578,7 @@ function SalesViewModel() {
             return;
         }
 
-        $.ajax({ url: '/proxy/sln-packages/client-packages?clientId=' + parseInt(clientId, 10), method: 'GET' })
+        $.ajax({ url: '/proxy/sln-loyalty-packages/purchases?clientId=' + parseInt(clientId, 10), method: 'GET' })
             .done(function (data) {
                 self.clientPackages(normalizeList(data));
             })

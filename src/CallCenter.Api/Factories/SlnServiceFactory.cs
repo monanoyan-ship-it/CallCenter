@@ -19,7 +19,7 @@ public class SlnServiceFactory : ISlnServiceFactory
     private readonly ISlnBranchEntityService _branches;
     private readonly ISlnAppointmentServiceEntityService _appointmentServices;
     private readonly ISlnInvoiceItemEntityService _invoiceItems;
-    private readonly ISlnPackageDefinitionEntityService _packageDefinitions;
+    private readonly ISlnLoyaltyPackageOfferEntityService _loyaltyOffers;
     private readonly ISlnRecipeEntityService _recipes;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnServiceFactory> _logger;
@@ -35,7 +35,7 @@ public class SlnServiceFactory : ISlnServiceFactory
         ISlnBranchEntityService branches,
         ISlnAppointmentServiceEntityService appointmentServices,
         ISlnInvoiceItemEntityService invoiceItems,
-        ISlnPackageDefinitionEntityService packageDefinitions,
+        ISlnLoyaltyPackageOfferEntityService loyaltyOffers,
         ISlnRecipeEntityService recipes,
         IUnitOfWork uow,
         ILogger<SlnServiceFactory> logger)
@@ -50,7 +50,7 @@ public class SlnServiceFactory : ISlnServiceFactory
         _branches = branches;
         _appointmentServices = appointmentServices;
         _invoiceItems = invoiceItems;
-        _packageDefinitions = packageDefinitions;
+        _loyaltyOffers = loyaltyOffers;
         _recipes = recipes;
         _uow = uow;
         _logger = logger;
@@ -267,7 +267,7 @@ public class SlnServiceFactory : ISlnServiceFactory
             .AnyAsync(i => i.ServiceId == serviceId && i.Invoice != null && i.Invoice.CustomerId == customerId))
             return true;
 
-        if (await _packageDefinitions.GetAllQueryable()
+        if (await _loyaltyOffers.GetAllQueryable()
             .AnyAsync(d => d.CustomerId == customerId && d.ServiceId == serviceId))
             return true;
 

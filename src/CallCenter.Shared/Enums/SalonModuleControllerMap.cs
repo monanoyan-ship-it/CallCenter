@@ -26,7 +26,7 @@ public static class SalonModuleControllerMap
         ["Sales"] = SalonPortalModules.Ids.SlnSales,                 // 214
         ["Recipes"] = SalonPortalModules.Ids.SlnRecipes,             // 215
         ["GiftCards"] = SalonPortalModules.Ids.SlnGiftCards,         // 216
-        ["Packages"] = SalonPortalModules.Ids.SlnPackages,           // 217
+        ["LoyaltyPackages"] = SalonPortalModules.Ids.SlnLoyaltyPackages,    // 217
         ["Memberships"] = SalonPortalModules.Ids.SlnMemberships,     // 218
         ["Loyalty"] = SalonPortalModules.Ids.SlnLoyalty,             // 219
         ["Profile"] = SalonPortalModules.Ids.SlnProfile,             // 220

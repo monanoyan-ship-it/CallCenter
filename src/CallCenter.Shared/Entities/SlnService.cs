@@ -26,6 +26,9 @@ public class SlnService
     public bool IsActive { get; set; } = true;
     public int SortOrder { get; set; }
 
+    /// <summary>1 = tek seans; &gt;1 = cok seansli hizmet (orn. Tam Vucut Lazer 8 seans). Sadakat Paketi ile karistirilmaz.</summary>
+    public int SessionCount { get; set; } = 1;
+
     public ICollection<SlnService> Variants { get; set; } = [];
     public ICollection<SlnServiceResourceRequirement> ResourceRequirements { get; set; } = [];
 }

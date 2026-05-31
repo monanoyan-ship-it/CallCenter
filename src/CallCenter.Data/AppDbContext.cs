@@ -156,9 +156,9 @@ public class AppDbContext : DbContext
     public DbSet<SlnLoyaltyConfig> SlnLoyaltyConfigs => Set<SlnLoyaltyConfig>();
     public DbSet<SlnClientLoyalty> SlnClientLoyalties => Set<SlnClientLoyalty>();
     public DbSet<SlnLoyaltyTransaction> SlnLoyaltyTransactions => Set<SlnLoyaltyTransaction>();
-    public DbSet<SlnPackageDefinition> SlnPackageDefinitions => Set<SlnPackageDefinition>();
-    public DbSet<SlnClientPackage> SlnClientPackages => Set<SlnClientPackage>();
-    public DbSet<SlnPackageUsage> SlnPackageUsages => Set<SlnPackageUsage>();
+    public DbSet<SlnLoyaltyPackageOffer> SlnLoyaltyPackageOffers => Set<SlnLoyaltyPackageOffer>();
+    public DbSet<SlnLoyaltyPackagePurchase> SlnLoyaltyPackagePurchases => Set<SlnLoyaltyPackagePurchase>();
+    public DbSet<SlnLoyaltyPackageRedemption> SlnLoyaltyPackageRedemptions => Set<SlnLoyaltyPackageRedemption>();
 
     public DbSet<SlnMembershipPlanService> SlnMembershipPlanServices => Set<SlnMembershipPlanService>();
 
@@ -559,16 +559,18 @@ public class AppDbContext : DbContext
         {
             e.Property(i => i.TaxRate).HasPrecision(5, 2);
             e.Property(i => i.TaxAmount).HasPrecision(18, 2);
-            e.HasOne(i => i.ClientPackage).WithMany().HasForeignKey(i => i.ClientPackageId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(i => i.LoyaltyPackagePurchase).WithMany().HasForeignKey(i => i.LoyaltyPackagePurchaseId).OnDelete(DeleteBehavior.SetNull);
         });
 
-        modelBuilder.Entity<SlnPackageDefinition>(e =>
+        modelBuilder.Entity<SlnLoyaltyPackageOffer>(e =>
         {
             e.Property(p => p.Price).HasPrecision(18, 2);
             e.HasIndex(p => new { p.CustomerId, p.ServiceId });
+            e.HasIndex(p => new { p.CustomerId, p.BranchId });
+            e.HasOne(p => p.Branch).WithMany().HasForeignKey(p => p.BranchId).OnDelete(DeleteBehavior.SetNull);
         });
 
-        modelBuilder.Entity<SlnClientPackage>(e =>
+        modelBuilder.Entity<SlnLoyaltyPackagePurchase>(e =>
         {
             e.Property(p => p.SaleAmount).HasPrecision(18, 2);
             e.Property(p => p.PaidAmount).HasPrecision(18, 2);
@@ -576,7 +578,7 @@ public class AppDbContext : DbContext
             e.HasIndex(p => p.SourceInvoiceId);
             e.HasIndex(p => p.SourceInvoiceItemId);
             e.HasOne(p => p.Branch).WithMany().HasForeignKey(p => p.BranchId).OnDelete(DeleteBehavior.SetNull);
-            e.HasOne(p => p.PackageDefinition).WithMany().HasForeignKey(p => p.PackageDefinitionId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(p => p.Offer).WithMany().HasForeignKey(p => p.OfferId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(p => p.SourceInvoice).WithMany().HasForeignKey(p => p.SourceInvoiceId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(p => p.SourceInvoiceItem).WithMany().HasForeignKey(p => p.SourceInvoiceItemId).OnDelete(DeleteBehavior.SetNull);
         });
@@ -588,12 +590,14 @@ public class AppDbContext : DbContext
             e.HasOne(g => g.Branch).WithMany().HasForeignKey(g => g.BranchId).OnDelete(DeleteBehavior.SetNull);
         });
 
-        modelBuilder.Entity<SlnPackageUsage>(e =>
+        modelBuilder.Entity<SlnLoyaltyPackageRedemption>(e =>
         {
+            e.HasIndex(u => u.PurchaseId);
             e.HasIndex(u => u.InvoiceId);
             e.HasIndex(u => u.InvoiceItemId);
             e.HasIndex(u => u.ServiceId);
             e.HasIndex(u => u.SlnAppointmentId);
+            e.HasOne(u => u.Purchase).WithMany(p => p.Redemptions).HasForeignKey(u => u.PurchaseId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(u => u.Invoice).WithMany().HasForeignKey(u => u.InvoiceId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(u => u.InvoiceItem).WithMany().HasForeignKey(u => u.InvoiceItemId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(u => u.Service).WithMany().HasForeignKey(u => u.ServiceId).OnDelete(DeleteBehavior.SetNull);

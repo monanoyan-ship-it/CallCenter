@@ -250,7 +250,7 @@ function ServicesViewModel() {
         $.ajax({ url: '/proxy/sln-services/combos', method: 'GET' }).done(function (data) {
             self.combos(normalizeList(data));
         });
-        $.ajax({ url: '/proxy/sln-packages/definitions', method: 'GET' }).done(function (data) {
+        $.ajax({ url: '/proxy/sln-loyalty-packages/offers', method: 'GET' }).done(function (data) {
             self.packageFeatureAvailable(true);
             self.packageDefinitions(normalizeList(data));
         }).fail(function (xhr) {
@@ -531,7 +531,7 @@ function ServicesViewModel() {
         if (data.totalSessions <= 0) { toastr.warning(slnJsT('salon.services.package_sessions_required', "Seans sayısı 0'dan büyük olmalıdır")); return; }
 
         self.isSaving(true);
-        var url = '/proxy/sln-packages/definitions';
+        var url = '/proxy/sln-loyalty-packages/offers';
         var method = 'POST';
         if (self.isEditingPackageDef()) {
             url += '/' + self.editingPackageDefId();
@@ -539,7 +539,7 @@ function ServicesViewModel() {
         }
 
         $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(data) }).done(function (saved) {
-            $.ajax({ url: '/proxy/sln-packages/definitions', method: 'GET' }).done(function (items) {
+            $.ajax({ url: '/proxy/sln-loyalty-packages/offers', method: 'GET' }).done(function (items) {
                 self.packageDefinitions(normalizeList(items));
                 var savedId = saved && saved.id ? saved.id : self.editingPackageDefId();
                 var current = self.packageDefinitions().filter(function (d) {
@@ -561,7 +561,7 @@ function ServicesViewModel() {
 
     self.removePackageDef = function (def) {
         confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.session_plans.js.delete_def_confirm', "'{name}' seans tanimini silmek istediginize emin misiniz?").replace('{name}', def.name || ''), function () {
-            $.ajax({ url: '/proxy/sln-packages/definitions/' + def.id, method: 'DELETE' }).done(function () {
+            $.ajax({ url: '/proxy/sln-loyalty-packages/offers/' + def.id, method: 'DELETE' }).done(function () {
                 self.loadData();
                 toastr.success(slnJsT('salon.session_plans.js.definition_deleted', 'Seans tanimi silindi'));
             }).fail(function (xhr) {

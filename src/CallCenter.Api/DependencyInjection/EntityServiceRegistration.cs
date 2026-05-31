@@ -187,10 +187,10 @@ public static class EntityServiceRegistration
         services.AddScoped<ISlnMembershipPlanServiceEntityService, SlnMembershipPlanServiceEntityService>();
         services.AddScoped<ISlnMembershipUsageEntityService, SlnMembershipUsageEntityService>();
 
-        // Salon — Packages
-        services.AddScoped<ISlnPackageDefinitionEntityService, SlnPackageDefinitionEntityService>();
-        services.AddScoped<ISlnClientPackageEntityService, SlnClientPackageEntityService>();
-        services.AddScoped<ISlnPackageUsageEntityService, SlnPackageUsageEntityService>();
+        // Salon — Sadakat Paketi (Loyalty Package)
+        services.AddScoped<ISlnLoyaltyPackageOfferEntityService, SlnLoyaltyPackageOfferEntityService>();
+        services.AddScoped<ISlnLoyaltyPackagePurchaseEntityService, SlnLoyaltyPackagePurchaseEntityService>();
+        services.AddScoped<ISlnLoyaltyPackageRedemptionEntityService, SlnLoyaltyPackageRedemptionEntityService>();
 
         // Subscription
         services.AddScoped<ISubscriptionPlanEntityService, SubscriptionPlanEntityService>();

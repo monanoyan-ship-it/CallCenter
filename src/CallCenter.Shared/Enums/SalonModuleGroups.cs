@@ -51,7 +51,7 @@ public static class SalonModuleGroups
         [SalonPortalModules.Ids.SlnWaitlist] = Ids.Core,
         [SalonPortalModules.Ids.SlnNoShowPolicy] = Ids.Core,
         [SalonPortalModules.Ids.SlnConsentForms] = Ids.Core,
-        [SalonPortalModules.Ids.SlnPackages] = Ids.Core,
+        [SalonPortalModules.Ids.SlnLoyaltyPackages] = Ids.Core,
 
         // ── Stok Tedarik / Finans (1) — 400 TL ─────────────────────────────
         [SalonPortalModules.Ids.SlnSuppliers] = Ids.Core,

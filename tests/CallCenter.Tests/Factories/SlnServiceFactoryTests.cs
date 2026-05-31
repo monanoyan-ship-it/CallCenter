@@ -538,7 +538,7 @@ public class SlnServiceFactoryTests : IDisposable
             new SlnBranchEntityService(_db),
             new SlnAppointmentServiceEntityService(_db),
             new SlnInvoiceItemEntityService(_db),
-            new SlnPackageDefinitionEntityService(_db),
+            new SlnLoyaltyPackageOfferEntityService(_db),
             new SlnRecipeEntityService(_db),
             new UnitOfWork(_db),
             NullLogger<SlnServiceFactory>.Instance);
