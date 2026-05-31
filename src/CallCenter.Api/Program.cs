@@ -147,9 +147,11 @@ if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("AUTO_
     app.MapOpenApi();
 }
 
-// Otomatik migration (Development veya Docker/test ortami)
+// Otomatik migration (her ortamda zorunlu — Development/Staging/Production).
+// AUTO_MIGRATE=false setlenirse atlanir (acil mudahale icin kacis vanasi).
 // GUVENLIK: Hata durumunda ASLA EnsureDeletedAsync/EnsureCreatedAsync CAGIRMA — tum veriyi siler!
-if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("AUTO_MIGRATE") == "true")
+var autoMigrateDisabled = Environment.GetEnvironmentVariable("AUTO_MIGRATE") == "false";
+if (!autoMigrateDisabled)
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -177,8 +179,8 @@ if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("AUTO_
     }
 }
 
-// Salon default data: Mevcut salon musterilerine eksik default verileri ekle
-if (app.Environment.IsDevelopment() || Environment.GetEnvironmentVariable("AUTO_MIGRATE") == "true")
+// Salon default data: Mevcut salon musterilerine eksik default verileri ekle (her ortamda).
+if (!autoMigrateDisabled)
 {
     using var seedScope = app.Services.CreateScope();
     var seedDb = seedScope.ServiceProvider.GetRequiredService<AppDbContext>();
