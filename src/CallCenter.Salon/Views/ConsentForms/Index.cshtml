@@ -38,7 +38,7 @@
                                     <th><t key="salon.consentforms.auto.imzalayan">Imzalayan</t></th>
                                     <th><t key="salon.appointments.status">Durum</t></th>
                                     <th><t key="salon.consentforms.auto.olusturma">Oluşturma</t></th>
-                                    <th style="width:120px;"></th>
+                                    <th style="width:150px;"></th>
                                 </tr>
                             </thead>
                             <tbody data-bind="foreach: forms">
@@ -56,6 +56,9 @@
                                         <div class="btn-group btn-group-sm">
                                             <button class="btn btn-outline-primary" title="@(Translation.T("salon.common.btn.edit_tooltip", "Düzenle"))" data-bind="click: $parent.openEditForm">
                                                 <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-outline-success" title="Word indir" data-bind="click: $parent.downloadWord">
+                                                <i class="bi bi-file-earmark-word"></i>
                                             </button>
                                             <button class="btn btn-outline-danger" title="@(Translation.T("salon.common.btn.delete_tooltip", "Sil"))" data-bind="click: $parent.removeForm">
                                                 <i class="bi bi-trash"></i>
@@ -121,6 +124,21 @@
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small">Hazır Kalıp</label>
+                            <div class="input-group input-group-sm">
+                                <select class="form-select"
+                                        data-bind="value: selectedTemplateKey,
+                                                   options: templates,
+                                                   optionsText: 'title',
+                                                   optionsValue: 'key',
+                                                   optionsCaption: 'Kalıp seç...'"></select>
+                                <button type="button" class="btn btn-outline-primary" data-bind="click: applyTemplate">
+                                    Uygula
+                                </button>
+                            </div>
+                            <div class="form-text small">Kalıp uygulandıktan sonra metni salon politikanıza göre düzenleyebilirsiniz.</div>
+                        </div>
                         <div class="col-12">
                             <label class="form-label small"><t key="salon.common.title">Başlık</t> *</label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.title" />
