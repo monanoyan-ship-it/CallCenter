@@ -420,6 +420,26 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                     CreatedByPersonnelId = userId > 0 ? userId : null
                 });
             }
+
+            var materialConsumptions = itemDto.MaterialConsumptions ?? [];
+            if (materialConsumptions.Count > 0)
+            {
+                if (!itemDto.ServiceId.HasValue || itemDto.ProductId.HasValue)
+                    return (null, "Malzeme tuketimi sadece hizmet kalemlerinde kullanilabilir");
+
+                var movementNotePrefix = dto.SlnAppointmentId.HasValue
+                    ? $"Randevu:{dto.SlnAppointmentId.Value} | Adisyon:{invoiceNo}"
+                    : $"Adisyon:{invoiceNo}";
+
+                var (materialsOk, materialsError) = await ConsumeServiceMaterialsAsync(
+                    materialConsumptions,
+                    customerId,
+                    branchId,
+                    movementNotePrefix,
+                    itemDto.PersonnelId ?? userId,
+                    itemDto.ServiceId.Value);
+                if (!materialsOk) return (null, materialsError);
+            }
         }
 
         var subtotalAfterDiscount = Math.Max(0, totalAmount - dto.DiscountAmount);
@@ -515,16 +535,10 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             }
         }
 
-        // Kasaya gelir hareketi yaz (BUG2.3 fix) — once subenin kasasi, yoksa merkez kasa
+        // Kasaya gelir hareketi yaz; sube adisyonu merkezin ya da baska subenin kasasina dusmemeli.
         if (invoice.NetAmount > 0 && invoice.PaymentMethodId != GiftCardPaymentMethodId)
         {
-            var registerQuery = _cashRegisters.GetAllQueryable()
-                .Where(r => r.CustomerId == customerId && r.IsActive);
-            var register = branchId.HasValue
-                ? await registerQuery.FirstOrDefaultAsync(r => r.BranchId == branchId.Value)
-                  ?? await registerQuery.FirstOrDefaultAsync(r => r.BranchId == null)
-                : await registerQuery.FirstOrDefaultAsync(r => r.BranchId == null)
-                  ?? await registerQuery.FirstOrDefaultAsync();
+            var register = await ResolveCashRegisterForInvoiceAsync(customerId, branchId);
 
             if (register != null)
             {
@@ -535,6 +549,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                     Amount = invoice.NetAmount,
                     PaymentMethodId = dto.PaymentMethodId,
                     RelatedInvoiceId = invoice.Id,
+                    CreatedByPersonnelId = userId > 0 ? userId : null,
                     Description = $"Adisyon: {invoiceNo}"
                 });
                 await _uow.SaveChangesAsync();
@@ -570,6 +585,116 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             .FirstAsync(i => i.Id == invoice.Id);
 
         return (MapInvoiceToDto(created), null);
+    }
+
+    private async Task<(bool Success, string? Error)> ConsumeServiceMaterialsAsync(
+        List<SlnInvoiceMaterialConsumptionDto> materials,
+        int customerId,
+        int? branchId,
+        string movementNotePrefix,
+        int personnelId,
+        int serviceId)
+    {
+        var validMaterials = materials
+            .Where(m => m.ProductId > 0 && m.Quantity > 0)
+            .GroupBy(m => m.ProductId)
+            .Select(g => new
+            {
+                ProductId = g.Key,
+                Quantity = g.Sum(x => x.Quantity),
+                Unit = g.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x.Unit))?.Unit,
+                Notes = string.Join("; ", g.Select(x => x.Notes).Where(n => !string.IsNullOrWhiteSpace(n)).Distinct())
+            })
+            .ToList();
+
+        if (validMaterials.Count == 0) return (true, null);
+
+        var productIds = validMaterials.Select(m => m.ProductId).ToList();
+        var products = await _products.GetAllQueryable()
+            .Where(p => p.CustomerId == customerId
+                     && productIds.Contains(p.Id)
+                     && (p.BranchId == null || p.BranchId == branchId))
+            .ToDictionaryAsync(p => p.Id);
+
+        foreach (var material in validMaterials)
+        {
+            if (!products.TryGetValue(material.ProductId, out var product))
+                return (false, "Malzeme urunu bulunamadi");
+
+            var availableStock = await _stockBalances.GetStockQuantityAsync(customerId, product.Id, branchId, product.StockQuantity);
+            if (availableStock < material.Quantity)
+                return (false, $"Yetersiz stok: {product.Name} (Mevcut: {availableStock:0.##} {product.Unit})");
+        }
+
+        foreach (var material in validMaterials)
+        {
+            var product = products[material.ProductId];
+            var (stockOk, stockError) = await _stockBalances.AdjustStockAsync(
+                product, customerId, branchId, -material.Quantity, preventNegative: true);
+            if (!stockOk) return (false, stockError);
+
+            await _stockBalances.SyncProductTotalAsync(product, customerId);
+            _stockMovements.Add(new SlnStockMovement
+            {
+                CustomerId = customerId,
+                BranchId = branchId,
+                ProductId = product.Id,
+                MovementTypeId = 3,
+                Quantity = material.Quantity,
+                UnitPrice = product.PurchasePrice,
+                Notes = $"{movementNotePrefix} | Hizmet:{serviceId}" + (string.IsNullOrWhiteSpace(material.Notes) ? "" : $" | {material.Notes}"),
+                CreatedByPersonnelId = personnelId > 0 ? personnelId : null
+            });
+        }
+
+        return (true, null);
+    }
+
+    private async Task<SlnCashRegister?> ResolveCashRegisterForInvoiceAsync(int customerId, int? branchId)
+    {
+        if (!branchId.HasValue)
+        {
+            var hq = await _branches.GetAllQueryable()
+                .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter && b.IsActive);
+            branchId = hq?.Id;
+        }
+
+        var registerQuery = _cashRegisters.GetAllQueryable()
+            .Where(r => r.CustomerId == customerId);
+
+        var register = branchId.HasValue
+            ? await registerQuery.FirstOrDefaultAsync(r => r.BranchId == branchId.Value && r.IsActive)
+            : await registerQuery.FirstOrDefaultAsync(r => r.BranchId == null && r.IsActive);
+
+        if (register != null)
+            return register;
+
+        string registerName;
+        if (branchId.HasValue)
+        {
+            var branch = await _branches.GetAllQueryable()
+                .FirstOrDefaultAsync(b => b.Id == branchId.Value && b.CustomerId == customerId && b.IsActive);
+            if (branch == null)
+                return null;
+
+            registerName = $"{branch.Name} Kasasi";
+        }
+        else
+        {
+            registerName = "Kasa";
+        }
+
+        register = new SlnCashRegister
+        {
+            CustomerId = customerId,
+            BranchId = branchId,
+            Name = registerName,
+            IsActive = true
+        };
+        _cashRegisters.Add(register);
+        await _uow.SaveChangesAsync();
+
+        return register;
     }
 
     public async Task<(bool Success, string? Error)> CancelInvoiceAsync(int invoiceId, int customerId, int? branchId = null)
@@ -625,6 +750,38 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                     CreatedByPersonnelId = invoice.PersonnelId
                 });
             }
+        }
+
+        var materialMovements = await _stockMovements.GetAllQueryable()
+            .Where(m => m.CustomerId == customerId
+                     && m.MovementTypeId == 3
+                     && m.Notes != null
+                     && m.Notes.Contains($"Adisyon:{invoice.InvoiceNo}"))
+            .ToListAsync();
+
+        foreach (var movement in materialMovements)
+        {
+            var product = await _products.GetAllQueryable()
+                .FirstOrDefaultAsync(p => p.Id == movement.ProductId && p.CustomerId == customerId &&
+                    (p.BranchId == null || p.BranchId == invoice.BranchId));
+            if (product == null) continue;
+
+            var (stockOk, stockError) = await _stockBalances.AdjustStockAsync(
+                product, customerId, invoice.BranchId, movement.Quantity, preventNegative: false);
+            if (!stockOk) return (false, stockError);
+
+            await _stockBalances.SyncProductTotalAsync(product, customerId);
+            _stockMovements.Add(new SlnStockMovement
+            {
+                CustomerId = customerId,
+                BranchId = invoice.BranchId,
+                ProductId = product.Id,
+                MovementTypeId = 5,
+                Quantity = movement.Quantity,
+                UnitPrice = movement.UnitPrice,
+                Notes = $"Adisyon iptal malzeme iade: {invoice.InvoiceNo}",
+                CreatedByPersonnelId = invoice.PersonnelId
+            });
         }
 
         await _uow.SaveChangesAsync();
@@ -882,7 +1039,8 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             Amount = e.Amount,
             ExpenseDate = e.ExpenseDate,
             Description = e.Description,
-            PaymentMethodId = e.PaymentMethodId
+            PaymentMethodId = e.PaymentMethodId,
+            StatusId = e.StatusId
         }).ToList();
     }
 
@@ -897,6 +1055,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             ExpenseDate = dto.ExpenseDate,
             Description = dto.Description,
             PaymentMethodId = dto.PaymentMethodId,
+            StatusId = 1,
             CreatedByPersonnelId = userId
         };
 
@@ -912,8 +1071,99 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             Amount = expense.Amount,
             ExpenseDate = expense.ExpenseDate,
             Description = expense.Description,
-            PaymentMethodId = expense.PaymentMethodId
+            PaymentMethodId = expense.PaymentMethodId,
+            StatusId = expense.StatusId
         };
+    }
+
+    public async Task<(SlnExpenseDto? Expense, string? Error)> UpdateExpenseAsync(
+        int expenseId,
+        SlnExpenseUpdateDto dto,
+        int userId,
+        int customerId,
+        int? branchId = null)
+    {
+        var query = _expenses.GetAllQueryable()
+            .Include(e => e.Category)
+            .Where(e => e.Id == expenseId && e.CustomerId == customerId);
+
+        if (branchId.HasValue)
+            query = query.Where(e => e.BranchId == branchId.Value);
+
+        var expense = await query.FirstOrDefaultAsync();
+        if (expense == null) return (null, "Masraf bulunamadi");
+
+        if (dto.CategoryId.HasValue)
+        {
+            if (dto.CategoryId.Value <= 0) return (null, "Kategori zorunludur");
+            var categoryExists = await _expenseCategories.GetAllQueryable()
+                .AnyAsync(c => c.Id == dto.CategoryId.Value && c.CustomerId == customerId);
+            if (!categoryExists) return (null, "Kategori bulunamadi");
+            expense.CategoryId = dto.CategoryId.Value;
+        }
+
+        if (dto.Amount.HasValue)
+        {
+            if (dto.Amount.Value <= 0) return (null, "Tutar sifirdan buyuk olmalidir");
+            expense.Amount = dto.Amount.Value;
+        }
+
+        if (dto.ExpenseDate.HasValue)
+            expense.ExpenseDate = dto.ExpenseDate.Value;
+
+        if (dto.Description != null)
+            expense.Description = dto.Description;
+
+        if (dto.PaymentMethodId.HasValue)
+            expense.PaymentMethodId = dto.PaymentMethodId.Value;
+
+        if (dto.StatusId.HasValue)
+        {
+            if (dto.StatusId.Value is < 1 or > 3)
+                return (null, "Gecersiz masraf durumu");
+
+            var oldStatusId = expense.StatusId;
+            expense.StatusId = dto.StatusId.Value;
+            expense.ApprovedByPersonnelId = expense.StatusId == 2 && userId > 0
+                ? userId
+                : expense.ApprovedByPersonnelId;
+
+            if (oldStatusId != 2 && expense.StatusId == 2)
+            {
+                var register = await ResolveCashRegisterForInvoiceAsync(customerId, expense.BranchId);
+                if (register == null) return (null, "Aktif kasa bulunamadi");
+
+                _cashTransactions.Add(new SlnCashTransaction
+                {
+                    RegisterId = register.Id,
+                    TransactionTypeId = 2,
+                    Amount = expense.Amount,
+                    PaymentMethodId = expense.PaymentMethodId,
+                    CreatedByPersonnelId = userId > 0 ? userId : null,
+                    Description = $"Masraf #{expense.Id}: {expense.Description}"
+                });
+            }
+        }
+
+        await _uow.SaveChangesAsync();
+
+        var categoryName = dto.CategoryId.HasValue
+            ? await _expenseCategories.GetAllQueryable()
+                .Where(c => c.Id == expense.CategoryId)
+                .Select(c => c.Name)
+                .FirstOrDefaultAsync()
+            : expense.Category?.Name;
+
+        return (new SlnExpenseDto
+        {
+            Id = expense.Id,
+            CategoryName = categoryName ?? "",
+            Amount = expense.Amount,
+            ExpenseDate = expense.ExpenseDate,
+            Description = expense.Description,
+            PaymentMethodId = expense.PaymentMethodId,
+            StatusId = expense.StatusId
+        }, null);
     }
 
     public async Task<(bool Success, string? Error)> DeleteExpenseAsync(int expenseId, int customerId, int? branchId = null)
