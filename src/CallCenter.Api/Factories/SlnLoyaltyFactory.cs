@@ -196,6 +196,37 @@ public class SlnLoyaltyFactory : ISlnLoyaltyFactory
         return (true, null);
     }
 
+    public async Task<(decimal TLValue, string? Error)> RedeemForInvoiceAsync(int customerId, int slnClientId, int points, int? invoiceId, int? branchId = null)
+    {
+        if (points <= 0) return (0m, "Puan miktari sifirdan buyuk olmali");
+        var config = await _configEs.GetAllQueryable().FirstOrDefaultAsync(c => c.CustomerId == customerId && c.IsActive);
+        if (config == null) return (0m, "Sadakat programi aktif degil");
+        if (points < config.MinRedeemPoints) return (0m, $"Minimum {config.MinRedeemPoints} puan gerekli");
+
+        var loyalty = await SalonBranchScope.ApplyToLoyalties(
+                _loyaltyEs.GetAllQueryable().Where(l => l.SlnClientId == slnClientId && l.CustomerId == customerId),
+                branchId)
+            .FirstOrDefaultAsync();
+        if (loyalty == null || loyalty.CurrentBalance < points)
+            return (0m, "Yetersiz puan bakiyesi");
+
+        loyalty.TotalSpent += points;
+        loyalty.CurrentBalance -= points;
+
+        var tlValue = Math.Round(points * config.PointValue, 2, MidpointRounding.AwayFromZero);
+        _transactionEs.Add(new SlnLoyaltyTransaction
+        {
+            ClientLoyaltyId = loyalty.Id,
+            TransactionTypeId = 2,
+            Points = points,
+            Description = $"{points} puan adisyon icin kullanildi ({tlValue:N2} TL)",
+            RelatedInvoiceId = invoiceId
+        });
+
+        await _uow.SaveChangesAsync();
+        return (tlValue, null);
+    }
+
     private async Task<SlnClientLoyalty> GetOrCreateLoyaltyAsync(int slnClientId, int customerId)
     {
         var loyalty = await _loyaltyEs.GetAllQueryable()

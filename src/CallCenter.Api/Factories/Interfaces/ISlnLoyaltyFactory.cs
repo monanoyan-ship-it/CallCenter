@@ -11,4 +11,7 @@ public interface ISlnLoyaltyFactory
     Task<List<SlnLoyaltyTransactionDto>> GetTransactionsAsync(int slnClientId, int customerId, int? branchId = null);
     Task EarnPointsAsync(int slnClientId, decimal invoiceAmount, int? invoiceId, int customerId, int? branchId = null);
     Task<(bool Success, string? Error)> RedeemPointsAsync(SlnLoyaltyRedeemDto dto, int customerId, int? branchId = null);
+
+    /// <summary>Adisyon icinde puanla odeme: validate + spend + ilgili LoyaltyTransaction kaydi, donen TL iskonto degeri NetAmount'tan dusurulur.</summary>
+    Task<(decimal TLValue, string? Error)> RedeemForInvoiceAsync(int customerId, int slnClientId, int points, int? invoiceId, int? branchId = null);
 }

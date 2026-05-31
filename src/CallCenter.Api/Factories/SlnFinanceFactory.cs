@@ -30,6 +30,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
     private readonly ISlnMembershipFactory _memberships;
     private readonly ISlnLoyaltyPackageFactory _loyaltyPackages;
     private readonly ISlnLoyaltyProgramFactory _loyaltyPrograms;
+    private readonly ISlnLoyaltyFactory _loyaltyPoints;
     private readonly ISlnGiftCardFactory _giftCards;
     private readonly ISlnStockBalanceService _stockBalances;
     private readonly IUnitOfWork _uow;
@@ -57,6 +58,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         ISlnMembershipFactory memberships,
         ISlnLoyaltyPackageFactory loyaltyPackages,
         ISlnLoyaltyProgramFactory loyaltyPrograms,
+        ISlnLoyaltyFactory loyaltyPoints,
         ISlnGiftCardFactory giftCards,
         ISlnStockBalanceService stockBalances,
         IUnitOfWork uow,
@@ -82,6 +84,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         _memberships = memberships;
         _loyaltyPackages = loyaltyPackages;
         _loyaltyPrograms = loyaltyPrograms;
+        _loyaltyPoints = loyaltyPoints;
         _giftCards = giftCards;
         _stockBalances = stockBalances;
         _uow = uow;
@@ -538,13 +541,14 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             }
         }
 
-        // Sadakat Programi (punch card) - bu adisyondaki ziyaretleri say
+        // Sadakat Programi (D — punch card): bu adisyondaki ziyaretleri say
         if (dto.SlnClientId.HasValue)
         {
             var earnServiceIds = items
                 .Where(i => i.ServiceId.HasValue
                     && !i.IsSessionUsage
-                    && i.UnitPrice > 0)
+                    && i.UnitPrice > 0
+                    && !i.LineTotal.Equals(0m))
                 .SelectMany(i =>
                 {
                     var qty = i.Quantity == Math.Truncate(i.Quantity) ? (int)i.Quantity : 1;
@@ -559,6 +563,46 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                     dto.SlnClientId.Value,
                     branchId,
                     earnServiceIds);
+            }
+        }
+
+        // Sadakat Programi (D) odul kullanimi: cart kalemleri uzerinden reward'i invoiceItem ile bagla
+        if (dto.SlnClientId.HasValue)
+        {
+            for (var idx = 0; idx < dto.Items.Count && idx < items.Count; idx++)
+            {
+                var itemDto = dto.Items[idx];
+                if (!itemDto.LoyaltyRewardId.HasValue) continue;
+                var (rOk, rErr) = await _loyaltyPrograms.ApplyRewardAsync(customerId, itemDto.LoyaltyRewardId.Value, items[idx].Id);
+                if (!rOk)
+                {
+                    _logger.LogWarning("Loyalty reward apply failed for invoice {InvoiceId} item {ItemId} reward {RewardId}: {Error}",
+                        invoice.Id, items[idx].Id, itemDto.LoyaltyRewardId.Value, rErr);
+                }
+            }
+        }
+
+        // Sadakat Puani (C — TL bazli): puanla odeme, NetAmount'tan TL karsiligi indirim
+        if (dto.SlnClientId.HasValue && dto.LoyaltyPointsToRedeem.HasValue && dto.LoyaltyPointsToRedeem.Value > 0)
+        {
+            var (tlValue, lpErr) = await _loyaltyPoints.RedeemForInvoiceAsync(
+                customerId,
+                dto.SlnClientId.Value,
+                dto.LoyaltyPointsToRedeem.Value,
+                invoice.Id,
+                branchId);
+            if (lpErr != null)
+            {
+                return (null, lpErr);
+            }
+            if (tlValue > 0)
+            {
+                var applied = Math.Min(tlValue, invoice.NetAmount);
+                invoice.DiscountAmount += applied;
+                invoice.NetAmount = Math.Max(0m, invoice.NetAmount - applied);
+                var lpNote = $"LoyaltyPoints:{dto.LoyaltyPointsToRedeem.Value}|LoyaltyTL:{applied:F2}";
+                invoice.Notes = string.IsNullOrWhiteSpace(invoice.Notes) ? lpNote : $"{invoice.Notes}|{lpNote}";
+                await _uow.SaveChangesAsync();
             }
         }
 

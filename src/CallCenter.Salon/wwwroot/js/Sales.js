@@ -12,6 +12,11 @@ function SalesViewModel() {
     self.recipes = ko.observableArray([]);
     self.packageDefinitions = ko.observableArray([]);
     self.clientPackages = ko.observableArray([]);
+    // Sadakat: D (program odulleri) + C (puan bakiyesi)
+    self.loyaltyRewards = ko.observableArray([]);
+    self.loyaltyConfig = ko.observable(null);
+    self.clientLoyaltyBalance = ko.observable(0);
+    self.loyaltyPointsToRedeem = ko.observable(0);
     self.laserDevices = ko.observableArray([
         { id: 'Alexandrite', name: 'Alexandrite Lazer' },
         { id: 'Diode', name: 'Diode Lazer' },
@@ -269,6 +274,9 @@ function SalesViewModel() {
     // Musteri secildiginde uyelik kontrolu
     self.clientId.subscribe(function (newClientId) {
         self.loadClientPackages(newClientId);
+        self.loadLoyaltyRewards(newClientId);
+        self.loadClientLoyaltyBalance(newClientId);
+        self.loyaltyPointsToRedeem(0);
         if (!newClientId || self.cartItems().length === 0) return;
         self.applyClientBenefits();
     });
@@ -552,6 +560,7 @@ function SalesViewModel() {
             toastr.error(readError(xhr, 'Hizmetler yüklenemedi'));
         });
         self.loadProducts();
+        self.loadLoyaltyConfig();
         $.ajax({ url: '/proxy/sln-clients?pageSize=1000', method: 'GET' }).done(function (data) {
             self.clientList(data.items || data);
         });
@@ -571,6 +580,64 @@ function SalesViewModel() {
             self.packageDefinitions([]);
         });
     };
+
+    self.loadLoyaltyConfig = function () {
+        $.ajax({ url: '/proxy/sln-loyalty/config', method: 'GET' })
+            .done(function (data) { self.loyaltyConfig(data || null); })
+            .fail(function () { self.loyaltyConfig(null); });
+    };
+
+    self.loadLoyaltyRewards = function (clientId) {
+        if (!clientId) { self.loyaltyRewards([]); return; }
+        $.ajax({ url: '/proxy/sln-loyalty-programs/rewards?clientId=' + parseInt(clientId, 10), method: 'GET' })
+            .done(function (data) {
+                var list = Array.isArray(data) ? data : (data && Array.isArray(data.items) ? data.items : []);
+                self.loyaltyRewards(list);
+            })
+            .fail(function () { self.loyaltyRewards([]); });
+    };
+
+    self.loadClientLoyaltyBalance = function (clientId) {
+        if (!clientId) { self.clientLoyaltyBalance(0); return; }
+        $.ajax({ url: '/proxy/sln-loyalty/clients?clientId=' + parseInt(clientId, 10), method: 'GET' })
+            .done(function (data) {
+                var list = Array.isArray(data) ? data : (data && Array.isArray(data.items) ? data.items : []);
+                var match = list.find(function (l) { return parseInt(l.slnClientId || l.id) === parseInt(clientId); });
+                self.clientLoyaltyBalance(match ? (parseInt(match.currentBalance) || 0) : 0);
+            })
+            .fail(function () { self.clientLoyaltyBalance(0); });
+    };
+
+    self.addRewardToCart = function (reward) {
+        if (!reward || !reward.rewardServiceId) return;
+        var already = self.cartItems().some(function (i) { return i.loyaltyRewardId === reward.id; });
+        if (already) { toastr.info(slnJsT('salon.sales.js.reward_already_in_cart', 'Bu odul zaten sepette')); return; }
+        self.cartItems.push({
+            serviceId: parseInt(reward.rewardServiceId, 10),
+            productId: null,
+            name: (reward.rewardServiceName || 'Odul') + ' (Sadakat Odulu)',
+            quantity: ko.observable(1),
+            editPrice: ko.observable(0),
+            unitPrice: 0,
+            discountAmount: ko.observable(0),
+            membershipId: null,
+            useMembershipBenefit: false,
+            clientPackageId: null,
+            usePackageSession: false,
+            loyaltyRewardId: reward.id,
+            isLoyaltyReward: true,
+            forceSessionSale: false,
+            materialConsumptions: ko.observableArray([])
+        });
+        toastr.success(slnJsT('salon.sales.js.reward_added', 'Odul sepete eklendi'));
+    };
+
+    self.loyaltyPointsTlValue = ko.computed(function () {
+        var pts = parseInt(self.loyaltyPointsToRedeem(), 10) || 0;
+        var cfg = self.loyaltyConfig();
+        if (!cfg || pts <= 0) return 0;
+        return Math.round(pts * (parseFloat(cfg.pointValue) || 0) * 100) / 100;
+    });
 
     self.loadClientPackages = function (clientId) {
         if (!clientId) {
@@ -772,6 +839,7 @@ function SalesViewModel() {
                 useMembershipBenefit: item.useMembershipBenefit === true,
                 clientPackageId: item.usePackageSession === true ? item.clientPackageId : null,
                 usePackageSession: item.usePackageSession === true,
+                loyaltyRewardId: item.loyaltyRewardId || null,
                 materialConsumptions: readMaterialConsumptions(item)
             };
         });
@@ -786,6 +854,7 @@ function SalesViewModel() {
             includeTipInTotal: self.tipIncludeInTotal() === true,
             notes: self.isPrepaid() ? slnJsT('salon.sales.note.prepayment_prefix', 'Ön ödeme') + ': ' + self.prepaidAmount() + ' TL (Online)' : null,
             prepaidAmount: self.prepaidAmount(),
+            loyaltyPointsToRedeem: parseInt(self.loyaltyPointsToRedeem(), 10) > 0 ? parseInt(self.loyaltyPointsToRedeem(), 10) : null,
             items: items
         };
 
@@ -803,6 +872,9 @@ function SalesViewModel() {
             self.clientId(null);
             self.clientAutocomplete.clear();
             self.clientPackages([]);
+            self.loyaltyRewards([]);
+            self.loyaltyPointsToRedeem(0);
+            self.clientLoyaltyBalance(0);
             self.discountAmount(0);
             self.tipAmount(0);
             self.giftCardCode('');
@@ -1067,6 +1139,7 @@ function SalesViewModel() {
                 useMembershipBenefit: item.useMembershipBenefit === true,
                 clientPackageId: item.usePackageSession === true ? item.clientPackageId : null,
                 usePackageSession: item.usePackageSession === true,
+                loyaltyRewardId: item.loyaltyRewardId || null,
                 materialConsumptions: readMaterialConsumptions(item)
             };
         });
@@ -1078,6 +1151,7 @@ function SalesViewModel() {
             discountAmount: 0, tipAmount: 0,
             notes: self.isPrepaid() ? slnJsT('salon.sales.note.completed_with_prepayment', 'Ön ödeme ile tamamlandı') : slnJsT('salon.sales.note.completed_with_membership', 'Üyelik kapsamında tamamlandı'),
             prepaidAmount: self.prepaidAmount(),
+            loyaltyPointsToRedeem: parseInt(self.loyaltyPointsToRedeem(), 10) > 0 ? parseInt(self.loyaltyPointsToRedeem(), 10) : null,
             items: items
         };
 
@@ -1090,6 +1164,9 @@ function SalesViewModel() {
             self.clientId(null);
             self.clientAutocomplete.clear();
             self.clientPackages([]);
+            self.loyaltyRewards([]);
+            self.loyaltyPointsToRedeem(0);
+            self.clientLoyaltyBalance(0);
             self.linkedAppointmentId(null);
             self.isPrepaid(false);
             self.prepaidAmount(0);

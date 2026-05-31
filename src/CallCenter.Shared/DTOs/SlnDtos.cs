@@ -527,6 +527,8 @@ public class SlnInvoiceCreateDto
     /// <summary>true: bahsis NetAmount'a dahil edilir (musteri toplama oder). false: bahsis ayri tutulur (personel hakki).</summary>
     public bool IncludeTipInTotal { get; set; }
     public string? Notes { get; set; }
+    /// <summary>Sadakat Puani (C — TL bazli) ile odeme yapilacak puan miktari. Validation: musteri zorunlu, balance yeterli, MinRedeemPoints'e ulasmis. Backend NetAmount'tan TL karsiligini dusurur.</summary>
+    public int? LoyaltyPointsToRedeem { get; set; }
     public List<SlnInvoiceItemCreateDto> Items { get; set; } = [];
 }
 
@@ -542,6 +544,8 @@ public class SlnInvoiceItemCreateDto
     public bool UseMembershipBenefit { get; set; }
     public int? LoyaltyPackagePurchaseId { get; set; }
     public bool UsePackageSession { get; set; }
+    /// <summary>Sadakat Programi (D) odul ID — kalem 0 fiyatla acilir ve adisyon kaydedildikten sonra reward.UsedInvoiceItemId set edilir.</summary>
+    public int? LoyaltyRewardId { get; set; }
     public List<SlnInvoiceMaterialConsumptionDto> MaterialConsumptions { get; set; } = [];
 }
 
