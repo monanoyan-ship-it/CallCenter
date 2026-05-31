@@ -113,6 +113,11 @@ public class SlnTreatmentRecordDto
     public int? SlnAppointmentId { get; set; }
     public int? ServiceId { get; set; }
     public string? ServiceName { get; set; }
+    public int? ServiceSessionPlanId { get; set; }
+    public int? ServiceSessionRecordId { get; set; }
+    public int? SessionNumber { get; set; }
+    public int? TotalSessions { get; set; }
+    public int? RemainingSessions { get; set; }
     public int? PersonnelId { get; set; }
     public string? PersonnelName { get; set; }
     public DateTime TreatmentDate { get; set; }
@@ -131,6 +136,7 @@ public class SlnTreatmentRecordCreateDto
     public int SlnClientId { get; set; }
     public int? SlnAppointmentId { get; set; }
     public int? ServiceId { get; set; }
+    public int? ServiceSessionPlanId { get; set; }
     public int? PersonnelId { get; set; }
     public DateTime? TreatmentDate { get; set; }
     public string? SessionNotes { get; set; }
@@ -858,6 +864,59 @@ public class SlnLoyaltyRedeemDto
 }
 
 // ═══ SlnLoyaltyPackage (Sadakat Paketi / A) ═══
+// Service session tracking (/Services multi-session sale)
+public class SlnServiceSessionPlanDto
+{
+    public int Id { get; set; }
+    public int SlnClientId { get; set; }
+    public string? ClientName { get; set; }
+    public int ServiceId { get; set; }
+    public string ServiceName { get; set; } = string.Empty;
+    public int? BranchId { get; set; }
+    public int? SourceInvoiceId { get; set; }
+    public int? SourceInvoiceItemId { get; set; }
+    public int TotalSessions { get; set; }
+    public int UsedSessions { get; set; }
+    public int RemainingSessions { get; set; }
+    public decimal SaleAmount { get; set; }
+    public decimal PaidAmount { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime SoldAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+    public List<SlnServiceSessionRecordDto> Records { get; set; } = [];
+}
+
+public class SlnServiceSessionRecordDto
+{
+    public int Id { get; set; }
+    public int PlanId { get; set; }
+    public int SlnClientId { get; set; }
+    public int ServiceId { get; set; }
+    public string ServiceName { get; set; } = string.Empty;
+    public int SessionNumber { get; set; }
+    public DateTime PerformedAt { get; set; }
+    public int? PersonnelId { get; set; }
+    public string? PersonnelName { get; set; }
+    public int? InvoiceId { get; set; }
+    public int? InvoiceItemId { get; set; }
+    public int? SlnAppointmentId { get; set; }
+    public int? TreatmentRecordId { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class SlnServiceSessionUseDto
+{
+    public int PlanId { get; set; }
+    public DateTime? PerformedAt { get; set; }
+    public int? PersonnelId { get; set; }
+    public int? InvoiceId { get; set; }
+    public int? InvoiceItemId { get; set; }
+    public int? SlnAppointmentId { get; set; }
+    public int? TreatmentRecordId { get; set; }
+    public string? Notes { get; set; }
+}
+
 public class SlnLoyaltyPackageOfferDto
 {
     public int Id { get; set; }

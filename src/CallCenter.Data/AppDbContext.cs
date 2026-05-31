@@ -96,6 +96,8 @@ public class AppDbContext : DbContext
     public DbSet<SlnClient> SlnClients => Set<SlnClient>();
     public DbSet<SlnFormula> SlnFormulas => Set<SlnFormula>();
     public DbSet<SlnTreatmentRecord> SlnTreatmentRecords => Set<SlnTreatmentRecord>();
+    public DbSet<SlnServiceSessionPlan> SlnServiceSessionPlans => Set<SlnServiceSessionPlan>();
+    public DbSet<SlnServiceSessionRecord> SlnServiceSessionRecords => Set<SlnServiceSessionRecord>();
     public DbSet<SlnClientPhoto> SlnClientPhotos => Set<SlnClientPhoto>();
     public DbSet<SlnServiceCategory> SlnServiceCategories => Set<SlnServiceCategory>();
     public DbSet<SlnService> SlnServices => Set<SlnService>();
@@ -478,6 +480,10 @@ public class AppDbContext : DbContext
             e.Property(r => r.DeviceParameters).HasMaxLength(2000);
             e.Property(r => r.ProductNotes).HasMaxLength(2000);
             e.Property(r => r.AftercareNotes).HasMaxLength(2000);
+            e.HasOne(r => r.ServiceSessionPlan)
+             .WithMany()
+             .HasForeignKey(r => r.ServiceSessionPlanId)
+             .OnDelete(DeleteBehavior.SetNull);
             e.HasOne(r => r.SlnClient)
              .WithMany(c => c.TreatmentRecords)
              .HasForeignKey(r => r.SlnClientId)
@@ -498,6 +504,47 @@ public class AppDbContext : DbContext
              .WithMany()
              .HasForeignKey(r => r.CreatedByPersonnelId)
              .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SlnServiceSessionPlan>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.HasIndex(p => new { p.CustomerId, p.SlnClientId, p.ServiceId });
+            e.HasIndex(p => new { p.CustomerId, p.BranchId });
+            e.HasIndex(p => p.SourceInvoiceId);
+            e.HasIndex(p => p.SourceInvoiceItemId);
+            e.Property(p => p.SaleAmount).HasPrecision(18, 2);
+            e.Property(p => p.PaidAmount).HasPrecision(18, 2);
+            e.HasOne(p => p.Customer).WithMany().HasForeignKey(p => p.CustomerId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(p => p.SlnClient).WithMany().HasForeignKey(p => p.SlnClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(p => p.Branch).WithMany().HasForeignKey(p => p.BranchId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(p => p.Service).WithMany().HasForeignKey(p => p.ServiceId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(p => p.SourceInvoice).WithMany().HasForeignKey(p => p.SourceInvoiceId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(p => p.SourceInvoiceItem).WithMany().HasForeignKey(p => p.SourceInvoiceItemId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(p => p.SoldByPersonnel).WithMany().HasForeignKey(p => p.SoldByPersonnelId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<SlnServiceSessionRecord>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => new { r.CustomerId, r.SlnClientId, r.ServiceId, r.PerformedAt });
+            e.HasIndex(r => new { r.PlanId, r.SessionNumber }).IsUnique();
+            e.HasIndex(r => r.InvoiceId);
+            e.HasIndex(r => r.InvoiceItemId);
+            e.HasIndex(r => r.SlnAppointmentId);
+            e.HasIndex(r => r.TreatmentRecordId);
+            e.Property(r => r.Notes).HasMaxLength(4000);
+            e.HasOne(r => r.Plan).WithMany(p => p.Records).HasForeignKey(r => r.PlanId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.Customer).WithMany().HasForeignKey(r => r.CustomerId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.SlnClient).WithMany().HasForeignKey(r => r.SlnClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.Branch).WithMany().HasForeignKey(r => r.BranchId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(r => r.Service).WithMany().HasForeignKey(r => r.ServiceId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(r => r.Personnel).WithMany().HasForeignKey(r => r.PersonnelId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(r => r.Invoice).WithMany().HasForeignKey(r => r.InvoiceId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(r => r.InvoiceItem).WithMany().HasForeignKey(r => r.InvoiceItemId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(r => r.SlnAppointment).WithMany().HasForeignKey(r => r.SlnAppointmentId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(r => r.TreatmentRecord).WithMany(t => t.ServiceSessionRecords).HasForeignKey(r => r.TreatmentRecordId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(r => r.CreatedByPersonnel).WithMany().HasForeignKey(r => r.CreatedByPersonnelId).OnDelete(DeleteBehavior.SetNull);
         });
 
         // SlnMembershipPlanService (plan-hizmet iliskisi)

@@ -837,7 +837,7 @@ function SalesViewModel() {
                 discountAmount: 0,
                 membershipId: item.useMembershipBenefit === true ? item.membershipId : null,
                 useMembershipBenefit: item.useMembershipBenefit === true,
-                clientPackageId: item.usePackageSession === true ? item.clientPackageId : null,
+                loyaltyPackagePurchaseId: item.usePackageSession === true ? item.clientPackageId : null,
                 usePackageSession: item.usePackageSession === true,
                 loyaltyRewardId: item.loyaltyRewardId || null,
                 materialConsumptions: readMaterialConsumptions(item)
@@ -1137,7 +1137,7 @@ function SalesViewModel() {
                 quantity: item.quantity(), unitPrice: 0, discountAmount: 0,
                 membershipId: item.useMembershipBenefit === true ? item.membershipId : null,
                 useMembershipBenefit: item.useMembershipBenefit === true,
-                clientPackageId: item.usePackageSession === true ? item.clientPackageId : null,
+                loyaltyPackagePurchaseId: item.usePackageSession === true ? item.clientPackageId : null,
                 usePackageSession: item.usePackageSession === true,
                 loyaltyRewardId: item.loyaltyRewardId || null,
                 materialConsumptions: readMaterialConsumptions(item)
@@ -1228,11 +1228,11 @@ function SalesViewModel() {
 
         self.isSaving(true);
         $.ajax({
-            url: '/proxy/sln-packages/use',
+            url: '/proxy/sln-loyalty-packages/redeem',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
-                clientPackageId: pkg.id,
+                purchaseId: pkg.id,
                 notes: notes || 'Seans kullanımı'
             })
         }).done(function () {

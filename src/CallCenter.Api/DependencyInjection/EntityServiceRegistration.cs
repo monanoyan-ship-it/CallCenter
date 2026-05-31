@@ -100,6 +100,8 @@ public static class EntityServiceRegistration
         services.AddScoped<ISlnClientEntityService, SlnClientEntityService>();
         services.AddScoped<ISlnFormulaEntityService, SlnFormulaEntityService>();
         services.AddScoped<ISlnTreatmentRecordEntityService, SlnTreatmentRecordEntityService>();
+        services.AddScoped<ISlnServiceSessionPlanEntityService, SlnServiceSessionPlanEntityService>();
+        services.AddScoped<ISlnServiceSessionRecordEntityService, SlnServiceSessionRecordEntityService>();
         services.AddScoped<ISlnClientPhotoEntityService, SlnClientPhotoEntityService>();
         services.AddScoped<ISlnServiceCategoryEntityService, SlnServiceCategoryEntityService>();
         services.AddScoped<ISlnServiceEntityService, SlnServiceEntityService>();

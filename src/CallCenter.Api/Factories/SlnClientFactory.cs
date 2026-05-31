@@ -15,6 +15,8 @@ public class SlnClientFactory : ISlnClientFactory
     private readonly ISlnClientPhotoEntityService _photos;
     private readonly ISlnAppointmentEntityService _appointments;
     private readonly ISlnInvoiceEntityService _invoices;
+    private readonly ISlnServiceSessionPlanEntityService _serviceSessionPlans;
+    private readonly ISlnServiceSessionFactory _serviceSessions;
     private readonly IUnitOfWork _uow;
     private readonly ILogger<SlnClientFactory> _logger;
 
@@ -25,6 +27,8 @@ public class SlnClientFactory : ISlnClientFactory
         ISlnClientPhotoEntityService photos,
         ISlnAppointmentEntityService appointments,
         ISlnInvoiceEntityService invoices,
+        ISlnServiceSessionPlanEntityService serviceSessionPlans,
+        ISlnServiceSessionFactory serviceSessions,
         IUnitOfWork uow,
         ILogger<SlnClientFactory> logger)
     {
@@ -34,6 +38,8 @@ public class SlnClientFactory : ISlnClientFactory
         _photos = photos;
         _appointments = appointments;
         _invoices = invoices;
+        _serviceSessionPlans = serviceSessionPlans;
+        _serviceSessions = serviceSessions;
         _uow = uow;
         _logger = logger;
     }
@@ -453,12 +459,34 @@ public class SlnClientFactory : ISlnClientFactory
                 appointmentServiceId = appointmentServiceIds[0];
         }
 
+        SlnServiceSessionPlan? sessionPlan = null;
+        if (dto.ServiceSessionPlanId.HasValue)
+        {
+            sessionPlan = await SalonBranchScope.ApplyToServiceSessionPlans(
+                    _serviceSessionPlans.GetAllQueryable()
+                        .Where(p => p.Id == dto.ServiceSessionPlanId.Value
+                            && p.CustomerId == customerId
+                            && p.SlnClientId == dto.SlnClientId),
+                    branchId)
+                .FirstOrDefaultAsync();
+
+            if (sessionPlan == null)
+                throw new InvalidOperationException("Seans plani bulunamadi");
+
+            if (sessionPlan.RemainingSessions <= 0 || !sessionPlan.IsActive)
+                throw new InvalidOperationException("Seans planinda kalan hak yok");
+
+            if (dto.ServiceId.HasValue && dto.ServiceId.Value != sessionPlan.ServiceId)
+                throw new InvalidOperationException("Secilen hizmet seans planina ait degil");
+        }
+
         var record = new SlnTreatmentRecord
         {
             CustomerId = customerId,
             SlnClientId = dto.SlnClientId,
             SlnAppointmentId = dto.SlnAppointmentId,
-            ServiceId = dto.ServiceId ?? appointmentServiceId,
+            ServiceId = dto.ServiceId ?? sessionPlan?.ServiceId ?? appointmentServiceId,
+            ServiceSessionPlanId = sessionPlan?.Id,
             PersonnelId = dto.PersonnelId ?? appointment?.PersonnelId,
             TreatmentDate = dto.TreatmentDate ?? appointment?.StartTime ?? DateTime.UtcNow,
             SkinTypeSnapshot = client.SkinType,
@@ -471,11 +499,32 @@ public class SlnClientFactory : ISlnClientFactory
             CreatedByPersonnelId = userId
         };
 
+        await using var transaction = await _uow.BeginTransactionAsync();
         _treatmentRecords.Add(record);
         await _uow.SaveChangesAsync();
 
+        if (sessionPlan != null)
+        {
+            var (sessionRecord, sessionError) = await _serviceSessions.RecordSessionAsync(new SlnServiceSessionUseDto
+            {
+                PlanId = sessionPlan.Id,
+                PerformedAt = record.TreatmentDate,
+                PersonnelId = record.PersonnelId,
+                SlnAppointmentId = record.SlnAppointmentId,
+                TreatmentRecordId = record.Id,
+                Notes = record.SessionNotes
+            }, record.PersonnelId ?? 0, customerId, branchId);
+
+            if (sessionRecord == null)
+                throw new InvalidOperationException(sessionError ?? "Seans kullanimi kaydedilemedi");
+        }
+
+        await transaction.CommitAsync();
+
         var mapped = await _treatmentRecords.GetAllQueryable()
             .Include(r => r.Service)
+            .Include(r => r.ServiceSessionPlan)
+            .Include(r => r.ServiceSessionRecords)
             .Include(r => r.Personnel).ThenInclude(p => p!.User)
             .FirstAsync(r => r.Id == record.Id);
         return MapTreatmentRecord(mapped);
@@ -573,6 +622,8 @@ public class SlnClientFactory : ISlnClientFactory
     {
         var query = _treatmentRecords.GetAllQueryable()
             .Include(r => r.Service)
+            .Include(r => r.ServiceSessionPlan)
+            .Include(r => r.ServiceSessionRecords)
             .Include(r => r.Personnel).ThenInclude(p => p!.User)
             .Where(r => r.CustomerId == customerId && r.SlnClientId == clientId);
         if (branchId.HasValue)
@@ -601,6 +652,11 @@ public class SlnClientFactory : ISlnClientFactory
         SlnAppointmentId = r.SlnAppointmentId,
         ServiceId = r.ServiceId,
         ServiceName = r.Service?.Name,
+        ServiceSessionPlanId = r.ServiceSessionPlanId,
+        ServiceSessionRecordId = r.ServiceSessionRecords.OrderByDescending(s => s.PerformedAt).Select(s => (int?)s.Id).FirstOrDefault(),
+        SessionNumber = r.ServiceSessionRecords.OrderByDescending(s => s.PerformedAt).Select(s => (int?)s.SessionNumber).FirstOrDefault(),
+        TotalSessions = r.ServiceSessionPlan?.TotalSessions,
+        RemainingSessions = r.ServiceSessionPlan?.RemainingSessions,
         PersonnelId = r.PersonnelId,
         PersonnelName = r.Personnel?.User?.FullName ?? r.Personnel?.Title,
         TreatmentDate = r.TreatmentDate,

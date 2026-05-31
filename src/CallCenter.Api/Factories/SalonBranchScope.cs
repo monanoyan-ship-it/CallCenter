@@ -99,6 +99,20 @@ internal static class SalonBranchScope
                     || p.SlnClient.Invoices.Any(i => i.BranchId == id))));
     }
 
+    public static IQueryable<SlnServiceSessionPlan> ApplyToServiceSessionPlans(IQueryable<SlnServiceSessionPlan> query, int? branchId)
+    {
+        if (!branchId.HasValue)
+            return query;
+
+        var id = branchId.Value;
+        return query.Where(p =>
+            p.BranchId == id
+            || (p.SlnClient != null
+                && (p.SlnClient.BranchId == id
+                    || p.SlnClient.Appointments.Any(a => a.BranchId == id)
+                    || p.SlnClient.Invoices.Any(i => i.BranchId == id))));
+    }
+
     public static IQueryable<SlnGiftCard> ApplyToGiftCards(IQueryable<SlnGiftCard> query, int? branchId)
         => branchId.HasValue ? query.Where(g => g.BranchId == null || g.BranchId == branchId.Value) : query;
 

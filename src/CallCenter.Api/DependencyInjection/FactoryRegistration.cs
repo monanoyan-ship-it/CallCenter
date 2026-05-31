@@ -92,6 +92,7 @@ public static class FactoryRegistration
         services.AddScoped<ISlnMembershipFactory, SlnMembershipFactory>();
         services.AddScoped<ISlnLoyaltyFactory, SlnLoyaltyFactory>();
         services.AddScoped<ISlnGiftCardFactory, SlnGiftCardFactory>();
+        services.AddScoped<ISlnServiceSessionFactory, SlnServiceSessionFactory>();
         services.AddScoped<ISlnLoyaltyPackageFactory, SlnLoyaltyPackageFactory>();
         services.AddScoped<ISlnLoyaltyProgramFactory, SlnLoyaltyProgramFactory>();
 

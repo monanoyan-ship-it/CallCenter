@@ -18,10 +18,9 @@ public class SlnTreatmentRecord
     public int? PersonnelId { get; set; }
     public CustomerPersonnel? Personnel { get; set; }
 
-    /// <summary>Cok seansli hizmette kacinci seans (1-based). Null = tek seans / takip yok.</summary>
-    public int? SessionIndex { get; set; }
-    /// <summary>Snapshot: bu hizmetin satinda toplam seans sayisi (SlnService.SessionCount).</summary>
-    public int? TotalSessions { get; set; }
+    public int? ServiceSessionPlanId { get; set; }
+    public SlnServiceSessionPlan? ServiceSessionPlan { get; set; }
+    public ICollection<SlnServiceSessionRecord> ServiceSessionRecords { get; set; } = [];
 
     public DateTime TreatmentDate { get; set; } = DateTime.UtcNow;
     public string? SkinTypeSnapshot { get; set; }

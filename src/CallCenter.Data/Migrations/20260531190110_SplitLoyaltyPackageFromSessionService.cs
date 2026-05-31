@@ -16,15 +16,6 @@ namespace CallCenter.Data.Migrations
                 name: "FK_SlnInvoiceItems_SlnClientPackages_ClientPackageId",
                 table: "SlnInvoiceItems");
 
-            migrationBuilder.DropTable(
-                name: "SlnPackageUsages");
-
-            migrationBuilder.DropTable(
-                name: "SlnClientPackages");
-
-            migrationBuilder.DropTable(
-                name: "SlnPackageDefinitions");
-
             migrationBuilder.DropIndex(
                 name: "IX_SlnGiftCards_CustomerId",
                 table: "SlnGiftCards");
@@ -222,6 +213,35 @@ namespace CallCenter.Data.Migrations
                         onDelete: ReferentialAction.SetNull);
                 });
 
+            migrationBuilder.Sql("""
+                INSERT INTO "SlnLoyaltyPackageOffers"
+                    ("Id", "CustomerId", "BranchId", "Name", "Description", "ServiceId", "TotalSessions", "BonusSessions", "Price", "ValidDays", "IsActive", "CreatedAt")
+                SELECT
+                    "Id", "CustomerId", NULL, "Name", "Description", "ServiceId", "TotalSessions", 0, "Price", "ValidDays", "IsActive", "CreatedAt"
+                FROM "SlnPackageDefinitions";
+
+                INSERT INTO "SlnLoyaltyPackagePurchases"
+                    ("Id", "CustomerId", "OfferId", "SlnClientId", "BranchId", "TotalSessions", "UsedSessions", "RemainingSessions",
+                     "SaleAmount", "PaidAmount", "SourceInvoiceId", "SourceInvoiceItemId", "ExpiresAt", "IsActive", "SoldByPersonnelId", "CreatedAt")
+                SELECT
+                    p."Id", p."CustomerId", p."PackageDefinitionId", p."SlnClientId", p."BranchId", p."TotalSessions", p."UsedSessions", p."RemainingSessions",
+                    p."SaleAmount", p."PaidAmount", p."SourceInvoiceId", p."SourceInvoiceItemId", p."ExpiresAt", p."IsActive", p."SoldByPersonnelId", p."CreatedAt"
+                FROM "SlnClientPackages" p
+                WHERE p."SlnClientId" IS NOT NULL
+                  AND EXISTS (SELECT 1 FROM "SlnLoyaltyPackageOffers" o WHERE o."Id" = p."PackageDefinitionId");
+
+                INSERT INTO "SlnLoyaltyPackageRedemptions"
+                    ("Id", "PurchaseId", "PersonnelId", "InvoiceId", "InvoiceItemId", "ServiceId", "SlnAppointmentId", "Notes", "UsedAt")
+                SELECT
+                    u."Id", u."ClientPackageId", u."PersonnelId", u."InvoiceId", u."InvoiceItemId", u."ServiceId", u."SlnAppointmentId", u."Notes", u."UsedAt"
+                FROM "SlnPackageUsages" u
+                WHERE EXISTS (SELECT 1 FROM "SlnLoyaltyPackagePurchases" p WHERE p."Id" = u."ClientPackageId");
+
+                SELECT setval(pg_get_serial_sequence('"SlnLoyaltyPackageOffers"', 'Id'), GREATEST(COALESCE((SELECT MAX("Id") FROM "SlnLoyaltyPackageOffers"), 0), 1), true);
+                SELECT setval(pg_get_serial_sequence('"SlnLoyaltyPackagePurchases"', 'Id'), GREATEST(COALESCE((SELECT MAX("Id") FROM "SlnLoyaltyPackagePurchases"), 0), 1), true);
+                SELECT setval(pg_get_serial_sequence('"SlnLoyaltyPackageRedemptions"', 'Id'), GREATEST(COALESCE((SELECT MAX("Id") FROM "SlnLoyaltyPackageRedemptions"), 0), 1), true);
+                """);
+
             migrationBuilder.CreateIndex(
                 name: "IX_SlnLoyaltyPackageOffers_BranchId",
                 table: "SlnLoyaltyPackageOffers",
@@ -306,6 +326,26 @@ namespace CallCenter.Data.Migrations
                 name: "IX_SlnLoyaltyPackageRedemptions_SlnAppointmentId",
                 table: "SlnLoyaltyPackageRedemptions",
                 column: "SlnAppointmentId");
+
+            migrationBuilder.Sql("""
+                UPDATE "SlnInvoiceItems" i
+                SET "LoyaltyPackagePurchaseId" = NULL
+                WHERE i."LoyaltyPackagePurchaseId" IS NOT NULL
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM "SlnLoyaltyPackagePurchases" p
+                      WHERE p."Id" = i."LoyaltyPackagePurchaseId"
+                  );
+                """);
+
+            migrationBuilder.DropTable(
+                name: "SlnPackageUsages");
+
+            migrationBuilder.DropTable(
+                name: "SlnClientPackages");
+
+            migrationBuilder.DropTable(
+                name: "SlnPackageDefinitions");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_SlnInvoiceItems_SlnLoyaltyPackagePurchases_LoyaltyPackagePu~",

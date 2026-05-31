@@ -28,6 +28,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
     private readonly ISlnAppointmentEntityService _appointments;
     private readonly ISlnAppointmentFactory _appointmentFactory;
     private readonly ISlnMembershipFactory _memberships;
+    private readonly ISlnServiceSessionFactory _serviceSessions;
     private readonly ISlnLoyaltyPackageFactory _loyaltyPackages;
     private readonly ISlnLoyaltyProgramFactory _loyaltyPrograms;
     private readonly ISlnLoyaltyFactory _loyaltyPoints;
@@ -56,6 +57,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         ISlnAppointmentEntityService appointments,
         ISlnAppointmentFactory appointmentFactory,
         ISlnMembershipFactory memberships,
+        ISlnServiceSessionFactory serviceSessions,
         ISlnLoyaltyPackageFactory loyaltyPackages,
         ISlnLoyaltyProgramFactory loyaltyPrograms,
         ISlnLoyaltyFactory loyaltyPoints,
@@ -82,6 +84,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         _appointments = appointments;
         _appointmentFactory = appointmentFactory;
         _memberships = memberships;
+        _serviceSessions = serviceSessions;
         _loyaltyPackages = loyaltyPackages;
         _loyaltyPrograms = loyaltyPrograms;
         _loyaltyPoints = loyaltyPoints;
@@ -225,7 +228,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         var items = new List<SlnInvoiceItem>();
         var membershipUsageRecords = new List<(int MembershipId, int ServiceId)>();
         var packageUsageRecords = new List<(int ClientPackageId, int ServiceId, SlnInvoiceItem Item)>();
-        var sessionPlanSaleItems = new List<SlnInvoiceItem>();
+        var serviceSessionSaleItems = new List<SlnInvoiceItem>();
         var membershipBenefitLookup = new Dictionary<int, ServiceMembershipBenefit>();
         var packageBenefitLookup = new Dictionary<int, SlnLoyaltyPackageBenefitDto>();
 
@@ -393,7 +396,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                 && !itemDto.UseMembershipBenefit
                 && !itemDto.UsePackageSession)
             {
-                sessionPlanSaleItems.Add(invoiceItem);
+                serviceSessionSaleItems.Add(invoiceItem);
             }
 
             // Urun satisinda stok dusur
@@ -510,30 +513,30 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                 return (null, error ?? "Hediye karti odemesi kaydedilemedi");
         }
 
-        if (dto.SlnClientId.HasValue && sessionPlanSaleItems.Count > 0)
+        if (dto.SlnClientId.HasValue && serviceSessionSaleItems.Count > 0)
         {
-            var sessionPlanSaleLines = sessionPlanSaleItems
+            var serviceSessionSaleLines = serviceSessionSaleItems
                 .Where(i => i.ServiceId.HasValue)
                 .Select(i =>
                 {
                     var quantityAsInt = i.Quantity == Math.Truncate(i.Quantity)
                         ? (int)i.Quantity
                         : 1;
-                    return new SlnLoyaltyPackageSaleLine(i.ServiceId!.Value, i.LineTotal, Math.Max(1, quantityAsInt), i.Id);
+                    return new SlnServiceSessionPlanSaleLine(i.ServiceId!.Value, i.LineTotal, i.LineTotal, Math.Max(1, quantityAsInt), i.Id);
                 })
                 .ToList();
 
-            var createdPlans = await _loyaltyPackages.CreateLoyaltyPurchasesFromInvoiceAsync(
+            var createdPlans = await _serviceSessions.CreatePlansFromInvoiceAsync(
                 customerId,
                 dto.SlnClientId.Value,
                 invoice.Id,
-                sessionPlanSaleLines,
+                serviceSessionSaleLines,
                 userId,
                 branchId);
 
             if (createdPlans.Count > 0)
             {
-                var saleNote = "SessionPlanSale:" + string.Join(",", createdPlans.Select(p => p.Id));
+                var saleNote = "ServiceSessionPlanSale:" + string.Join(",", createdPlans.Select(p => p.Id));
                 invoice.Notes = string.IsNullOrWhiteSpace(invoice.Notes)
                     ? saleNote
                     : $"{invoice.Notes}|{saleNote}";
