@@ -459,23 +459,23 @@
                             <div class="row g-2">
                                 <div class="col-12">
                                     <label class="form-label small"><t key="salon.session_plans.definition_name_required">Seans Tanımı *</t></label>
-                                    <input type="text" class="form-control form-control-sm" data-bind="value: packageForm.name" />
+                                    <input type="text" class="form-control form-control-sm" data-bind="textInput: packageForm.name" />
                                 </div>
                                 <div class="col-4">
                                     <label class="form-label small"><t key="salon.packages.auto.seans_sayisi_required">Seans Sayisi *</t></label>
-                                    <input type="number" min="1" class="form-control form-control-sm" data-bind="value: packageForm.totalSessions" />
+                                    <input type="number" min="1" class="form-control form-control-sm" data-bind="textInput: packageForm.totalSessions" />
                                 </div>
                                 <div class="col-4">
                                     <label class="form-label small"><t key="salon.packages.auto.fiyat_tl_required">Fiyat (TL) *</t></label>
-                                    <input type="number" min="0" step="1" class="form-control form-control-sm" data-bind="value: packageForm.price" />
+                                    <input type="number" min="0" step="1" class="form-control form-control-sm" data-bind="textInput: packageForm.price" />
                                 </div>
                                 <div class="col-4">
                                     <label class="form-label small"><t key="salon.packages.auto.gecerlilik_gun">Gecerlilik (gun)</t></label>
-                                    <input type="number" min="1" class="form-control form-control-sm" data-bind="value: packageForm.validDays" />
+                                    <input type="number" min="1" class="form-control form-control-sm" data-bind="textInput: packageForm.validDays" />
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label small"><t key="salon.common.description">Aciklama</t></label>
-                                    <input type="text" class="form-control form-control-sm" data-bind="value: packageForm.description" />
+                                    <input type="text" class="form-control form-control-sm" data-bind="textInput: packageForm.description" />
                                 </div>
                                 <div class="col-12 text-end">
                                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: savePackageDef, disable: isSaving">

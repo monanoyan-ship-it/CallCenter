@@ -11,6 +11,16 @@ function SalesViewModel() {
     self.staffList = ko.observableArray([]);
     self.recipes = ko.observableArray([]);
     self.packageDefinitions = ko.observableArray([]);
+    self.clientPackages = ko.observableArray([]);
+    self.laserDevices = ko.observableArray([
+        { id: 'Alexandrite', name: 'Alexandrite Lazer' },
+        { id: 'Diode', name: 'Diode Lazer' },
+        { id: 'Nd:YAG', name: 'Nd:YAG Lazer' },
+        { id: 'IPL', name: 'IPL / Fotoepilasyon' },
+        { id: 'Ice Diode', name: 'Buz Lazer / Ice Diode' },
+        { id: 'Triple Wave', name: 'Triple Wave / Hibrit Lazer' },
+        { id: 'Other', name: 'Diğer cihaz' }
+    ]);
     self.selectedCategoryId = ko.observable(null);
     self.productSearchQuery = ko.observable('');
     self.showRecipes = ko.observable(false);
@@ -23,11 +33,24 @@ function SalesViewModel() {
     self.tipAmount = ko.observable(0);
     self.tipIncludeInTotal = ko.observable(false); // BUG.A2: bahsis toplama dahil mi
     self.linkedAppointmentId = ko.observable(null);
+    self.currentMaterialItem = ko.observable(null);
     self.todayAppointments = ko.observableArray([]);
     self.appointmentsLoading = ko.observable(false);
     self.isSaving = ko.observable(false);
     self.isPrepaid = ko.observable(false);
     self.prepaidAmount = ko.observable(0);
+    self.sessionUsagePackage = ko.observable(null);
+    self.sessionUseForm = {
+        area: ko.observable(''),
+        productId: ko.observable(null),
+        amount: ko.observable(''),
+        deviceType: ko.observable(''),
+        deviceModel: ko.observable(''),
+        settings: ko.observable(''),
+        reaction: ko.observable(''),
+        nextDate: ko.observable(''),
+        notes: ko.observable('')
+    };
 
     function readError(xhr, fallback) {
         if (typeof xhr.responseJSON === 'string') return xhr.responseJSON;
@@ -84,6 +107,140 @@ function SalesViewModel() {
         return isNaN(value) ? item.unitPrice : value;
     }
 
+    function createMaterialUsage(source) {
+        source = source || {};
+        var product = self.products().find(function (p) { return p.id === source.productId; });
+        return {
+            productId: ko.observable(source.productId || null),
+            quantity: ko.observable(source.quantity || 1),
+            unit: ko.observable(source.unit || product?.unit || 'Adet'),
+            notes: ko.observable(source.notes || ''),
+            productName: source.productName || product?.name || ''
+        };
+    }
+
+    function ensureMaterialFields(item) {
+        if (!item) return item;
+        if (typeof item.materialUsages !== 'function') item.materialUsages = ko.observableArray(item.materialUsages || []);
+        if (typeof item.noMaterialUsed !== 'function') item.noMaterialUsed = ko.observable(item.noMaterialUsed || false);
+        if (!('materialAutoScaled' in item)) item.materialAutoScaled = true;
+        return item;
+    }
+
+    self.findRecipeForService = function (serviceId) {
+        return self.recipes().find(function (r) {
+            return r.isActive !== false && parseInt(r.serviceId, 10) === parseInt(serviceId, 10);
+        }) || null;
+    };
+
+    self.applyDefaultRecipeMaterials = function (item) {
+        ensureMaterialFields(item);
+        if (!item || !item.serviceId || item.materialUsages().length > 0) return;
+
+        var recipe = self.findRecipeForService(item.serviceId);
+        if (!recipe || !recipe.items || recipe.items.length === 0) return;
+
+        var qty = parseFloat(typeof item.quantity === 'function' ? item.quantity() : item.quantity) || 1;
+        item.materialUsages(recipe.items.map(function (recipeItem) {
+            return createMaterialUsage({
+                productId: recipeItem.productId,
+                productName: recipeItem.productName,
+                quantity: (parseFloat(recipeItem.quantity) || 0) * qty,
+                unit: recipeItem.unit,
+                notes: recipe.name + (recipeItem.notes ? ' - ' + recipeItem.notes : '')
+            });
+        }));
+        item.noMaterialUsed(false);
+        item.materialAutoScaled = true;
+    };
+
+    function scaleMaterialUsages(item, oldQuantity, newQuantity) {
+        ensureMaterialFields(item);
+        if (!item.materialAutoScaled || item.materialUsages().length === 0) return;
+        oldQuantity = parseFloat(oldQuantity) || 1;
+        newQuantity = parseFloat(newQuantity) || 1;
+        if (oldQuantity <= 0 || newQuantity <= 0) return;
+
+        var ratio = newQuantity / oldQuantity;
+        item.materialUsages().forEach(function (usage) {
+            var current = parseFloat(usage.quantity()) || 0;
+            usage.quantity(Math.round(current * ratio * 1000) / 1000);
+        });
+    }
+
+    self.materialSummary = function (item) {
+        ensureMaterialFields(item);
+        var count = item.materialUsages().filter(function (m) {
+            return parseInt(m.productId(), 10) > 0 && (parseFloat(m.quantity()) || 0) > 0;
+        }).length;
+        if (count === 0 && item.noMaterialUsed && item.noMaterialUsed()) return 'Sarf yok';
+        return count > 0 ? count + ' sarf' : 'Sarf ekle';
+    };
+
+    self.materialButtonClass = function (item) {
+        ensureMaterialFields(item);
+        return readMaterialConsumptions(item).length > 0 || (item.noMaterialUsed && item.noMaterialUsed())
+            ? 'btn-outline-warning'
+            : 'btn-warning text-dark';
+    };
+
+    self.openMaterials = function (item) {
+        ensureMaterialFields(item);
+        self.applyDefaultRecipeMaterials(item);
+        self.currentMaterialItem(item);
+        new bootstrap.Modal(document.getElementById('materialModal')).show();
+    };
+
+    self.addMaterialUsage = function () {
+        var item = self.currentMaterialItem();
+        if (!item) return;
+        ensureMaterialFields(item);
+        item.materialAutoScaled = false;
+        item.noMaterialUsed(false);
+        item.materialUsages.push(createMaterialUsage());
+    };
+
+    self.removeMaterialUsage = function (usage) {
+        var item = self.currentMaterialItem();
+        if (!item) return;
+        item.materialAutoScaled = false;
+        item.materialUsages.remove(usage);
+    };
+
+    self.markNoMaterialUsed = function () {
+        var item = self.currentMaterialItem();
+        if (!item) return;
+        ensureMaterialFields(item);
+        item.materialUsages([]);
+        item.noMaterialUsed(true);
+    };
+
+    function findMissingMaterialItem() {
+        return self.cartItems().find(function (item) {
+            ensureMaterialFields(item);
+            return item.serviceId
+                && item.forceSessionSale !== true
+                && readMaterialConsumptions(item).length === 0
+                && !(item.noMaterialUsed && item.noMaterialUsed());
+        }) || null;
+    }
+
+    function readMaterialConsumptions(item) {
+        ensureMaterialFields(item);
+        if (!item.serviceId) return [];
+
+        return item.materialUsages().map(function (usage) {
+            return {
+                productId: parseInt(usage.productId(), 10) || 0,
+                quantity: parseFloat(usage.quantity()) || 0,
+                unit: usage.unit() || null,
+                notes: usage.notes() || null
+            };
+        }).filter(function (usage) {
+            return usage.productId > 0 && usage.quantity > 0;
+        });
+    }
+
     // ═══ Autocomplete ═══
     self.clientAutocomplete = createAutocomplete(self.clientList, 'fullName', self.clientId);
 
@@ -111,6 +268,7 @@ function SalesViewModel() {
 
     // Musteri secildiginde uyelik kontrolu
     self.clientId.subscribe(function (newClientId) {
+        self.loadClientPackages(newClientId);
         if (!newClientId || self.cartItems().length === 0) return;
         self.applyClientBenefits();
     });
@@ -119,16 +277,41 @@ function SalesViewModel() {
         self.applyClientBenefits();
     };
 
+    self.applyPackageBenefitsToItems = function (packages, serviceItems) {
+        (packages || []).forEach(function (pkg) {
+            var remaining = parseInt(pkg.remainingSessions, 10) || 0;
+            if (remaining <= 0) return;
+
+            var packageServiceId = parseInt(pkg.serviceId, 10);
+            var item = serviceItems.find(function (i) {
+                return parseInt(i.serviceId, 10) === packageServiceId && i.usePackageSession !== true;
+            });
+            if (!item) return;
+
+            item.clientPackageId = pkg.clientPackageId || pkg.id;
+            item.usePackageSession = true;
+            item.packageRemainingSessions = remaining;
+            item.editPrice(0);
+            item.benefitText(
+                pkg.packageName + ': '
+                + slnJsT('salon.sales.session_plan_available_suffix', 'satilmis seans planindan dusulecek')
+                + ' (' + slnJsT('salon.packages.auto.kalan', 'kalan') + ' ' + remaining + ')'
+            );
+        });
+    };
+
     self.applyClientBenefits = function () {
         var clientId = self.clientId();
         if (!clientId) return;
 
-        var serviceItems = self.cartItems().filter(function (i) { return i.serviceId; });
+        var serviceItems = self.cartItems().filter(function (i) { return i.serviceId && i.forceSessionSale !== true; });
         serviceItems.forEach(function (item) { self.resetServiceBenefit(item, false); });
 
         var serviceIds = serviceItems.map(function (i) { return i.serviceId; })
             .filter(function (value, index, arr) { return arr.indexOf(value) === index; });
         if (serviceIds.length === 0) return;
+
+        self.applyPackageBenefitsToItems(self.activeClientPackages ? self.activeClientPackages() : self.clientPackages(), serviceItems);
 
         $.ajax({
             url: '/proxy/sln-packages/usable',
@@ -136,15 +319,7 @@ function SalesViewModel() {
             contentType: 'application/json',
             data: JSON.stringify({ slnClientId: parseInt(clientId), serviceIds: serviceIds })
         }).done(function (packages) {
-            (packages || []).forEach(function (pkg) {
-                var item = serviceItems.find(function (i) { return i.serviceId === pkg.serviceId && i.usePackageSession !== true; });
-                if (!item || pkg.remainingSessions <= 0) return;
-
-                item.clientPackageId = pkg.clientPackageId;
-                item.usePackageSession = true;
-                item.packageRemainingSessions = pkg.remainingSessions;
-                item.benefitText(pkg.packageName + ': ' + slnJsT('salon.sales.session_plan_available_suffix', 'satilmis seans planindan dusulecek') + ' (' + slnJsT('salon.packages.auto.kalan', 'kalan') + ' ' + pkg.remainingSessions + ')');
-            });
+            self.applyPackageBenefitsToItems(packages, serviceItems);
         }).always(function () {
             self.applyMembershipOnly();
         });
@@ -153,11 +328,11 @@ function SalesViewModel() {
     self.applyMembershipOnly = function () {
         var clientId = self.clientId();
         if (!clientId) return;
-        var serviceIds = self.cartItems().filter(function (i) { return i.serviceId && i.usePackageSession !== true; }).map(function (i) { return i.serviceId; });
+        var serviceIds = self.cartItems().filter(function (i) { return i.serviceId && i.usePackageSession !== true && i.forceSessionSale !== true; }).map(function (i) { return i.serviceId; });
         if (serviceIds.length === 0) return;
 
         self.cartItems().forEach(function (item) {
-            if (!item.serviceId || item.usePackageSession === true) return;
+                if (!item.serviceId || item.usePackageSession === true || item.forceSessionSale === true) return;
             self.ensureBenefitFields(item);
             item.membershipId = null;
             item.useMembershipBenefit = false;
@@ -210,6 +385,30 @@ function SalesViewModel() {
         return self.allServices().filter(function (s) { return s.categoryId === catId && s.isActive; });
     });
 
+    self.filteredSessionDefinitions = ko.computed(function () {
+        return self.packageDefinitions().map(function (def) {
+            var service = self.allServices().find(function (s) {
+                return parseInt(s.id, 10) === parseInt(def.serviceId, 10);
+            });
+            if (service && service.isActive === false) return null;
+            return {
+                id: def.id,
+                name: def.name,
+                serviceId: def.serviceId,
+                serviceName: def.serviceName || (service ? service.name : ''),
+                categoryId: service ? service.categoryId : null,
+                totalSessions: def.totalSessions,
+                price: def.price,
+                validDays: def.validDays
+            };
+        }).filter(function (def) {
+            return def;
+        }).sort(function (a, b) {
+            return (a.serviceName || '').localeCompare(b.serviceName || '', document.documentElement.lang || undefined)
+                || (a.name || '').localeCompare(b.name || '', document.documentElement.lang || undefined);
+        });
+    });
+
     self.filteredProducts = ko.computed(function () {
         var q = (self.productSearchQuery() || '').trim().toLowerCase();
         if (!q) return [];
@@ -219,6 +418,39 @@ function SalesViewModel() {
                     || ((p.barcode || '').toLowerCase().indexOf(q) >= 0));
         }).slice(0, 8);
     });
+
+    self.activeClientPackages = ko.computed(function () {
+        return self.clientPackages().filter(function (pkg) {
+            return pkg.isActive && (parseInt(pkg.remainingSessions, 10) || 0) > 0;
+        }).sort(function (a, b) {
+            return (a.expiresAt || '').localeCompare(b.expiresAt || '')
+                || (a.packageName || '').localeCompare(b.packageName || '', document.documentElement.lang || undefined);
+        });
+    });
+
+    self.sessionUsageNumber = function (pkg) {
+        return (parseInt(pkg.usedSessions, 10) || 0) + 1;
+    };
+
+    self.sessionUsageSummary = function (pkg) {
+        if (!pkg) return '';
+        return self.sessionUsageNumber(pkg) + '/' + (parseInt(pkg.totalSessions, 10) || 0)
+            + ' seans - kalan ' + (parseInt(pkg.remainingSessions, 10) || 0);
+    };
+
+    self.isLaserSessionPackage = function (pkg) {
+        var text = ((pkg && ((pkg.serviceName || '') + ' ' + (pkg.packageName || ''))) || '').toLocaleLowerCase('tr-TR');
+        return text.indexOf('lazer') >= 0 || text.indexOf('epilasyon') >= 0;
+    };
+
+    self.sessionDeviceText = function () {
+        var deviceType = self.sessionUseForm.deviceType();
+        var device = self.laserDevices().find(function (item) { return item.id === deviceType; });
+        var model = (self.sessionUseForm.deviceModel() || '').trim();
+        if (!deviceType && !model) return '';
+        if (deviceType === 'Other') return model || 'Diğer cihaz';
+        return [device ? device.name : deviceType, model].filter(Boolean).join(' - ');
+    };
 
     self.subtotal = ko.computed(function () {
         var total = 0;
@@ -252,6 +484,36 @@ function SalesViewModel() {
         );
     };
 
+    self.addSessionDefinitionToCart = function (def) {
+        if (!def) return;
+        self.selectDefaultPersonnel();
+
+        var existing = self.cartItems().find(function (item) {
+            return item.forceSessionSale === true && parseInt(item.packageDefinitionId, 10) === parseInt(def.id, 10);
+        });
+        if (existing) {
+            existing.quantity(existing.quantity() + 1);
+            return;
+        }
+
+        self.cartItems.push({
+            serviceId: def.serviceId,
+            productId: null,
+            packageDefinitionId: def.id,
+            forceSessionSale: true,
+            name: def.name || def.serviceName,
+            unitPrice: def.price || 0,
+            editPrice: ko.observable(def.price || 0),
+            quantity: ko.observable(1),
+            benefitText: ko.observable(
+                slnJsT('salon.sales.session_plan_sale_hint', 'Odeme alindiginda musteriye {count} seanslik takip acilir.')
+                    .replace('{count}', parseInt(def.totalSessions, 10) || 0)
+            ),
+            materialUsages: ko.observableArray([]),
+            noMaterialUsed: ko.observable(true)
+        });
+    };
+
     self.grandTotal = ko.computed(function () {
         var tip = self.tipIncludeInTotal() ? (parseFloat(self.tipAmount()) || 0) : 0;
         return Math.max(0, self.subtotal() - (parseFloat(self.discountAmount()) || 0) + tip);
@@ -260,19 +522,34 @@ function SalesViewModel() {
     // ═══ Data Loading ═══
     self.loadData = function () {
         $.ajax({ url: '/proxy/sln-services/categories', method: 'GET' }).done(function (data) {
-            self.categories(data);
-            // Tum hizmetleri flat listeye cevir
+            var categories = normalizeList(data).filter(function (cat) {
+                return cat && cat.isActive !== false;
+            });
+            self.categories(categories);
+
             var services = [];
-            data.forEach(function (cat) {
+            categories.forEach(function (cat) {
                 (cat.services || []).forEach(function (svc) {
+                    if (svc.isActive === false) return;
                     svc.categoryId = cat.id;
                     svc.categoryColor = cat.color;
                     services.push(svc);
                 });
             });
             self.allServices(services);
-            // Ilk kategoriyi sec
-            if (data.length > 0) self.selectedCategoryId(data[0].id);
+
+            var selectedCategory = categories.find(function (cat) {
+                return (cat.services || []).some(function (svc) { return svc.isActive !== false; });
+            }) || categories[0];
+            self.selectedCategoryId(selectedCategory ? selectedCategory.id : null);
+
+            if (categories.length === 0 || services.length === 0) {
+                toastr.warning('Hızlı satışta gösterilecek aktif hizmet bulunamadı. Hizmetler ekranından aktif hizmet ekleyin.');
+            }
+        }).fail(function (xhr) {
+            self.categories([]);
+            self.allServices([]);
+            toastr.error(readError(xhr, 'Hizmetler yüklenemedi'));
         });
         self.loadProducts();
         $.ajax({ url: '/proxy/sln-clients?pageSize=1000', method: 'GET' }).done(function (data) {
@@ -295,6 +572,21 @@ function SalesViewModel() {
         });
     };
 
+    self.loadClientPackages = function (clientId) {
+        if (!clientId) {
+            self.clientPackages([]);
+            return;
+        }
+
+        $.ajax({ url: '/proxy/sln-packages/client-packages?clientId=' + parseInt(clientId, 10), method: 'GET' })
+            .done(function (data) {
+                self.clientPackages(normalizeList(data));
+            })
+            .fail(function () {
+                self.clientPackages([]);
+            });
+    };
+
     self.loadProducts = function () {
         $.ajax({ url: '/proxy/sln-products', method: 'GET' })
             .done(function (data) { self.products(data.items || data); })
@@ -314,16 +606,23 @@ function SalesViewModel() {
             for (var i = 0; i < item.quantity; i++) {
                 var existing = self.cartItems().find(function (c) { return c.serviceId === item.serviceId; });
                 if (existing) {
-                    existing.quantity(existing.quantity() + 1);
+                    var oldQuantity = existing.quantity();
+                    var newQuantity = oldQuantity + 1;
+                    existing.quantity(newQuantity);
+                    scaleMaterialUsages(existing, oldQuantity, newQuantity);
                 } else {
-                    self.cartItems.push({
+                    var recipeCartItem = {
                         serviceId: item.serviceId,
+                        forceSessionSale: false,
                         name: item.serviceName,
                         unitPrice: item.servicePrice,
                         editPrice: ko.observable(item.servicePrice),
                         quantity: ko.observable(1),
-                        benefitText: ko.observable(null)
-                    });
+                        benefitText: ko.observable(null),
+                        materialUsages: ko.observableArray([])
+                    };
+                    self.applyDefaultRecipeMaterials(recipeCartItem);
+                    self.cartItems.push(recipeCartItem);
                 }
             }
         });
@@ -341,19 +640,25 @@ function SalesViewModel() {
         // Ayni hizmet varsa adet arttir
         var existing = self.cartItems().find(function (item) { return item.serviceId === service.id; });
         if (existing) {
-            existing.quantity(existing.quantity() + 1);
+            var oldQuantity = existing.quantity();
+            var newQuantity = oldQuantity + 1;
+            existing.quantity(newQuantity);
+            scaleMaterialUsages(existing, oldQuantity, newQuantity);
             self.applyMembershipBenefits();
             return;
         }
         var cartItem = {
             serviceId: service.id,
+            forceSessionSale: false,
             name: service.name,
             unitPrice: service.price,
             editPrice: ko.observable(service.price),
             quantity: ko.observable(1),
-            benefitText: ko.observable(null)
+            benefitText: ko.observable(null),
+            materialUsages: ko.observableArray([])
         };
         self.setSessionSaleHint(cartItem);
+        self.applyDefaultRecipeMaterials(cartItem);
         self.cartItems.push(cartItem);
         // Uyelik kontrolu
         self.applyMembershipBenefits();
@@ -380,13 +685,15 @@ function SalesViewModel() {
 
         self.cartItems.push({
             serviceId: null,
+            forceSessionSale: false,
             productId: product.id,
             name: product.name,
             unitPrice: product.salePrice || 0,
             editPrice: ko.observable(product.salePrice || 0),
             quantity: ko.observable(1),
             stockQuantity: stock,
-            benefitText: ko.observable(null)
+            benefitText: ko.observable(null),
+            materialUsages: ko.observableArray([])
         });
     };
 
@@ -426,13 +733,19 @@ function SalesViewModel() {
             toastr.warning(slnJsT('salon.sales.js.paket_seansi_yetersiz', 'Paket seansi yetersiz: ') + item.name);
             return;
         }
-        item.quantity(item.quantity() + 1);
+        var oldQuantity = item.quantity();
+        var newQuantity = oldQuantity + 1;
+        item.quantity(newQuantity);
+        if (item.serviceId && item.forceSessionSale !== true) scaleMaterialUsages(item, oldQuantity, newQuantity);
         if (item.serviceId) self.applyClientBenefits();
     };
 
     self.decreaseQty = function (item) {
         if (item.quantity() > 1) {
-            item.quantity(item.quantity() - 1);
+            var oldQuantity = item.quantity();
+            var newQuantity = oldQuantity - 1;
+            item.quantity(newQuantity);
+            if (item.serviceId && item.forceSessionSale !== true) scaleMaterialUsages(item, oldQuantity, newQuantity);
         } else {
             self.cartItems.remove(item);
         }
@@ -458,7 +771,8 @@ function SalesViewModel() {
                 membershipId: item.useMembershipBenefit === true ? item.membershipId : null,
                 useMembershipBenefit: item.useMembershipBenefit === true,
                 clientPackageId: item.usePackageSession === true ? item.clientPackageId : null,
-                usePackageSession: item.usePackageSession === true
+                usePackageSession: item.usePackageSession === true,
+                materialConsumptions: readMaterialConsumptions(item)
             };
         });
 
@@ -488,6 +802,7 @@ function SalesViewModel() {
             self.loadProducts();
             self.clientId(null);
             self.clientAutocomplete.clear();
+            self.clientPackages([]);
             self.discountAmount(0);
             self.tipAmount(0);
             self.giftCardCode('');
@@ -507,6 +822,13 @@ function SalesViewModel() {
 
         if (parseInt(self.paymentMethodId()) === 5 && !(self.giftCardCode() || '').trim()) {
             toastr.warning(slnJsT('salon.sales.js.gift_card_code_required', 'Hediye kartı kodu girilmelidir'));
+            return;
+        }
+
+        var missingMaterialItem = findMissingMaterialItem();
+        if (missingMaterialItem) {
+            self.openMaterials(missingMaterialItem);
+            toastr.warning('Bu hizmette ne kullanildigini yazin ya da "Malzeme yok" secin.');
             return;
         }
 
@@ -615,6 +937,7 @@ function SalesViewModel() {
             self.clientId(appt.slnClientId);
             self.clientAutocomplete.query(appt.clientName || '');
             self.clientAutocomplete.selectedName(appt.clientName || '');
+            self.loadClientPackages(appt.slnClientId);
         }
 
         // Personeli seç
@@ -628,28 +951,36 @@ function SalesViewModel() {
             services.forEach(function (s) {
                 var svc = self.allServices().find(function (sv) { return sv.id === (s.slnServiceId || s.serviceId); });
                 if (svc) {
-                    self.cartItems.push({
+                    var apptItem = {
                         serviceId: svc.id,
+                        forceSessionSale: false,
                         name: svc.name,
                         unitPrice: svc.price,
                         editPrice: ko.observable(svc.price),
                         quantity: ko.observable(1),
-                        benefitText: ko.observable(null)
-                    });
+                        benefitText: ko.observable(null),
+                        materialUsages: ko.observableArray([])
+                    };
+                    self.applyDefaultRecipeMaterials(apptItem);
+                    self.cartItems.push(apptItem);
                 }
             });
         } else if (appt.serviceNames && appt.serviceNames.length > 0) {
             appt.serviceNames.forEach(function (svcName) {
                 var svc = self.allServices().find(function (sv) { return sv.name === svcName; });
                 if (svc) {
-                    self.cartItems.push({
+                    var namedApptItem = {
                         serviceId: svc.id,
+                        forceSessionSale: false,
                         name: svc.name,
                         unitPrice: svc.price,
                         editPrice: ko.observable(svc.price),
                         quantity: ko.observable(1),
-                        benefitText: ko.observable(null)
-                    });
+                        benefitText: ko.observable(null),
+                        materialUsages: ko.observableArray([])
+                    };
+                    self.applyDefaultRecipeMaterials(namedApptItem);
+                    self.cartItems.push(namedApptItem);
                 }
             });
         }
@@ -676,7 +1007,7 @@ function SalesViewModel() {
 
         // Üyelik avantajı kontrolü
         if (appt.slnClientId) {
-            var serviceIds = self.cartItems().filter(function (i) { return i.serviceId; }).map(function (i) { return i.serviceId; });
+            var serviceIds = self.cartItems().filter(function (i) { return i.serviceId && i.forceSessionSale !== true; }).map(function (i) { return i.serviceId; });
             if (serviceIds.length > 0) {
                 $.ajax({
                     url: '/proxy/sln-memberships/check-benefits',
@@ -735,7 +1066,8 @@ function SalesViewModel() {
                 membershipId: item.useMembershipBenefit === true ? item.membershipId : null,
                 useMembershipBenefit: item.useMembershipBenefit === true,
                 clientPackageId: item.usePackageSession === true ? item.clientPackageId : null,
-                usePackageSession: item.usePackageSession === true
+                usePackageSession: item.usePackageSession === true,
+                materialConsumptions: readMaterialConsumptions(item)
             };
         });
 
@@ -757,6 +1089,7 @@ function SalesViewModel() {
             self.cartItems([]);
             self.clientId(null);
             self.clientAutocomplete.clear();
+            self.clientPackages([]);
             self.linkedAppointmentId(null);
             self.isPrepaid(false);
             self.prepaidAmount(0);
@@ -770,6 +1103,73 @@ function SalesViewModel() {
     };
 
     // ═══ Init ═══
+    var sessionUsageModal;
+
+    function selectedProductName(productId) {
+        var id = parseInt(productId, 10) || 0;
+        var product = self.products().find(function (p) { return parseInt(p.id, 10) === id; });
+        return product ? product.name : '';
+    }
+
+    self.openSessionUsage = function (pkg) {
+        if (!pkg || !pkg.isActive || (parseInt(pkg.remainingSessions, 10) || 0) <= 0) return;
+        self.sessionUsagePackage(pkg);
+        self.sessionUseForm.area('');
+        self.sessionUseForm.productId(null);
+        self.sessionUseForm.amount('');
+        self.sessionUseForm.deviceType('');
+        self.sessionUseForm.deviceModel('');
+        self.sessionUseForm.settings('');
+        self.sessionUseForm.reaction('');
+        self.sessionUseForm.nextDate('');
+        self.sessionUseForm.notes('');
+        if (!sessionUsageModal) sessionUsageModal = new bootstrap.Modal(document.getElementById('sessionUsageModal'));
+        sessionUsageModal.show();
+    };
+
+    self.confirmSessionUsage = function () {
+        var pkg = self.sessionUsagePackage();
+        if (!pkg) return;
+        if (self.isLaserSessionPackage(pkg) && !self.sessionUseForm.deviceType()) {
+            toastr.warning('Lazer/epilasyon seansı için cihaz seçmelisiniz');
+            return;
+        }
+
+        var productName = selectedProductName(self.sessionUseForm.productId());
+        var deviceText = self.sessionDeviceText();
+        var notes = [
+            'Seans: ' + self.sessionUsageSummary(pkg),
+            self.sessionUseForm.area() ? 'Bölge/işlem: ' + self.sessionUseForm.area() : null,
+            productName ? 'Kullanılan ürün: ' + productName : null,
+            self.sessionUseForm.amount() ? 'Miktar: ' + self.sessionUseForm.amount() : null,
+            deviceText ? 'Cihaz: ' + deviceText : null,
+            self.sessionUseForm.settings() ? 'Ayarlar: ' + self.sessionUseForm.settings() : null,
+            self.sessionUseForm.reaction() ? 'Cilt/reaksiyon: ' + self.sessionUseForm.reaction() : null,
+            self.sessionUseForm.nextDate() ? 'Sonraki seans: ' + self.sessionUseForm.nextDate() : null,
+            self.sessionUseForm.notes() ? 'Not: ' + self.sessionUseForm.notes() : null
+        ].filter(Boolean).join('\n');
+
+        self.isSaving(true);
+        $.ajax({
+            url: '/proxy/sln-packages/use',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                clientPackageId: pkg.id,
+                notes: notes || 'Seans kullanımı'
+            })
+        }).done(function () {
+            if (sessionUsageModal) sessionUsageModal.hide();
+            toastr.success('Seans kullanımı kaydedildi');
+            self.loadClientPackages(self.clientId());
+            self.sessionUsagePackage(null);
+        }).fail(function (xhr) {
+            toastr.error(readError(xhr, 'Seans kullanımı kaydedilemedi'));
+        }).always(function () {
+            self.isSaving(false);
+        });
+    };
+
     $(document).ready(function () {
         self.loadData();
     });

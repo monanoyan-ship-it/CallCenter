@@ -44,6 +44,32 @@ function PackagesViewModel() {
         return [];
     }
 
+    function normalizeServiceLookups(data) {
+        var list = normalizeList(data);
+        var flat = [];
+        list.forEach(function (item) {
+            if (Array.isArray(item.services)) {
+                item.services.forEach(function (svc) {
+                    svc.categoryId = svc.categoryId || item.id;
+                    svc.categoryName = svc.categoryName || item.name;
+                    flat.push(svc);
+                });
+            } else {
+                flat.push(item);
+            }
+        });
+
+        var seen = {};
+        return flat.filter(function (svc) {
+            var id = parseInt(svc.id, 10) || 0;
+            if (!id || seen[id]) return false;
+            seen[id] = true;
+            return svc.isActive !== false;
+        }).sort(function (a, b) {
+            return (a.name || '').localeCompare(b.name || '', document.documentElement.lang || undefined);
+        });
+    }
+
     function sameId(a, b) {
         return parseInt(a) === parseInt(b);
     }
@@ -130,9 +156,23 @@ function PackagesViewModel() {
     };
 
     self.loadLookups = function () {
-        $.ajax({ url: '/proxy/sln-services', method: 'GET' }).done(function (data) {
-            self.serviceList(normalizeList(data));
-        });
+        $.ajax({ url: '/proxy/sln-services', method: 'GET' })
+            .done(function (data) {
+                var services = normalizeServiceLookups(data);
+                if (services.length > 0) {
+                    self.serviceList(services);
+                    return;
+                }
+
+                $.ajax({ url: '/proxy/sln-services/categories', method: 'GET' }).done(function (categoryData) {
+                    self.serviceList(normalizeServiceLookups(categoryData));
+                });
+            })
+            .fail(function () {
+                $.ajax({ url: '/proxy/sln-services/categories', method: 'GET' }).done(function (categoryData) {
+                    self.serviceList(normalizeServiceLookups(categoryData));
+                });
+            });
     };
 
     self.loadUsageHistory = function (pkg) {
