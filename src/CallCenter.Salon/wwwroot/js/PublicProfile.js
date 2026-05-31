@@ -558,6 +558,39 @@ var salonSlug = profileSlug;
             if (el) el.style.display = value;
         }
 
+        function hideJoinAreaActions() {
+            setJoinAreaDisplay('btnJoinSalon', 'none');
+            setJoinAreaDisplay('alreadyMember', 'none');
+            setJoinAreaDisplay('btnLoginToJoin', 'none');
+        }
+
+        function showJoinLoginAction() {
+            hideJoinAreaActions();
+            var loginJoin = document.getElementById('btnLoginToJoin');
+            if (loginJoin) {
+                loginJoin.href = '/user/login?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search);
+            }
+            setJoinAreaDisplay('btnLoginToJoin', '');
+        }
+
+        function setJoinAreaMemberState(isMember) {
+            hideJoinAreaActions();
+            if (isMember) {
+                setJoinAreaDisplay('alreadyMember', '');
+                return;
+            }
+
+            var btn = document.getElementById('btnJoinSalon');
+            if (btn) btn.disabled = false;
+            setJoinAreaDisplay('btnJoinSalon', '');
+        }
+
+        function getCurrentSalonCustomerId() {
+            var salon = publicSalonVm && publicSalonVm.salon ? publicSalonVm.salon() : null;
+            var customerId = salon && salon.customerId;
+            return customerId ? Number(customerId) : null;
+        }
+
         function getStoredPlatformToken() {
             var token = localStorage.getItem('platformToken');
             if (!token || token === 'null' || token === 'undefined') {
@@ -576,36 +609,48 @@ var salonSlug = profileSlug;
         })();
 
         // ═══ Platform User: Salon Müşterisi Ol ═══
-        (function () {
+        function refreshJoinArea() {
             var token = getStoredPlatformToken();
-            var salonSlug = profileSlug;
+            hideJoinAreaActions();
 
             if (!token) {
-                var loginJoin = document.getElementById('btnLoginToJoin');
-                if (loginJoin) loginJoin.href = '/user/login?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search);
-                setJoinAreaDisplay('btnLoginToJoin', '');
+                showJoinLoginAction();
                 return;
             }
 
             // Login olmuş — bu salona üye mi kontrol et
+            var customerId = getCurrentSalonCustomerId();
+            if (!customerId) {
+                if (publicSalonVm.loaded && !publicSalonVm.loaded()) {
+                    var loadedSubscription = publicSalonVm.loaded.subscribe(function (loaded) {
+                        if (!loaded) return;
+                        loadedSubscription.dispose();
+                        refreshJoinArea();
+                    });
+                    return;
+                }
+
+                setJoinAreaMemberState(false);
+                return;
+            }
+
             fetch('/public-proxy/platform/salons', { headers: { 'Authorization': 'Bearer ' + token } })
                 .then(function (r) {
                     if (r.status === 401 || r.status === 403) {
                         localStorage.removeItem('platformToken');
                         localStorage.removeItem('platformUser');
-                        var loginJoin = document.getElementById('btnLoginToJoin');
-                        if (loginJoin) loginJoin.href = '/user/login?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search);
-                        setJoinAreaDisplay('btnLoginToJoin', '');
+                        showJoinLoginAction();
                         return null;
                     }
                     return r.ok ? r.json() : [];
                 })
                 .then(function (salons) {
-                    if (!Array.isArray(salons)) return;
+                    if (!Array.isArray(salons)) {
+                        if (salons !== null) setJoinAreaMemberState(false);
+                        return;
+                    }
                     // customerId'yi salon profil verisinden al
-                    var vm = ko.dataFor(document.getElementById('public-salon-vm'));
-                    var profileData = vm && vm.salon ? vm.salon() : null;
-                    var customerId = profileData && profileData.customerId;
+                    customerId = Number(customerId);
 
                     if (!customerId) {
                         // customerId'yi DOM'dan alamadıysak slug ile proxy'den alalım
@@ -613,25 +658,22 @@ var salonSlug = profileSlug;
                         return;
                     }
 
-                    var isMember = salons.some(function (s) { return s.customerId === customerId; });
-                    if (isMember) {
-                        setJoinAreaDisplay('alreadyMember', '');
-                    } else {
-                        setJoinAreaDisplay('btnJoinSalon', '');
-                    }
+                    var isMember = salons.some(function (s) { return Number(s.customerId) === customerId; });
+                    setJoinAreaMemberState(isMember);
                 })
                 .catch(function () {
-                    setJoinAreaDisplay('btnJoinSalon', '');
+                    setJoinAreaMemberState(false);
                 });
-        })();
+        }
+
+        refreshJoinArea();
 
         function joinThisSalon() {
             var token = getStoredPlatformToken();
             if (!token) { window.location.href = '/user/login?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search); return; }
 
             // customerId çek: önce KO binding'den, fail olursa fetch ile salon endpoint'inden
-            var vm = ko.dataFor(document.getElementById('public-salon-vm'));
-            var customerId = vm && vm.salon && vm.salon() ? vm.salon().customerId : null;
+            var customerId = getCurrentSalonCustomerId();
 
             var doJoin = function (cid) {
                 if (!cid) { toastr.error(profileT('salon.profile.join.salon_missing', 'Salon bilgisi alınamadı.')); return; }
@@ -653,8 +695,7 @@ var salonSlug = profileSlug;
                 .then(function (res) {
                     if (res.ok) {
                         toastr.success(profileT('salon.profile.join.success', 'Salona üye oldunuz!'));
-                        setJoinAreaDisplay('btnJoinSalon', 'none');
-                        setJoinAreaDisplay('alreadyMember', '');
+                        setJoinAreaMemberState(true);
                     } else {
                         if (res.status === 401 || res.status === 403) {
                             localStorage.removeItem('platformToken');
