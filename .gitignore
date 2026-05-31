@@ -49,6 +49,8 @@ bld/
 
 ## Local agent state
 .claude/
+.codex/
+.codex-*/
 
 ## Landing libman (restored via libman restore)
 src/CallCenter.Landing/wwwroot/lib/

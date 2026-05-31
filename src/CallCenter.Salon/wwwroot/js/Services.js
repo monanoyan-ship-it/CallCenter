@@ -471,13 +471,38 @@ function ServicesViewModel() {
         self.packageForm.validDays(365);
     }
 
+    function findPackageDefinitionForService(serviceId) {
+        var id = parseInt(serviceId) || 0;
+        return self.packageDefinitions()
+            .filter(function (d) { return sameId(d.serviceId, id); })
+            .sort(function (a, b) {
+                if (!!a.isActive !== !!b.isActive) return a.isActive ? -1 : 1;
+                return (parseInt(b.id) || 0) - (parseInt(a.id) || 0);
+            })[0] || null;
+    }
+
+    function loadPackageDefinitionForm(def) {
+        self.isEditingPackageDef(true);
+        self.editingPackageDefId(def.id);
+        self.packageForm.name(def.name || '');
+        self.packageForm.description(def.description || '');
+        self.packageForm.totalSessions(def.totalSessions || 10);
+        self.packageForm.price(def.price || 0);
+        self.packageForm.validDays(def.validDays || 365);
+    }
+
     self.openPackageManager = function (service) {
         if (!self.packageFeatureAvailable()) {
             toastr.info(slnJsT('salon.services.package_unavailable', 'Seans takip modulu kapali'));
             return;
         }
         self.selectedPackageService(service);
-        resetPackageForm(service);
+        var existingDefinition = findPackageDefinitionForService(service && service.id);
+        if (existingDefinition) {
+            loadPackageDefinitionForm(existingDefinition);
+        } else {
+            resetPackageForm(service);
+        }
         packageModal.show();
     };
 
@@ -486,13 +511,7 @@ function ServicesViewModel() {
     };
 
     self.editPackageDef = function (def) {
-        self.isEditingPackageDef(true);
-        self.editingPackageDefId(def.id);
-        self.packageForm.name(def.name || '');
-        self.packageForm.description(def.description || '');
-        self.packageForm.totalSessions(def.totalSessions || 10);
-        self.packageForm.price(def.price || 0);
-        self.packageForm.validDays(def.validDays || 365);
+        loadPackageDefinitionForm(def);
     };
 
     self.savePackageDef = function () {
@@ -519,11 +538,19 @@ function ServicesViewModel() {
             method = 'PUT';
         }
 
-        $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(data) }).done(function () {
+        $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(data) }).done(function (saved) {
             $.ajax({ url: '/proxy/sln-packages/definitions', method: 'GET' }).done(function (items) {
                 self.packageDefinitions(normalizeList(items));
+                var savedId = saved && saved.id ? saved.id : self.editingPackageDefId();
+                var current = self.packageDefinitions().filter(function (d) {
+                    return savedId && sameId(d.id, savedId);
+                })[0] || findPackageDefinitionForService(service.id);
+                if (current) {
+                    loadPackageDefinitionForm(current);
+                } else {
+                    resetPackageForm(service);
+                }
             });
-            resetPackageForm(service);
             toastr.success(slnJsT('salon.session_plans.js.definition_saved', 'Seans tanimi kaydedildi'));
             self.isSaving(false);
         }).fail(function (xhr) {

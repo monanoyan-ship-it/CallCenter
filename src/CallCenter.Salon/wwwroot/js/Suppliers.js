@@ -5,6 +5,8 @@ function slnJsT(key, fallback) {
 function SuppliersViewModel() {
     var self = this;
     self.suppliers = ko.observableArray([]);
+    self.supplierOrders = ko.observableArray([]);
+    self.currentBranchId = ko.observable((window.slnGetBranch && window.slnGetBranch()) || '');
     self.searchQuery = ko.observable('');
     self.isEditing = ko.observable(false);
     self.editingId = ko.observable(null);
@@ -36,6 +38,17 @@ function SuppliersViewModel() {
         return total;
     });
 
+    self.filteredSupplierOrders = ko.computed(function () {
+        var q = (self.searchQuery() || '').toLowerCase();
+        if (!q) return self.supplierOrders();
+
+        return self.supplierOrders().filter(function (o) {
+            return (o.orderNo || '').toLowerCase().indexOf(q) >= 0
+                || (o.supplierName || '').toLowerCase().indexOf(q) >= 0
+                || (self.orderProductSummary(o) || '').toLowerCase().indexOf(q) >= 0;
+        });
+    });
+
     var formModal;
 
     self.loadData = function () {
@@ -46,6 +59,56 @@ function SuppliersViewModel() {
         }).fail(function () {
             toastr.error(slnJsT('salon.suppliers.js.load_failed', 'Tedarikçiler yüklenemedi'));
         });
+
+        $.ajax({ url: '/proxy/sln-products/supplier-orders', method: 'GET' }).done(function (data) {
+            self.supplierOrders(data.items || data || []);
+        }).fail(function () {
+            self.supplierOrders([]);
+        });
+    };
+
+    self.orderProductSummary = function (order) {
+        var items = order.items || [];
+        if (items.length === 0) return '-';
+        return items.map(function (item) {
+            return item.productName + ' (' + item.quantity + ' ' + (item.unit || '') + ')';
+        }).join(', ');
+    };
+
+    self.statusBadgeClass = function (statusId) {
+        switch (parseInt(statusId, 10)) {
+            case 2: return 'bg-primary';
+            case 3: return 'bg-warning text-dark';
+            case 4: return 'bg-success';
+            case 5: return 'bg-danger';
+            default: return 'bg-secondary';
+        }
+    };
+
+    self.approveReceived = function (order) {
+        confirmModal(
+            'Siparişi Onayla',
+            (order.orderNo || 'Sipariş') + ' teslim alındı olarak işaretlenecek ve ürünler stoğa işlenecek. Devam edilsin mi?',
+            function () {
+                var branchId = parseInt((window.slnGetBranch && window.slnGetBranch()) || self.currentBranchId(), 10) || null;
+                $.ajax({
+                    url: '/proxy/sln-products/supplier-orders/' + order.id + '/status',
+                    method: 'PUT',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        statusId: 4,
+                        branchId: branchId,
+                        notes: 'Teslim alindi ve stoklara islendi'
+                    })
+                }).done(function () {
+                    toastr.success('Siparis onaylandi ve stoklara islendi');
+                    self.loadData();
+                }).fail(function (xhr) {
+                    toastr.error(xhr.responseJSON?.error || xhr.responseJSON?.message || xhr.responseText || 'Siparis onaylanamadi');
+                });
+            },
+            { confirmText: 'Onayla', confirmClass: 'btn-success' }
+        );
     };
 
     self.resetForm = function () {

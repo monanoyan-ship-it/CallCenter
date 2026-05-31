@@ -56,6 +56,32 @@
                 <!-- /ko -->
             </div>
 
+            <!-- Seans Satislari -->
+            <!-- ko if: filteredSessionDefinitions().length > 0 -->
+            <div class="mb-3">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="bi bi-box-seam text-info"></i>
+                    <span class="small fw-semibold"><t key="salon.sales.session_sales">Seans Satışları</t></span>
+                </div>
+                <div class="row g-2" data-bind="foreach: filteredSessionDefinitions">
+                    <div class="col-6 col-lg-4 col-xl-3">
+                        <div class="card border-0 shadow-sm h-100 service-card" style="cursor:pointer; border-left: 3px solid #0dcaf0 !important;"
+                             data-bind="click: $parent.addSessionDefinitionToCart">
+                            <div class="card-body p-3 text-center">
+                                <div class="fw-semibold small" data-bind="text: name"></div>
+                                <div class="text-muted" style="font-size:.7rem;" data-bind="text: serviceName"></div>
+                                <div class="badge bg-info-subtle text-info-emphasis mt-1">
+                                    <span data-bind="text: totalSessions"></span>
+                                    <span><t key="salon.services.package_sessions">seans</t></span>
+                                </div>
+                                <div class="fw-bold text-primary mt-1" data-bind="text: (price || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- /ko -->
+
             <!-- Recete Grid -->
             <div class="row g-2 mb-3" data-bind="visible: showRecipes(), foreach: recipes">
                 <div class="col-6 col-lg-4 col-xl-3">
@@ -101,7 +127,7 @@
         </div>
 
         <!-- SAG: Sepet -->
-        <div class="col-md-4 d-flex flex-column" style="background: #fff; border-left: 1px solid #dee2e6;">
+        <div class="col-md-4 d-flex flex-column" style="background: #fff; border-left: 1px solid #dee2e6; position: sticky; top: 60px; height: calc(100vh - 60px);">
             <!-- Randevu Çek + Müşteri -->
             <div class="p-2 border-bottom d-flex gap-1">
                 <button class="btn btn-outline-info btn-sm flex-fill" data-bind="click: openAppointments">
@@ -140,6 +166,33 @@
                 </div>
             </div>
 
+            <!-- Musteri Seanslari -->
+            <div class="p-3 border-bottom" data-bind="visible: clientId">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="small fw-semibold">
+                        <i class="bi bi-clipboard2-pulse me-1 text-primary"></i>Müşteri Seansları
+                    </div>
+                    <button type="button" class="btn btn-link btn-sm p-0" data-bind="click: function(){ loadClientPackages(clientId()); }">
+                        Yenile
+                    </button>
+                </div>
+                <!-- ko if: activeClientPackages().length > 0 -->
+                <div class="d-grid gap-2" data-bind="foreach: activeClientPackages">
+                    <button type="button" class="btn btn-outline-primary btn-sm text-start"
+                            data-bind="click: $parent.openSessionUsage">
+                        <div class="d-flex justify-content-between gap-2">
+                            <span class="fw-semibold" data-bind="text: packageName"></span>
+                            <span class="badge bg-primary-subtle text-primary-emphasis" data-bind="text: $parent.sessionUsageSummary($data)"></span>
+                        </div>
+                        <div class="text-muted small" data-bind="text: serviceName"></div>
+                    </button>
+                </div>
+                <!-- /ko -->
+                <!-- ko if: activeClientPackages().length === 0 -->
+                <div class="text-muted small">Bu müşterinin aktif seans paketi yok.</div>
+                <!-- /ko -->
+            </div>
+
             <!-- Sepet Kalemleri -->
             <div class="flex-grow-1 overflow-auto p-3">
                 <div data-bind="foreach: cartItems">
@@ -153,6 +206,12 @@
                                 <span class="text-muted">TL</span>
                             </div>
                             <div class="small text-success" data-bind="visible: benefitText && benefitText(), text: benefitText"></div>
+                            <!-- ko if: serviceId && $data.forceSessionSale !== true -->
+                            <button type="button" class="btn btn-sm py-0 px-2 mt-1"
+                                    data-bind="click: $parent.openMaterials, css: $parent.materialButtonClass($data)">
+                                <i class="bi bi-droplet-half me-1"></i><span data-bind="text: $parent.materialSummary($data)"></span>
+                            </button>
+                            <!-- /ko -->
                         </div>
                         <div class="d-flex align-items-center gap-1">
                             <button class="btn btn-outline-secondary btn-sm px-1 py-0" data-bind="click: $parent.decreaseQty" style="font-size:.7rem;">
@@ -180,7 +239,7 @@
             </div>
 
             <!-- Personel + Odeme -->
-            <div class="p-3 border-top" data-bind="visible: cartItems().length > 0">
+            <div class="p-3 border-top" style="background:#fff;" data-bind="visible: cartItems().length > 0">
                 <div class="row g-2 mb-2">
                     <div class="col-6">
                         <select class="form-select form-select-sm" data-bind="value: selectedPersonnelId,
@@ -190,7 +249,7 @@
                         <select class="form-select form-select-sm" data-bind="value: paymentMethodId">
                             <option value="1"><t key="salon.sales.auto.nakit">Nakit</t></option>
                             <option value="2"><t key="salon.sales.auto.kredi_karti">Kredi Kartı</t></option>
-                            <option value="3"><t key="salon.sales.auto.karma">Karma</t></option>
+                            <option value="3"><t key="salon.sales.auto.karma">Çoklu İşlem</t></option>
                             <option value="5"><t key="salon.sales.auto.hediye_karti">Hediye Kartı</t></option>
                         </select>
                     </div>
@@ -204,7 +263,7 @@
             </div>
 
             <!-- Toplam + Ode -->
-            <div class="p-3 border-top" style="background: #f8f9fa;" data-bind="visible: cartItems().length > 0">
+            <div class="p-3 border-top shadow-sm" style="background: #f8f9fa; position: sticky; bottom: 0; z-index: 3;" data-bind="visible: cartItems().length > 0">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <span class="text-muted small"><t key="salon.sales.auto.ara_toplam">Ara Toplam</t></span>
                     <span class="fw-bold" data-bind="text: subtotal().toLocaleString(document.documentElement.lang || undefined) + ' TL'"></span>
@@ -244,8 +303,170 @@
                 <button class="btn btn-success w-100 py-2" data-bind="click: checkout, disable: isSaving">
                     <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                     <i class="bi bi-check-circle me-1" data-bind="visible: !isSaving()"></i>
-                    <span class="fw-bold"><t key="salon.sales.auto.odeme_al">Ödeme Al</t></span>
+                    <span class="fw-bold">Tahsilat Al</span>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seans Kullanim Modal -->
+    <div class="modal fade" id="sessionUsageModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title">
+                        <i class="bi bi-clipboard2-pulse me-2"></i>
+                        Seans İşlemi
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- ko if: sessionUsagePackage -->
+                    <div class="border rounded p-2 mb-3 small">
+                        <div class="d-flex justify-content-between gap-2">
+                            <div>
+                                <div class="fw-semibold" data-bind="text: sessionUsagePackage().packageName"></div>
+                                <div class="text-muted" data-bind="text: sessionUsagePackage().serviceName"></div>
+                            </div>
+                            <span class="badge bg-primary align-self-start" data-bind="text: sessionUsageSummary(sessionUsagePackage())"></span>
+                        </div>
+                    </div>
+                    <!-- /ko -->
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label small">Bölge / işlem</label>
+                            <input class="form-control form-control-sm" placeholder="Örn: Tüm bacak lazer" data-bind="textInput: sessionUseForm.area" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Kullanılan ürün</label>
+                            <select class="form-select form-select-sm"
+                                    data-bind="value: sessionUseForm.productId,
+                                               options: products,
+                                               optionsText: 'name',
+                                               optionsValue: 'id',
+                                               optionsCaption: 'Ürün seç...'"></select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">Miktar</label>
+                            <input class="form-control form-control-sm" placeholder="Örn: 20 ml" data-bind="textInput: sessionUseForm.amount" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">Cihaz</label>
+                            <select class="form-select form-select-sm"
+                                    data-bind="value: sessionUseForm.deviceType,
+                                               options: laserDevices,
+                                               optionsText: 'name',
+                                               optionsValue: 'id',
+                                               optionsCaption: 'Cihaz seç...'"></select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">Marka / model</label>
+                            <input class="form-control form-control-sm" placeholder="Örn: Candela GentleMax Pro" data-bind="textInput: sessionUseForm.deviceModel" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">Ayarlar</label>
+                            <input class="form-control form-control-sm" placeholder="Örn: 12J / 20ms" data-bind="textInput: sessionUseForm.settings" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Cilt / reaksiyon</label>
+                            <input class="form-control form-control-sm" placeholder="Örn: Normal kızarıklık" data-bind="textInput: sessionUseForm.reaction" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Sonraki seans</label>
+                            <input type="date" class="form-control form-control-sm" data-bind="value: sessionUseForm.nextDate" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small">Not</label>
+                            <textarea class="form-control form-control-sm" rows="3" data-bind="textInput: sessionUseForm.notes"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-primary btn-sm" data-bind="click: confirmSessionUsage, disable: isSaving">
+                        <i class="bi bi-check2-circle me-1"></i>Seansı Kaydet
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hizmet Malzemeleri Modal -->
+    <div class="modal fade" id="materialModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title">
+                        <i class="bi bi-droplet-half me-2"></i>
+                        <span data-bind="text: currentMaterialItem() ? currentMaterialItem().name : 'Hizmet Malzemeleri'"></span>
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="small text-muted">Bu hizmette kullanılan malzemeler ödeme alınca stoktan düşer.</div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" data-bind="click: addMaterialUsage">
+                            <i class="bi bi-plus me-1"></i>Malzeme Ekle
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: markNoMaterialUsed">
+                            <i class="bi bi-slash-circle me-1"></i>Malzeme yok
+                        </button>
+                    </div>
+
+                    <!-- ko if: currentMaterialItem() && currentMaterialItem().materialUsages().length > 0 -->
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Malzeme</th>
+                                    <th style="width:110px;">Miktar</th>
+                                    <th style="width:110px;">Birim</th>
+                                    <th style="width:180px;">Not</th>
+                                    <th style="width:42px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody data-bind="foreach: currentMaterialItem().materialUsages">
+                                <tr>
+                                    <td>
+                                        <select class="form-select form-select-sm"
+                                                data-bind="value: productId,
+                                                           options: $parent.products,
+                                                           optionsText: 'name',
+                                                           optionsValue: 'id',
+                                                           optionsCaption: 'Malzeme sec...'"></select>
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control form-control-sm text-end" min="0" step="0.01" data-bind="value: quantity" />
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm" data-bind="value: unit" />
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm" data-bind="value: notes" />
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-outline-danger btn-sm px-1 py-0"
+                                                data-bind="click: $parent.removeMaterialUsage">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- /ko -->
+
+                    <!-- ko if: currentMaterialItem() && currentMaterialItem().materialUsages().length === 0 -->
+                    <div class="text-center text-muted py-4 small">
+                        Bu hizmet için malzeme girilmedi.
+                    </div>
+                    <!-- /ko -->
+                </div>
+                <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-dismiss="modal">
+                        <i class="bi bi-check-lg me-1"></i>Tamam
+                    </button>
+                </div>
             </div>
         </div>
     </div>

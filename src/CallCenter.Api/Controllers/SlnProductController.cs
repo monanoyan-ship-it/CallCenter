@@ -261,10 +261,11 @@ public class SlnProductController : ControllerBase
     [RequireSalonPage("Suppliers")]
     public async Task<ActionResult> UpdateSupplierOrderStatus(int id, [FromBody] SlnSupplierOrderStatusUpdateDto dto)
     {
+        var userId = GetUserId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _productFactory.UpdateSupplierOrderStatusAsync(id, dto, customerId);
+        var (success, error) = await _productFactory.UpdateSupplierOrderStatusAsync(id, dto, userId, customerId, ResolveBranchId(dto.BranchId));
         return success ? Ok() : BadRequest(error);
     }
 

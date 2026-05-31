@@ -72,7 +72,7 @@ function InvoicesViewModel() {
     var paymentNames = {
         1: slnJsT('salon.payment.cash', 'Nakit'),
         2: slnJsT('salon.payment.credit_card', 'Kredi Kartı'),
-        3: slnJsT('salon.payment.mixed', 'Karma'),
+        3: slnJsT('salon.payment.mixed', 'Çoklu İşlem'),
         4: slnJsT('salon.payment.bank_transfer', 'Havale')
     };
 
@@ -136,7 +136,7 @@ function InvoicesViewModel() {
         return total - (parseFloat(self.form.discountAmount()) || 0) + (parseFloat(self.form.tipAmount()) || 0);
     });
 
-    // Karma odeme
+    // Coklu cekim
     self.form.splitCash = ko.observable(0);
     self.form.splitCreditCard = ko.observable(0);
     self.form.splitTransfer = ko.observable(0);

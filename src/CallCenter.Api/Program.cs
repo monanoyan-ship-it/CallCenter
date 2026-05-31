@@ -9,6 +9,7 @@ using CallCenter.Api.Middleware;
 using CallCenter.Data;
 using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -18,6 +19,20 @@ using Microsoft.IdentityModel.Tokens;
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Logging.ClearProviders();
+    builder.Logging.AddConsole();
+    builder.Logging.AddDebug();
+}
+
+var dpKeysPath = Path.Combine(Path.GetTempPath(), "dp-keys-api");
+Directory.CreateDirectory(dpKeysPath);
+builder.Services.AddDataProtection()
+    .SetApplicationName("CallCenter.Api")
+    .PersistKeysToFileSystem(new DirectoryInfo(dpKeysPath))
+    .SetDefaultKeyLifetime(TimeSpan.FromDays(365));
 
 // HttpClientFactory (WhatsApp API vb. dis servis cagrilari icin)
 builder.Services.AddHttpClient();
@@ -237,9 +252,9 @@ app.Use(async (context, next) =>
 });
 app.UseCors("AllowBlazor");
 
-// HTTPS redirect — sadece Development ortaminda
-// Docker'da Nginx arkasinda HTTP kullanilir, redirect gereksiz
-if (app.Environment.IsDevelopment())
+// HTTPS redirect production icin.
+// Local development HTTP portu token kaybi olmadan kullanabilsin.
+if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }

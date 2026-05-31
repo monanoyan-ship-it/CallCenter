@@ -190,6 +190,17 @@ public class SlnFinanceController : ControllerBase
         return Ok(expense);
     }
 
+    [HttpPut("expenses/{id}")]
+    public async Task<ActionResult<SlnExpenseDto>> UpdateExpense(int id, [FromBody] SlnExpenseUpdateDto dto, [FromQuery] int? branchId)
+    {
+        var userId = GetUserId();
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var (expense, error) = await _financeFactory.UpdateExpenseAsync(id, dto, userId, customerId, ResolveBranchId(branchId));
+        return expense != null ? Ok(expense) : BadRequest(new { error });
+    }
+
     [HttpDelete("expenses/{id}")]
     public async Task<ActionResult> DeleteExpense(int id)
     {

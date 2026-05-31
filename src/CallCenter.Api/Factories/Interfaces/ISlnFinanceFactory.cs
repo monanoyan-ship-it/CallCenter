@@ -34,6 +34,7 @@ public interface ISlnFinanceFactory
     Task<object> CreateExpenseCategoryAsync(string name, int customerId);
     Task<List<SlnExpenseDto>> GetExpensesAsync(int customerId, DateTime? from, DateTime? to, int? categoryId = null, int? branchId = null);
     Task<SlnExpenseDto> CreateExpenseAsync(SlnExpenseCreateDto dto, int userId, int customerId, int? branchId = null);
+    Task<(SlnExpenseDto? Expense, string? Error)> UpdateExpenseAsync(int expenseId, SlnExpenseUpdateDto dto, int userId, int customerId, int? branchId = null);
     Task<(bool Success, string? Error)> DeleteExpenseAsync(int expenseId, int customerId, int? branchId = null);
 
     // Z Raporu

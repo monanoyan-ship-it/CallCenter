@@ -60,6 +60,57 @@
         </div>
     </div>
 
+    <!-- Tedarik Siparisleri -->
+    <div class="card border-0 shadow-sm mt-3">
+        <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-clipboard-check me-2"></i>Tedarik Siparişleri</span>
+            <button type="button" class="btn btn-outline-secondary btn-sm py-0" data-bind="click: loadData">
+                <i class="bi bi-arrow-clockwise me-1"></i>Yenile
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <!-- ko if: filteredSupplierOrders().length > 0 -->
+            <div class="table-responsive">
+                <table class="table table-hover table-sm mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Sipariş No</th>
+                            <th>Tedarikçi</th>
+                            <th>Ürünler</th>
+                            <th>Durum</th>
+                            <th>Tarih</th>
+                            <th class="text-end">Toplam</th>
+                            <th style="width: 110px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: filteredSupplierOrders">
+                        <tr>
+                            <td class="small fw-semibold" data-bind="text: orderNo"></td>
+                            <td class="small" data-bind="text: supplierName || '-'"></td>
+                            <td class="small text-muted" data-bind="text: $parent.orderProductSummary($data)"></td>
+                            <td><span class="badge" data-bind="text: statusName, css: $parent.statusBadgeClass(statusId)"></span></td>
+                            <td class="small" data-bind="text: orderDate ? new Date(orderDate).toLocaleDateString(document.documentElement.lang || undefined) : '-'"></td>
+                            <td class="small text-end fw-semibold" data-bind="text: (totalAmount || 0).toLocaleString(document.documentElement.lang || undefined) + ' TL'"></td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-success btn-sm py-0"
+                                        data-bind="click: $parent.approveReceived, visible: statusId !== 4 && statusId !== 5">
+                                    <i class="bi bi-check2-circle me-1"></i>Onayla
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- /ko -->
+            <!-- ko if: filteredSupplierOrders().length === 0 -->
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-clipboard-x" style="font-size: 2rem;"></i>
+                <p class="mt-2 small">Henüz tedarik siparişi görünmüyor</p>
+            </div>
+            <!-- /ko -->
+        </div>
+    </div>
+
     <!-- Cari Ozet -->
     <div class="card border-0 shadow-sm mt-3">
         <div class="card-header bg-white fw-semibold">

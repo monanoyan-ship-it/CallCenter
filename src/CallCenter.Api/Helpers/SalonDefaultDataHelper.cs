@@ -50,29 +50,40 @@ public static class SalonDefaultDataHelper
         await uow.SaveChangesAsync();
 
         // Zaten hizmet kategorisi varsa atla (tekrar calismasin)
-        var hasCategories = await serviceCategoryEs.GetAllQueryable().AnyAsync(c => c.CustomerId == customerId);
-        if (hasCategories) return;
+        var existingCategories = await serviceCategoryEs.GetAllQueryable()
+            .Where(c => c.CustomerId == customerId)
+            .ToListAsync();
 
         // ═══ Hizmet Kategorileri + Hizmetler ═══
         var categories = GetDefaultCategories();
 
         foreach (var cat in categories)
         {
-            var category = new SlnServiceCategory
+            var category = existingCategories.FirstOrDefault(c => c.Name == cat.Name);
+            if (category == null)
             {
-                CustomerId = customerId,
-                Name = cat.Name,
-                IconClass = cat.Icon,
-                Color = cat.Color,
-                SortOrder = cat.Sort,
-                IsActive = true
-            };
-            serviceCategoryEs.Add(category);
-            await uow.SaveChangesAsync();
+                category = new SlnServiceCategory
+                {
+                    CustomerId = customerId,
+                    Name = cat.Name,
+                    IconClass = cat.Icon,
+                    Color = cat.Color,
+                    SortOrder = cat.Sort,
+                    IsActive = true
+                };
+                serviceCategoryEs.Add(category);
+                await uow.SaveChangesAsync();
+                existingCategories.Add(category);
+            }
 
-            var sortOrder = 1;
+            var existingServices = await serviceEs.GetAllQueryable()
+                .Where(s => s.CustomerId == customerId && s.CategoryId == category.Id)
+                .ToListAsync();
+            var sortOrder = existingServices.Select(s => s.SortOrder).DefaultIfEmpty(0).Max();
             foreach (var svc in cat.Services)
             {
+                if (existingServices.Any(s => s.Name == svc.Name)) continue;
+
                 serviceEs.Add(new SlnService
                 {
                     CustomerId = customerId,
@@ -80,7 +91,7 @@ public static class SalonDefaultDataHelper
                     Name = svc.Name,
                     Price = svc.Price,
                     DurationMinutes = svc.Duration,
-                    SortOrder = sortOrder++,
+                    SortOrder = ++sortOrder,
                     IsActive = true
                 });
             }
@@ -153,29 +164,40 @@ public static class SalonDefaultDataHelper
         await db.SaveChangesAsync();
 
         // Zaten hizmet kategorisi varsa atla (tekrar calismasin)
-        var hasCategories = await db.SlnServiceCategories.AnyAsync(c => c.CustomerId == customerId);
-        if (hasCategories) return;
+        var existingCategories = await db.SlnServiceCategories
+            .Where(c => c.CustomerId == customerId)
+            .ToListAsync();
 
         // ═══ Hizmet Kategorileri + Hizmetler ═══
         var categories = GetDefaultCategories();
 
         foreach (var cat in categories)
         {
-            var category = new SlnServiceCategory
+            var category = existingCategories.FirstOrDefault(c => c.Name == cat.Name);
+            if (category == null)
             {
-                CustomerId = customerId,
-                Name = cat.Name,
-                IconClass = cat.Icon,
-                Color = cat.Color,
-                SortOrder = cat.Sort,
-                IsActive = true
-            };
-            db.SlnServiceCategories.Add(category);
-            await db.SaveChangesAsync();
+                category = new SlnServiceCategory
+                {
+                    CustomerId = customerId,
+                    Name = cat.Name,
+                    IconClass = cat.Icon,
+                    Color = cat.Color,
+                    SortOrder = cat.Sort,
+                    IsActive = true
+                };
+                db.SlnServiceCategories.Add(category);
+                await db.SaveChangesAsync();
+                existingCategories.Add(category);
+            }
 
-            var sortOrder = 1;
+            var existingServices = await db.SlnServices
+                .Where(s => s.CustomerId == customerId && s.CategoryId == category.Id)
+                .ToListAsync();
+            var sortOrder = existingServices.Select(s => s.SortOrder).DefaultIfEmpty(0).Max();
             foreach (var svc in cat.Services)
             {
+                if (existingServices.Any(s => s.Name == svc.Name)) continue;
+
                 db.SlnServices.Add(new SlnService
                 {
                     CustomerId = customerId,
@@ -183,7 +205,7 @@ public static class SalonDefaultDataHelper
                     Name = svc.Name,
                     Price = svc.Price,
                     DurationMinutes = svc.Duration,
-                    SortOrder = sortOrder++,
+                    SortOrder = ++sortOrder,
                     IsActive = true
                 });
             }
@@ -264,6 +286,9 @@ public static class SalonDefaultDataHelper
             }),
             ("Ağda / Epilasyon", "bi-stars", "#4caf50", 5, new[]
             {
+                ("Lazer Epilasyon", 750m, 45),
+                ("Tüm Vücut Lazer Epilasyon", 2500m, 90),
+                ("Bölgesel Lazer Epilasyon", 600m, 30),
                 ("Tüm Vücut Ağda", 400m, 60),
                 ("Bacak Ağda", 150m, 20),
                 ("Kol Ağda", 100m, 15),

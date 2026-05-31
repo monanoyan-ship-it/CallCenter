@@ -482,6 +482,7 @@ public class SlnSupplierOrderStatusUpdateDto
 {
     public int StatusId { get; set; }
     public string? Notes { get; set; }
+    public int? BranchId { get; set; }
 }
 
 public class SlnInvoiceDto
@@ -541,6 +542,15 @@ public class SlnInvoiceItemCreateDto
     public bool UseMembershipBenefit { get; set; }
     public int? ClientPackageId { get; set; }
     public bool UsePackageSession { get; set; }
+    public List<SlnInvoiceMaterialConsumptionDto> MaterialConsumptions { get; set; } = [];
+}
+
+public class SlnInvoiceMaterialConsumptionDto
+{
+    public int ProductId { get; set; }
+    public decimal Quantity { get; set; }
+    public string? Unit { get; set; }
+    public string? Notes { get; set; }
 }
 
 // ═══ SlnExpense ═══
@@ -552,6 +562,7 @@ public class SlnExpenseDto
     public DateTime ExpenseDate { get; set; }
     public string? Description { get; set; }
     public int PaymentMethodId { get; set; }
+    public int StatusId { get; set; }
 }
 
 public class SlnExpenseCreateDto
@@ -561,6 +572,16 @@ public class SlnExpenseCreateDto
     public DateTime ExpenseDate { get; set; }
     public string? Description { get; set; }
     public int PaymentMethodId { get; set; } = 1;
+}
+
+public class SlnExpenseUpdateDto
+{
+    public int? CategoryId { get; set; }
+    public decimal? Amount { get; set; }
+    public DateTime? ExpenseDate { get; set; }
+    public string? Description { get; set; }
+    public int? PaymentMethodId { get; set; }
+    public int? StatusId { get; set; }
 }
 
 // ═══ SlnCash ═══

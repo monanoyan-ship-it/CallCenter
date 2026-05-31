@@ -537,21 +537,74 @@ public class SlnProductFactory : ISlnProductFactory
         return (true, null, MapSupplierOrderToDto(created));
     }
 
-    public async Task<(bool Success, string? Error)> UpdateSupplierOrderStatusAsync(int orderId, SlnSupplierOrderStatusUpdateDto dto, int customerId)
+    public async Task<(bool Success, string? Error)> UpdateSupplierOrderStatusAsync(int orderId, SlnSupplierOrderStatusUpdateDto dto, int userId, int customerId, int? branchId = null)
     {
         if (SalonSupplierOrderStatuses.GetById(dto.StatusId) == null)
             return (false, "Gecersiz siparis durumu");
 
         var order = await _supplierOrders.GetAllQueryable()
+            .Include(o => o.Items).ThenInclude(i => i.Product)
             .FirstOrDefaultAsync(o => o.Id == orderId && o.CustomerId == customerId);
         if (order == null) return (false, "Siparis bulunamadi");
+
+        if (order.StatusId == SalonSupplierOrderStatuses.Ids.Received && dto.StatusId == SalonSupplierOrderStatuses.Ids.Received)
+            return (true, null);
+
+        if (order.StatusId == SalonSupplierOrderStatuses.Ids.Received && dto.StatusId != SalonSupplierOrderStatuses.Ids.Received)
+            return (false, "Teslim alinmis siparis geri alinamaz");
+
+        if (dto.StatusId == SalonSupplierOrderStatuses.Ids.Received)
+        {
+            var effectiveBranchId = await _stockBalances.ResolveBranchIdAsync(customerId, branchId);
+            if (!effectiveBranchId.HasValue) return (false, "Stok islenecek sube bulunamadi");
+
+            foreach (var item in order.Items)
+            {
+                var product = item.Product;
+                if (product == null)
+                    return (false, "Siparis urunu bulunamadi");
+
+                var (stockOk, stockError) = await _stockBalances.AdjustStockAsync(
+                    product, customerId, effectiveBranchId.Value, item.Quantity, preventNegative: false);
+                if (!stockOk) return (false, stockError);
+
+                await _stockBalances.SyncProductTotalAsync(product, customerId);
+                item.ReceivedQuantity = item.Quantity;
+
+                _stockMovements.Add(new SlnStockMovement
+                {
+                    CustomerId = customerId,
+                    BranchId = effectiveBranchId.Value,
+                    ProductId = item.ProductId,
+                    MovementTypeId = 1,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice,
+                    SupplierId = order.SupplierId,
+                    Notes = $"Tedarik siparisi teslim: {order.OrderNo}",
+                    CreatedByPersonnelId = userId > 0 ? userId : null
+                });
+            }
+
+            var amount = Math.Round(order.Items.Sum(i => i.Quantity * i.UnitPrice), 2, MidpointRounding.AwayFromZero);
+            if (amount > 0)
+            {
+                _supplierTransactions.Add(new SlnSupplierTransaction
+                {
+                    SupplierId = order.SupplierId,
+                    TransactionTypeId = 1,
+                    Amount = amount,
+                    Description = $"Tedarik siparisi teslim: {order.OrderNo}",
+                    TransactionDate = DateTime.UtcNow
+                });
+            }
+
+            order.ReceivedAt = DateTime.UtcNow;
+        }
 
         order.StatusId = dto.StatusId;
         order.UpdatedAt = DateTime.UtcNow;
         if (!string.IsNullOrWhiteSpace(dto.Notes))
             order.Notes = string.IsNullOrWhiteSpace(order.Notes) ? dto.Notes.Trim() : $"{order.Notes}\n{dto.Notes.Trim()}";
-        if (dto.StatusId == SalonSupplierOrderStatuses.Ids.Received)
-            order.ReceivedAt = DateTime.UtcNow;
 
         await _uow.SaveChangesAsync();
         _logger.LogInformation("Tedarik siparisi durumu guncellendi. CustomerId={CustomerId} OrderId={OrderId} StatusId={StatusId}",

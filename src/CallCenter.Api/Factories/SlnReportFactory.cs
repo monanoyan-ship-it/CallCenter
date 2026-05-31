@@ -31,7 +31,7 @@ public class SlnReportFactory : ISlnReportFactory
     {
         { 1, "Nakit" },
         { 2, "Kredi Karti" },
-        { 3, "Karma" },
+        { 3, "Coklu Islem" },
         { 4, "Havale/EFT" },
         { 5, "Hediye Karti" }
     };

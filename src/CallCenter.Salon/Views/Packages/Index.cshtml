@@ -241,7 +241,7 @@
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label small"><t key="salon.session_plans.definition_name_required">Seans Tanımı *</t></label>
-                            <input type="text" class="form-control form-control-sm" placeholder="@(Translation.T("salon.session_plans.placeholder", "Örn: Tam Vücut Epilasyon - 6 Seans"))" data-bind="value: defForm.name" />
+                            <input type="text" class="form-control form-control-sm" placeholder="@(Translation.T("salon.session_plans.placeholder", "Örn: Tam Vücut Epilasyon - 6 Seans"))" data-bind="textInput: defForm.name" />
                         </div>
                         <div class="col-12">
                             <label class="form-label small"><t key="salon.packages.auto.hizmet">Hizmet *</t></label>
@@ -250,19 +250,19 @@
                         </div>
                         <div class="col-4">
                             <label class="form-label small"><t key="salon.packages.auto.seans_sayisi_required">Seans Sayisi *</t></label>
-                            <input type="number" class="form-control form-control-sm" min="1" data-bind="value: defForm.totalSessions" />
+                            <input type="number" class="form-control form-control-sm" min="1" data-bind="textInput: defForm.totalSessions" />
                         </div>
                         <div class="col-4">
                             <label class="form-label small"><t key="salon.packages.auto.fiyat_tl_required">Fiyat (TL) *</t></label>
-                            <input type="number" class="form-control form-control-sm" step="1" data-bind="value: defForm.price" />
+                            <input type="number" class="form-control form-control-sm" step="1" data-bind="textInput: defForm.price" />
                         </div>
                         <div class="col-4">
                             <label class="form-label small"><t key="salon.packages.auto.gecerlilik_gun">Geçerlilik (gün)</t></label>
-                            <input type="number" class="form-control form-control-sm" data-bind="value: defForm.validDays" />
+                            <input type="number" class="form-control form-control-sm" data-bind="textInput: defForm.validDays" />
                         </div>
                         <div class="col-12">
                             <label class="form-label small"><t key="salon.common.description">Açıklama</t></label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: defForm.description" />
+                            <input type="text" class="form-control form-control-sm" data-bind="textInput: defForm.description" />
                         </div>
                     </div>
                 </div>

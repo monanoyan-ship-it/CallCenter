@@ -17,6 +17,16 @@
         self.userLng = ko.observable(null);
         self.locationPending = ko.observable(true);
 
+        if (typeof L === 'undefined') {
+            self.locationPending(false);
+            self.isLoading(false);
+            fetch('/proxy/salon/')
+                .then(function (r) { return r.ok ? r.json() : []; })
+                .then(function (data) { self.salons(data); })
+                .catch(function () { self.salons([]); });
+            return;
+        }
+
         function haversineKm(lat1, lon1, lat2, lon2) {
             var R = 6371;
             var toRad = function (x) { return x * Math.PI / 180; };
