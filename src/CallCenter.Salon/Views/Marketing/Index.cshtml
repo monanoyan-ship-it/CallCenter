@@ -35,17 +35,13 @@
             </div>
         </div>
     }
-    @if (Show("loyalty") || Show("memberships") || Show("giftcards"))
+    @if (Show("memberships") || Show("giftcards"))
     {
         <div class="col-lg-4">
             <div class="border rounded bg-white p-3 h-100">
                 <div class="fw-semibold small mb-1"><i class="bi bi-stars me-1"></i><t key="salon.marketing.intent.loyalty">Sadakat ve üyelik</t></div>
-                <div class="text-muted small mb-2"><t key="salon.marketing.intent.loyalty_desc">Puan, üyelik ve hediye kartlarını takip edin.</t></div>
+                <div class="text-muted small mb-2"><t key="salon.marketing.intent.loyalty_desc">Üyelik ve hediye kartlarını takip edin.</t></div>
                 <div class="d-flex flex-wrap gap-2">
-                    @if (Show("loyalty"))
-                    {
-                        <button class="btn btn-outline-secondary btn-sm" data-marketing-tab="loyalty" type="button"><t key="salon.sidebar.loyalty">Sadakat</t></button>
-                    }
                     @if (Show("memberships"))
                     {
                         <button class="btn btn-outline-secondary btn-sm" data-marketing-tab="memberships" type="button"><t key="salon.sidebar.memberships">Üyelik</t></button>
@@ -95,14 +91,6 @@
             </button>
         </li>
     }
-    @if (Show("loyalty"))
-    {
-        <li class="nav-item" role="presentation">
-            <button class="nav-link @(Active("loyalty") ? "active" : "")" data-bs-toggle="pill" data-bs-target="#marketing-loyalty" type="button" role="tab">
-                <i class="bi bi-star me-1"></i><t key="salon.sidebar.loyalty">Sadakat Programi</t>
-            </button>
-        </li>
-    }
     @if (Show("memberships"))
     {
         <li class="nav-item" role="presentation">
@@ -148,12 +136,6 @@
             @await Html.PartialAsync("_WinbackPane")
         </div>
     }
-    @if (Show("loyalty"))
-    {
-        <div class="tab-pane fade @(Active("loyalty") ? "show active" : "")" id="marketing-loyalty" role="tabpanel">
-            @await Html.PartialAsync("_LoyaltyPane")
-        </div>
-    }
     @if (Show("memberships"))
     {
         <div class="tab-pane fade @(Active("memberships") ? "show active" : "")" id="marketing-memberships" role="tabpanel">
@@ -187,10 +169,6 @@
     @if (Show("winback"))
     {
         <script src="~/js/Winback.js" asp-append-version="true"></script>
-    }
-    @if (Show("loyalty"))
-    {
-        <script src="~/js/Loyalty.js" asp-append-version="true"></script>
     }
     @if (Show("memberships"))
     {

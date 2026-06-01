@@ -11,7 +11,6 @@ public class MarketingController : SlnBaseController
         ["campaigns"] = "Campaigns",
         ["email"] = "EmailCampaigns",
         ["winback"] = "Winback",
-        ["loyalty"] = "Loyalty",
         ["memberships"] = "Memberships",
         ["giftcards"] = "GiftCards",
         ["reviews"] = "Reviews"
