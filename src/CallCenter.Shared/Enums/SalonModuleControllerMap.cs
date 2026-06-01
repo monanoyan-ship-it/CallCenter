@@ -28,7 +28,6 @@ public static class SalonModuleControllerMap
         ["GiftCards"] = SalonPortalModules.Ids.SlnGiftCards,         // 216
         ["LoyaltyPackages"] = SalonPortalModules.Ids.SlnLoyaltyPackages,    // 217
         ["Memberships"] = SalonPortalModules.Ids.SlnMemberships,     // 218
-        ["Loyalty"] = SalonPortalModules.Ids.SlnLoyalty,             // 219
         ["Profile"] = SalonPortalModules.Ids.SlnProfile,             // 220
         ["Waitlist"] = SalonPortalModules.Ids.SlnWaitlist,           // 221
         ["EmailCampaigns"] = SalonPortalModules.Ids.SlnEmailCampaigns, // 222
