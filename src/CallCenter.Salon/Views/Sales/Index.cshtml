@@ -238,6 +238,18 @@
                 <!-- /ko -->
             </div>
 
+            <!-- Cok Seansli Hizmet (B): aktif plan chip listesi -->
+            <div class="p-3 border-top" style="background:#e7f3ff;" data-bind="visible: clientId() && serviceSessionPlans().length > 0">
+                <div class="small fw-semibold mb-1"><i class="bi bi-calendar2-check text-primary me-1"></i><t key="salon.sales.session_plans.active">Aktif Cok Seansli Hizmet Planlari</t></div>
+                <div class="d-flex flex-wrap gap-1" data-bind="foreach: serviceSessionPlans">
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bind="click: $parent.addPlanSessionToCart">
+                        <i class="bi bi-plus-circle me-1"></i>
+                        <span data-bind="text: $data.serviceName"></span>
+                        <span class="text-muted small ms-1" data-bind="text: ($data.remainingSessions || 0) + '/' + ($data.totalSessions || 0) + ' kalan'"></span>
+                    </button>
+                </div>
+            </div>
+
             <!-- Sadakat: D odul chip listesi + C puan ile odeme -->
             <div class="p-3 border-top" style="background:#fff8e7;" data-bind="visible: clientId() && (loyaltyRewards().length > 0 || (clientLoyaltyBalance() > 0))">
                 <!-- ko if: loyaltyRewards().length > 0 -->

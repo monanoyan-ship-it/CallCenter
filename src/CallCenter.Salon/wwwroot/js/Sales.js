@@ -17,6 +17,8 @@ function SalesViewModel() {
     self.loyaltyConfig = ko.observable(null);
     self.clientLoyaltyBalance = ko.observable(0);
     self.loyaltyPointsToRedeem = ko.observable(0);
+    // Cok Seansli Hizmet (B): musteriye satilmis aktif planlar
+    self.serviceSessionPlans = ko.observableArray([]);
     self.laserDevices = ko.observableArray([
         { id: 'Alexandrite', name: 'Alexandrite Lazer' },
         { id: 'Diode', name: 'Diode Lazer' },
@@ -276,6 +278,7 @@ function SalesViewModel() {
         self.loadClientPackages(newClientId);
         self.loadLoyaltyRewards(newClientId);
         self.loadClientLoyaltyBalance(newClientId);
+        self.loadServiceSessionPlans(newClientId);
         self.loyaltyPointsToRedeem(0);
         if (!newClientId || self.cartItems().length === 0) return;
         self.applyClientBenefits();
@@ -582,6 +585,44 @@ function SalesViewModel() {
         });
     };
 
+    self.loadServiceSessionPlans = function (clientId) {
+        if (!clientId) { self.serviceSessionPlans([]); return; }
+        $.ajax({ url: '/proxy/sln-service-sessions/plans?clientId=' + parseInt(clientId, 10) + '&activeOnly=true', method: 'GET' })
+            .done(function (data) {
+                var list = Array.isArray(data) ? data : (data && Array.isArray(data.items) ? data.items : []);
+                self.serviceSessionPlans(list.filter(function (p) {
+                    return p && p.isActive !== false && (parseInt(p.remainingSessions, 10) || 0) > 0;
+                }));
+            })
+            .fail(function () { self.serviceSessionPlans([]); });
+    };
+
+    self.addPlanSessionToCart = function (plan) {
+        if (!plan || !plan.serviceId || (parseInt(plan.remainingSessions, 10) || 0) <= 0) return;
+        var already = self.cartItems().some(function (i) { return i.serviceSessionPlanId === plan.id; });
+        if (already) { toastr.info(slnJsT('salon.sales.js.plan_already_in_cart', 'Bu plandan kalem zaten sepette')); return; }
+        self.cartItems.push({
+            serviceId: parseInt(plan.serviceId, 10),
+            productId: null,
+            name: (plan.serviceName || 'Hizmet') + ' (Plan Seansi #' + ((parseInt(plan.usedSessions, 10) || 0) + 1) + ')',
+            quantity: ko.observable(1),
+            editPrice: ko.observable(0),
+            unitPrice: 0,
+            discountAmount: ko.observable(0),
+            membershipId: null,
+            useMembershipBenefit: false,
+            clientPackageId: null,
+            usePackageSession: false,
+            loyaltyPackageOfferId: null,
+            loyaltyRewardId: null,
+            serviceSessionPlanId: plan.id,
+            isPlanSession: true,
+            forceSessionSale: false,
+            materialConsumptions: ko.observableArray([])
+        });
+        toastr.success(slnJsT('salon.sales.js.plan_session_added', 'Plan seansi sepete eklendi'));
+    };
+
     self.loadLoyaltyConfig = function () {
         $.ajax({ url: '/proxy/sln-loyalty/config', method: 'GET' })
             .done(function (data) { self.loyaltyConfig(data || null); })
@@ -841,6 +882,7 @@ function SalesViewModel() {
                 loyaltyPackagePurchaseId: item.usePackageSession === true ? item.clientPackageId : null,
                 usePackageSession: item.usePackageSession === true,
                 loyaltyPackageOfferId: item.loyaltyPackageOfferId || null,
+                serviceSessionPlanId: item.serviceSessionPlanId || null,
                 loyaltyRewardId: item.loyaltyRewardId || null,
                 materialConsumptions: readMaterialConsumptions(item)
             };
@@ -877,6 +919,7 @@ function SalesViewModel() {
             self.loyaltyRewards([]);
             self.loyaltyPointsToRedeem(0);
             self.clientLoyaltyBalance(0);
+            self.serviceSessionPlans([]);
             self.discountAmount(0);
             self.tipAmount(0);
             self.giftCardCode('');
@@ -1142,6 +1185,7 @@ function SalesViewModel() {
                 loyaltyPackagePurchaseId: item.usePackageSession === true ? item.clientPackageId : null,
                 usePackageSession: item.usePackageSession === true,
                 loyaltyPackageOfferId: item.loyaltyPackageOfferId || null,
+                serviceSessionPlanId: item.serviceSessionPlanId || null,
                 loyaltyRewardId: item.loyaltyRewardId || null,
                 materialConsumptions: readMaterialConsumptions(item)
             };
@@ -1170,6 +1214,7 @@ function SalesViewModel() {
             self.loyaltyRewards([]);
             self.loyaltyPointsToRedeem(0);
             self.clientLoyaltyBalance(0);
+            self.serviceSessionPlans([]);
             self.linkedAppointmentId(null);
             self.isPrepaid(false);
             self.prepaidAmount(0);

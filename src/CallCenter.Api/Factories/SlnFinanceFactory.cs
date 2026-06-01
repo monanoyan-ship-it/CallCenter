@@ -395,7 +395,8 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                 && !itemDto.ProductId.HasValue
                 && !itemDto.UseMembershipBenefit
                 && !itemDto.UsePackageSession
-                && !itemDto.LoyaltyPackageOfferId.HasValue)
+                && !itemDto.LoyaltyPackageOfferId.HasValue
+                && !itemDto.ServiceSessionPlanId.HasValue)
             {
                 serviceSessionSaleItems.Add(invoiceItem);
             }
@@ -542,6 +543,33 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                     ? saleNote
                     : $"{invoice.Notes}|{saleNote}";
                 await _uow.SaveChangesAsync();
+            }
+        }
+
+        // Cok Seansli Hizmet (B) plandan tuketim: items'tan ServiceSessionPlanId.HasValue olanlar icin RecordSessionAsync cagrisi.
+        if (dto.SlnClientId.HasValue)
+        {
+            for (var idx = 0; idx < dto.Items.Count && idx < items.Count; idx++)
+            {
+                var iDto = dto.Items[idx];
+                if (!iDto.ServiceSessionPlanId.HasValue) continue;
+                var lineItem = items[idx];
+                var (record, ssErr) = await _serviceSessions.RecordSessionAsync(
+                    new SlnServiceSessionUseDto
+                    {
+                        PlanId = iDto.ServiceSessionPlanId.Value,
+                        InvoiceId = invoice.Id,
+                        InvoiceItemId = lineItem.Id,
+                        SlnAppointmentId = dto.SlnAppointmentId
+                    },
+                    userId,
+                    customerId,
+                    branchId);
+                if (ssErr != null)
+                {
+                    _logger.LogWarning("Service session record failed for invoice {InvoiceId} item {ItemId} plan {PlanId}: {Error}",
+                        invoice.Id, lineItem.Id, iDto.ServiceSessionPlanId.Value, ssErr);
+                }
             }
         }
 

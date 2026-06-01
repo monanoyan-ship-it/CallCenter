@@ -552,6 +552,8 @@ public class SlnInvoiceItemCreateDto
     public bool UsePackageSession { get; set; }
     /// <summary>Sadakat Paketi (A) teklif ID — bu kalem A satisidir; backend bu kalemden SlnLoyaltyPackagePurchase olusturur ve B/ServiceSessionPlan akisina dusurmez.</summary>
     public int? LoyaltyPackageOfferId { get; set; }
+    /// <summary>Cok Seansli Hizmet (B) mevcut plandan tuketim. Set edilince kalem 0 fiyatla isler ve backend SlnServiceSessionRecord olusturur (yeni plan acmaz).</summary>
+    public int? ServiceSessionPlanId { get; set; }
     /// <summary>Sadakat Programi (D) odul ID — kalem 0 fiyatla acilir ve adisyon kaydedildikten sonra reward.UsedInvoiceItemId set edilir.</summary>
     public int? LoyaltyRewardId { get; set; }
     public List<SlnInvoiceMaterialConsumptionDto> MaterialConsumptions { get; set; } = [];
