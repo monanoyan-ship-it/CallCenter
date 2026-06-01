@@ -248,15 +248,19 @@
                             <select class="form-select form-select-sm" data-bind="value: defForm.serviceId,
                                 options: serviceList, optionsText: 'name', optionsValue: 'id', optionsCaption: salonT('salon.packages.auto.hizmet_seciniz', 'Hizmet seciniz')"></select>
                         </div>
-                        <div class="col-4">
-                            <label class="form-label small"><t key="salon.packages.auto.seans_sayisi_required">Seans Sayisi *</t></label>
+                        <div class="col-3">
+                            <label class="form-label small"><t key="salon.packages.auto.seans_sayisi_required">Toplam Seans *</t></label>
                             <input type="number" class="form-control form-control-sm" min="1" data-bind="textInput: defForm.totalSessions" />
                         </div>
-                        <div class="col-4">
+                        <div class="col-3">
+                            <label class="form-label small"><t key="salon.loyalty_packages.bonus_sessions">Bonus Seans</t></label>
+                            <input type="number" class="form-control form-control-sm" min="0" data-bind="textInput: defForm.bonusSessions" />
+                        </div>
+                        <div class="col-3">
                             <label class="form-label small"><t key="salon.packages.auto.fiyat_tl_required">Fiyat (TL) *</t></label>
                             <input type="number" class="form-control form-control-sm" step="1" data-bind="textInput: defForm.price" />
                         </div>
-                        <div class="col-4">
+                        <div class="col-3">
                             <label class="form-label small"><t key="salon.packages.auto.gecerlilik_gun">Geçerlilik (gün)</t></label>
                             <input type="number" class="form-control form-control-sm" data-bind="textInput: defForm.validDays" />
                         </div>

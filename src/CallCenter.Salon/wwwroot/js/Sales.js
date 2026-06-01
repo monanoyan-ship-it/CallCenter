@@ -508,13 +508,14 @@ function SalesViewModel() {
             serviceId: def.serviceId,
             productId: null,
             packageDefinitionId: def.id,
+            loyaltyPackageOfferId: def.id,
             forceSessionSale: true,
             name: def.name || def.serviceName,
             unitPrice: def.price || 0,
             editPrice: ko.observable(def.price || 0),
             quantity: ko.observable(1),
             benefitText: ko.observable(
-                slnJsT('salon.sales.session_plan_sale_hint', 'Odeme alindiginda musteriye {count} seanslik takip acilir.')
+                slnJsT('salon.sales.loyalty_package_sale_hint', 'Odeme alindiginda musteriye {count} seanslik sadakat paketi acilir.')
                     .replace('{count}', parseInt(def.totalSessions, 10) || 0)
             ),
             materialUsages: ko.observableArray([]),
@@ -839,6 +840,7 @@ function SalesViewModel() {
                 useMembershipBenefit: item.useMembershipBenefit === true,
                 loyaltyPackagePurchaseId: item.usePackageSession === true ? item.clientPackageId : null,
                 usePackageSession: item.usePackageSession === true,
+                loyaltyPackageOfferId: item.loyaltyPackageOfferId || null,
                 loyaltyRewardId: item.loyaltyRewardId || null,
                 materialConsumptions: readMaterialConsumptions(item)
             };
@@ -1139,6 +1141,7 @@ function SalesViewModel() {
                 useMembershipBenefit: item.useMembershipBenefit === true,
                 loyaltyPackagePurchaseId: item.usePackageSession === true ? item.clientPackageId : null,
                 usePackageSession: item.usePackageSession === true,
+                loyaltyPackageOfferId: item.loyaltyPackageOfferId || null,
                 loyaltyRewardId: item.loyaltyRewardId || null,
                 materialConsumptions: readMaterialConsumptions(item)
             };

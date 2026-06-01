@@ -394,7 +394,8 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                 && itemDto.ServiceId.HasValue
                 && !itemDto.ProductId.HasValue
                 && !itemDto.UseMembershipBenefit
-                && !itemDto.UsePackageSession)
+                && !itemDto.UsePackageSession
+                && !itemDto.LoyaltyPackageOfferId.HasValue)
             {
                 serviceSessionSaleItems.Add(invoiceItem);
             }
@@ -541,6 +542,45 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                     ? saleNote
                     : $"{invoice.Notes}|{saleNote}";
                 await _uow.SaveChangesAsync();
+            }
+        }
+
+        // Sadakat Paketi (A) teklif satisi: items'tan LoyaltyPackageOfferId.HasValue olanlari paket satisi olarak isle.
+        if (dto.SlnClientId.HasValue)
+        {
+            var loyaltyPackageSaleLines = new List<SlnLoyaltyPackageSaleLine>();
+            for (var idx = 0; idx < dto.Items.Count && idx < items.Count; idx++)
+            {
+                var iDto = dto.Items[idx];
+                if (!iDto.LoyaltyPackageOfferId.HasValue) continue;
+                var lineItem = items[idx];
+                if (!lineItem.ServiceId.HasValue) continue;
+                var qty = lineItem.Quantity == Math.Truncate(lineItem.Quantity) ? (int)lineItem.Quantity : 1;
+                loyaltyPackageSaleLines.Add(new SlnLoyaltyPackageSaleLine(
+                    iDto.LoyaltyPackageOfferId.Value,
+                    lineItem.LineTotal,
+                    Math.Max(1, qty),
+                    lineItem.Id));
+            }
+
+            if (loyaltyPackageSaleLines.Count > 0)
+            {
+                var createdPurchases = await _loyaltyPackages.CreateLoyaltyPurchasesFromInvoiceAsync(
+                    customerId,
+                    dto.SlnClientId.Value,
+                    invoice.Id,
+                    loyaltyPackageSaleLines,
+                    userId,
+                    branchId);
+
+                if (createdPurchases.Count > 0)
+                {
+                    var purchaseNote = "LoyaltyPackageSale:" + string.Join(",", createdPurchases.Select(p => p.Id));
+                    invoice.Notes = string.IsNullOrWhiteSpace(invoice.Notes)
+                        ? purchaseNote
+                        : $"{invoice.Notes}|{purchaseNote}";
+                    await _uow.SaveChangesAsync();
+                }
             }
         }
 

@@ -25,6 +25,7 @@ function PackagesViewModel() {
         description: ko.observable(''),
         serviceId: ko.observable(null),
         totalSessions: ko.observable(10),
+        bonusSessions: ko.observable(0),
         price: ko.observable(0),
         validDays: ko.observable(365)
     };
@@ -204,6 +205,7 @@ function PackagesViewModel() {
         self.defForm.description('');
         self.defForm.serviceId(null);
         self.defForm.totalSessions(10);
+        self.defForm.bonusSessions(0);
         self.defForm.price(0);
         self.defForm.validDays(365);
         defModal.show();
@@ -216,6 +218,7 @@ function PackagesViewModel() {
         self.defForm.description(def.description || '');
         self.defForm.serviceId(def.serviceId);
         self.defForm.totalSessions(def.totalSessions);
+        self.defForm.bonusSessions(def.bonusSessions || 0);
         self.defForm.price(def.price);
         self.defForm.validDays(def.validDays);
         defModal.show();
@@ -227,6 +230,7 @@ function PackagesViewModel() {
             description: self.defForm.description(),
             serviceId: parseInt(self.defForm.serviceId()) || 0,
             totalSessions: parseInt(self.defForm.totalSessions()) || 0,
+            bonusSessions: parseInt(self.defForm.bonusSessions()) || 0,
             price: parseFloat(self.defForm.price()) || 0,
             validDays: parseInt(self.defForm.validDays()) || 365,
             isActive: true
