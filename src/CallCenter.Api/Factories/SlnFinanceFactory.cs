@@ -557,7 +557,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                 if (!lineItem.ServiceId.HasValue) continue;
                 var qty = lineItem.Quantity == Math.Truncate(lineItem.Quantity) ? (int)lineItem.Quantity : 1;
                 loyaltyPackageSaleLines.Add(new SlnLoyaltyPackageSaleLine(
-                    iDto.LoyaltyPackageOfferId.Value,
+                    lineItem.ServiceId.Value,
                     lineItem.LineTotal,
                     Math.Max(1, qty),
                     lineItem.Id));
