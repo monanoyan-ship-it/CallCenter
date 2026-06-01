@@ -45,7 +45,7 @@ public static class SalonRolePermissions
         "Invoices",         // Adisyonlar
         "Cash",             // Kasa
         "GiftCards",        // Hediye kartlari
-        "Packages",         // Seans paketleri
+        "LoyaltyPackages",  // Sadakat paketleri (pesin satilan seans paketleri)
     };
 
     /// <summary>103/104 - Kuafor/Uzman: Kendi hizmetleri</summary>
@@ -62,6 +62,7 @@ public static class SalonRolePermissions
         "Recipes",          // Receteler (duzenleme)
         "Staff",            // Personel (goruntuleme)
         "PersonnelPrices",  // Personel fiyatlari
+        "LoyaltyPackages",  // Sadakat paketleri (pesin satilan seans paketleri)
         "Products",         // Urunler
         "Suppliers",        // Tedarikciler
         "Expenses",         // Masraflar
@@ -69,7 +70,6 @@ public static class SalonRolePermissions
         "Campaigns",        // SMS kampanyalari
         "EmailCampaigns",   // E-posta kampanyalari
         "Memberships",      // Uyelik planlari
-        "Loyalty",          // Sadakat programi
         "Reviews",          // Yorum yonetimi
         "Winback",          // Kayip musteri
         "Reports",          // Raporlar
@@ -86,7 +86,7 @@ public static class SalonRolePermissions
         "Cash",
         "Expenses",
         "GiftCards",
-        "Packages",
+        "LoyaltyPackages",
         "BeforeAfter",
         "Reports",
     };
