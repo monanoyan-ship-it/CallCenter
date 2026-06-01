@@ -599,6 +599,7 @@ function SalesViewModel() {
 
     self.addPlanSessionToCart = function (plan) {
         if (!plan || !plan.serviceId || (parseInt(plan.remainingSessions, 10) || 0) <= 0) return;
+        self.selectDefaultPersonnel();
         var already = self.cartItems().some(function (i) { return i.serviceSessionPlanId === plan.id; });
         if (already) { toastr.info(slnJsT('salon.sales.js.plan_already_in_cart', 'Bu plandan kalem zaten sepette')); return; }
         self.cartItems.push({
@@ -618,7 +619,9 @@ function SalesViewModel() {
             serviceSessionPlanId: plan.id,
             isPlanSession: true,
             forceSessionSale: false,
-            materialConsumptions: ko.observableArray([])
+            benefitText: ko.observable(slnJsT('salon.sales.js.plan_session_benefit', 'Cok seansli hizmet plani seansi (0 TL).')),
+            materialUsages: ko.observableArray([]),
+            noMaterialUsed: ko.observable(true)
         });
         toastr.success(slnJsT('salon.sales.js.plan_session_added', 'Plan seansi sepete eklendi'));
     };
@@ -652,6 +655,7 @@ function SalesViewModel() {
 
     self.addRewardToCart = function (reward) {
         if (!reward || !reward.rewardServiceId) return;
+        self.selectDefaultPersonnel();
         var already = self.cartItems().some(function (i) { return i.loyaltyRewardId === reward.id; });
         if (already) { toastr.info(slnJsT('salon.sales.js.reward_already_in_cart', 'Bu odul zaten sepette')); return; }
         self.cartItems.push({
@@ -669,7 +673,9 @@ function SalesViewModel() {
             loyaltyRewardId: reward.id,
             isLoyaltyReward: true,
             forceSessionSale: false,
-            materialConsumptions: ko.observableArray([])
+            benefitText: ko.observable(slnJsT('salon.sales.js.loyalty_reward_benefit', 'Sadakat programi odulu (0 TL).')),
+            materialUsages: ko.observableArray([]),
+            noMaterialUsed: ko.observable(true)
         });
         toastr.success(slnJsT('salon.sales.js.reward_added', 'Odul sepete eklendi'));
     };
