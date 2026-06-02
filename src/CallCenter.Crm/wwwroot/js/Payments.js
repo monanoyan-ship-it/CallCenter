@@ -1,8 +1,8 @@
 // Iyzico checkout form'unu DOM'a basmak icin Salon'da kullanilan ayni helper:
 // /js/iyzico-checkout.js -> window.renderIyzicoCheckoutHtml(container, html)
 // KO binding kullanmiyoruz cunku KO 'visible' / observable update sirasi inline
-// <script> tag'in execute timing'iyle yarisiyor; Salon public profile akisi
-// dogrudan getElementById + render cagrisi yapip stabil calisiyor (bkz.
+// <script> tag'in execute timing'iyle yarisiyor; Salon public profile akışı
+// dogrudan getElementById + render çağrısi yapip stabil calisiyor (bkz.
 // PublicProfile.js:509). Burada da ayni patterni kullaniyoruz.
 
 function CrmPaymentsViewModel() {

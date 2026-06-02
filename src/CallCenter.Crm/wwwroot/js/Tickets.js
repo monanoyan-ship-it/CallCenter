@@ -47,7 +47,7 @@ function TicketsViewModel() {
         }).done(function(data) {
             self.tickets(data);
         }).fail(function() {
-            toastr.error('Talepler yuklenemedi');
+            toastr.error('Talepler yüklenemedi');
         });
     };
 
@@ -99,7 +99,7 @@ function TicketsViewModel() {
         };
 
         if (!data.subject) {
-            toastr.warning('Baslik zorunludur');
+            toastr.warning('Başlık zorunludur');
             return;
         }
 
@@ -119,10 +119,10 @@ function TicketsViewModel() {
         }).done(function() {
             formModal.hide();
             self.loadData();
-            toastr.success(self.isEditing() ? 'Talep guncellendi' : 'Talep olusturuldu');
+            toastr.success(self.isEditing() ? 'Talep güncellendi' : 'Talep oluşturuldu');
             self.isSaving(false);
         }).fail(function(xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
+            toastr.error(xhr.responseJSON?.error || 'Bir hata oluştu');
             self.isSaving(false);
         });
     };

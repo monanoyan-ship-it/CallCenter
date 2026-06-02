@@ -1,9 +1,9 @@
 // Anketler modulu - yaklasimda
-// Bu dosya ilerleyen fazlarda anket islemleri icin kullanilacak.
+// Bu dosya ilerleyen fazlarda anket işlemleri icin kullanilacak.
 
 function SurveysViewModel() {
     var self = this;
-    // Placeholder - ileride anket listesi, olusturma, sonuc goruntuleme eklenecek
+    // Placeholder - ileride anket listesi, oluşturma, sonuc goruntuleme eklenecek
 }
 
 ko.applyBindings(new SurveysViewModel(), document.getElementById('surveys-vm'));

@@ -36,7 +36,7 @@ function IntegrationConnectViewModel() {
 
     self.connectDirect = function () {
         var name = self.form.name();
-        if (!name) { toastr.warning('Baglanti adi zorunludur'); return; }
+        if (!name) { toastr.warning('Bağlantı adi zorunludur'); return; }
 
         var credentials = {};
         if (self.platformName() === 'Zendesk') {
@@ -66,19 +66,19 @@ function IntegrationConnectViewModel() {
             contentType: 'application/json',
             data: JSON.stringify(data)
         }).done(function () {
-            toastr.success('Baglanti olusturuldu');
+            toastr.success('Bağlantı oluşturuldu');
             window.location.href = '/Integrations';
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.message || 'Baglanti olusturulamadi');
+            toastr.error(xhr.responseJSON?.message || 'Bağlantı oluşturulamadı');
             self.isSaving(false);
         });
     };
 
     self.connectWithOAuth = function () {
         var name = self.form.name();
-        if (!name) { toastr.warning('Baglanti adi zorunludur'); return; }
+        if (!name) { toastr.warning('Bağlantı adi zorunludur'); return; }
 
-        // Oncelikle baglanti kaydini olustur
+        // Öncelikle bağlantı kaydıni oluştur
         var data = {
             name: name,
             platformTypeId: self.platformInfo().id,
@@ -93,7 +93,7 @@ function IntegrationConnectViewModel() {
             contentType: 'application/json',
             data: JSON.stringify(data)
         }).done(function () {
-            // Sonra OAuth2 akisini baslat
+            // Sonra OAuth2 akışını başlat
             var returnUrl = window.location.origin + '/Integrations';
             $.ajax({
                 url: '/proxy/integrations/oauth/initiate?platformTypeId=' + self.platformInfo().id + '&returnUrl=' + encodeURIComponent(returnUrl),
@@ -102,15 +102,15 @@ function IntegrationConnectViewModel() {
                 if (result.authorizationUrl) {
                     window.location.href = result.authorizationUrl;
                 } else {
-                    toastr.error('OAuth2 URL alinamadi');
+                    toastr.error('OAuth2 URL alınamadı');
                     self.isSaving(false);
                 }
             }).fail(function (xhr) {
-                toastr.error(xhr.responseJSON?.message || 'OAuth2 baslatma hatasi');
+                toastr.error(xhr.responseJSON?.message || 'OAuth2 başlatma hatası');
                 self.isSaving(false);
             });
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.message || 'Baglanti olusturulamadi');
+            toastr.error(xhr.responseJSON?.message || 'Bağlantı oluşturulamadı');
             self.isSaving(false);
         });
     };

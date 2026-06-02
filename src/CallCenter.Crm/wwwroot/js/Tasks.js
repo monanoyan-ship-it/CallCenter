@@ -51,7 +51,7 @@ function TasksViewModel() {
         }).done(function(data) {
             self.tasks(data);
         }).fail(function() {
-            toastr.error('Gorevler yuklenemedi');
+            toastr.error('Görevler yüklenemedi');
         });
     };
 
@@ -100,7 +100,7 @@ function TasksViewModel() {
         };
 
         if (!data.title) {
-            toastr.warning('Baslik zorunludur');
+            toastr.warning('Başlık zorunludur');
             return;
         }
 
@@ -121,10 +121,10 @@ function TasksViewModel() {
         }).done(function() {
             formModal.hide();
             self.loadData();
-            toastr.success(self.isEditing() ? 'Gorev guncellendi' : 'Gorev olusturuldu');
+            toastr.success(self.isEditing() ? 'Görev güncellendi' : 'Görev oluşturuldu');
             self.isSaving(false);
         }).fail(function(xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
+            toastr.error(xhr.responseJSON?.error || 'Bir hata oluştu');
             self.isSaving(false);
         });
     };

@@ -44,7 +44,7 @@
         </div>
     </div>
 
-    <!-- Ozet Kartlari -->
+    <!-- Özet Kartları -->
     <div class="row g-2 mb-3">
         <div class="col-md-3">
             <div class="card text-center border-0 shadow-sm">
@@ -57,7 +57,7 @@
         <div class="col-md-3">
             <div class="card text-center border-0 shadow-sm">
                 <div class="card-body py-2">
-                    <div class="text-muted small">Ulasildi</div>
+                    <div class="text-muted small">Ulaşıldı</div>
                     <div class="fs-4 fw-bold text-success" data-bind="text: campaign().reachedCount"></div>
                 </div>
             </div>
@@ -65,7 +65,7 @@
         <div class="col-md-3">
             <div class="card text-center border-0 shadow-sm">
                 <div class="card-body py-2">
-                    <div class="text-muted small">Ulasilamadi</div>
+                    <div class="text-muted small">Ulaşılamadı</div>
                     <div class="fs-4 fw-bold text-danger" data-bind="text: campaign().notReachedCount"></div>
                 </div>
             </div>
@@ -92,7 +92,7 @@
     <!-- Aksiyonlar -->
     <div class="d-flex gap-2 mb-3">
         <button class="btn btn-outline-primary btn-sm" data-bind="click: openAddContacts">
-            <i class="bi bi-person-plus me-1"></i>Kisi Ekle
+            <i class="bi bi-person-plus me-1"></i>Kişi Ekle
         </button>
         <!-- ko if: selectedIds().length > 0 -->
         <button class="btn btn-outline-info btn-sm" data-bind="click: openAssign">
@@ -101,7 +101,7 @@
         <!-- /ko -->
     </div>
 
-    <!-- Kisi Tablosu -->
+    <!-- Kişi Tablosu -->
     <div class="card border-0 shadow-sm">
         <div class="table-responsive">
             <table class="table table-hover table-sm mb-0 align-middle small">
@@ -110,7 +110,7 @@
                         <th style="width:30px;">
                             <input type="checkbox" class="form-check-input" data-bind="checked: allSelected, click: toggleSelectAll" />
                         </th>
-                        <th>Kisi</th>
+                        <th>Kişi</th>
                         <th>Telefon</th>
                         <th>Firma</th>
                         <th>Atanan</th>
@@ -135,7 +135,7 @@
                         <td class="text-center" data-bind="text: attemptCount"></td>
                         <td class="text-muted small" data-bind="text: resultNotes || ''"></td>
                         <td>
-                            <button class="btn btn-outline-danger btn-sm" title="Cikar" data-bind="click: $parent.removeContact">
+                            <button class="btn btn-outline-danger btn-sm" title="Çıkar" data-bind="click: $parent.removeContact">
                                 <i class="bi bi-x"></i>
                             </button>
                         </td>
@@ -146,23 +146,23 @@
         <!-- ko if: campaign().contacts.length === 0 -->
         <div class="text-center text-muted py-4">
             <i class="bi bi-people" style="font-size:2rem;"></i>
-            <p class="mt-2 small">Henuz kisi eklenmemis</p>
+            <p class="mt-2 small">Henüz kişi eklenmemiş</p>
         </div>
         <!-- /ko -->
     </div>
     <!-- /ko -->
 
-    <!-- Kisi Ekleme Modal -->
+    <!-- Kişi Ekleme Modal -->
     <div class="modal fade" id="addContactsModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title"><i class="bi bi-person-plus me-2"></i>Rehberden Kisi Ekle</h6>
+                    <h6 class="modal-title"><i class="bi bi-person-plus me-2"></i>Rehberden Kişi Ekle</h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="input-group mb-3">
-                        <input type="text" class="form-control form-control-sm" placeholder="Kisi ara..."
+                        <input type="text" class="form-control form-control-sm" placeholder="Kişi ara..."
                                data-bind="value: contactSearch, valueUpdate: 'afterkeydown'" />
                         <button class="btn btn-outline-primary btn-sm" data-bind="click: searchContacts">
                             <i class="bi bi-search"></i>
@@ -193,8 +193,8 @@
                     <!-- /ko -->
                 </div>
                 <div class="modal-footer">
-                    <span class="text-muted small me-auto" data-bind="text: contactIdsToAdd().length + ' kisi secildi'"></span>
-                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <span class="text-muted small me-auto" data-bind="text: contactIdsToAdd().length + ' kişi seçildi'"></span>
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
                     <button class="btn btn-primary btn-sm" data-bind="click: addSelectedContacts, disable: contactIdsToAdd().length === 0 || isAdding()">
                         <span data-bind="visible: isAdding()" class="spinner-border spinner-border-sm me-1"></span>
                         Ekle
@@ -209,20 +209,20 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title"><i class="bi bi-person-check me-2"></i>Operatore Ata</h6>
+                    <h6 class="modal-title"><i class="bi bi-person-check me-2"></i>Operatöre Ata</h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="small text-muted"><span data-bind="text: selectedIds().length"></span> kisi secildi. Atanacak operatoru secin:</p>
+                    <p class="small text-muted"><span data-bind="text: selectedIds().length"></span> kişi seçildi. Atanacak operatörü seçin:</p>
                     <!-- ko if: operators() === null -->
                     <div class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
                     <!-- /ko -->
                     <!-- ko if: operators() !== null -->
-                    <select class="form-select form-select-sm" data-bind="value: assignPersonnelId, options: operators(), optionsText: 'fullName', optionsValue: 'id', optionsCaption: '-- Operator Secin --'"></select>
+                    <select class="form-select form-select-sm" data-bind="value: assignPersonnelId, options: operators(), optionsText: 'fullName', optionsValue: 'id', optionsCaption: '-- Operatör Seçin --'"></select>
                     <!-- /ko -->
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
                     <button class="btn btn-primary btn-sm" data-bind="click: assignSelected, disable: !assignPersonnelId() || isAssigning()">
                         <span data-bind="visible: isAssigning()" class="spinner-border spinner-border-sm me-1"></span>
                         Ata

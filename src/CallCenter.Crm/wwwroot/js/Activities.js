@@ -34,7 +34,7 @@ function ActivitiesViewModel() {
         }).done(function(data) {
             self.activities(data);
         }).fail(function() {
-            toastr.error('Etkilesimler yuklenemedi');
+            toastr.error('Etkileşimler yüklenemedi');
         });
     };
 
@@ -68,7 +68,7 @@ function ActivitiesViewModel() {
         };
 
         if (!data.summary) {
-            toastr.warning('Ozet zorunludur');
+            toastr.warning('Özet zorunludur');
             return;
         }
 
@@ -81,10 +81,10 @@ function ActivitiesViewModel() {
         }).done(function() {
             formModal.hide();
             self.loadData();
-            toastr.success('Etkilesim olusturuldu');
+            toastr.success('Etkileşim oluşturuldu');
             self.isSaving(false);
         }).fail(function(xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
+            toastr.error(xhr.responseJSON?.error || 'Bir hata oluştu');
             self.isSaving(false);
         });
     };

@@ -44,23 +44,23 @@ function IntegrationsViewModel() {
             self.connections(data);
             self.loadPlatforms();
         }).fail(function () {
-            toastr.error('Baglantilar yuklenemedi');
+            toastr.error('Bağlantılar yüklenemedi');
         });
     };
 
     self.testConnection = function (conn) {
-        toastr.info('Baglanti test ediliyor...');
+        toastr.info('Bağlantı test ediliyor...');
         $.ajax({
             url: '/proxy/integrations/connections/' + conn.uid + '/test',
             method: 'POST'
         }).done(function (result) {
             if (result.success) {
-                toastr.success('Baglanti basarili' + (result.platformInfo ? ': ' + result.platformInfo : ''));
+                toastr.success('Bağlantı başarılı' + (result.platformInfo ? ': ' + result.platformInfo : ''));
             } else {
-                toastr.error('Baglanti basarisiz: ' + (result.error || 'Bilinmeyen hata'));
+                toastr.error('Bağlantı başarısız: ' + (result.error || 'Bilinmeyen hata'));
             }
         }).fail(function () {
-            toastr.error('Test sirasinda hata olustu');
+            toastr.error('Test sırasında hata oluştu');
         });
     };
 
@@ -69,13 +69,13 @@ function IntegrationsViewModel() {
     };
 
     self.removeConnection = function (conn) {
-        confirmModal('Baglantiyi Sil', conn.name + ' baglantisini silmek istediginize emin misiniz? Bu islem geri alinamaz.', function () {
+        confirmModal('Bağlantıyi Sil', conn.name + ' bağlantısını silmek istediğinize emin misiniz? Bu işlem geri alınamaz.', function () {
             $.ajax({
                 url: '/proxy/integrations/connections/' + conn.uid,
                 method: 'DELETE'
             }).done(function () {
                 self.loadConnections();
-                toastr.success('Baglanti silindi');
+                toastr.success('Bağlantı silindi');
             }).fail(function (xhr) {
                 toastr.error(xhr.responseJSON?.message || 'Silinemedi');
             });
@@ -92,10 +92,10 @@ function IntegrationsViewModel() {
     $(document).ready(function () {
         self.loadConnections();
 
-        // OAuth callback sonrasi basari mesaji
+        // OAuth callback sonrası basari mesaji
         var params = new URLSearchParams(window.location.search);
         if (params.get('oauth') === 'success') {
-            toastr.success('OAuth2 yetkilendirme basarili!');
+            toastr.success('OAuth2 yetkilendirme başarılı!');
             window.history.replaceState({}, '', window.location.pathname);
         }
     });

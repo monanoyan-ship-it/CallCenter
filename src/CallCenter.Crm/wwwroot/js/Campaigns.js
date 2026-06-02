@@ -1,9 +1,9 @@
 var statusMap = {
     1: { name: 'Taslak', css: 'bg-secondary' },
     2: { name: 'Aktif', css: 'bg-success' },
-    3: { name: 'Duraklatilmis', css: 'bg-warning text-dark' },
-    4: { name: 'Tamamlandi', css: 'bg-primary' },
-    5: { name: 'Arsivlendi', css: 'bg-dark' }
+    3: { name: 'Duraklatılmış', css: 'bg-warning text-dark' },
+    4: { name: 'Tamamlandı', css: 'bg-primary' },
+    5: { name: 'Arşivlendi', css: 'bg-dark' }
 };
 
 function formatDate(dateStr) {
@@ -53,7 +53,7 @@ function CampaignsViewModel() {
             });
             self.campaigns(mapped);
         }).fail(function () {
-            toastr.error('Kampanyalar yuklenemedi');
+            toastr.error('Kampanyalar yüklenemedi');
         }).always(function () {
             self.isLoading(false);
         });
@@ -83,21 +83,21 @@ function CampaignsViewModel() {
             data: JSON.stringify(data)
         }).done(function (result) {
             formModal.hide();
-            toastr.success('Kampanya olusturuldu');
+            toastr.success('Kampanya oluşturuldu');
             if (result && result.uid) {
                 window.location.href = '/Campaigns/Detail/' + result.uid;
             } else {
                 self.loadData();
             }
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Kampanya olusturulamadi');
+            toastr.error(xhr.responseJSON?.error || 'Kampanya oluşturulamadı');
         }).always(function () {
             self.isSaving(false);
         });
     };
 
     self.remove = function (campaign) {
-        confirmModal('Kampanyayi Sil', campaign.name + ' kampanyasini silmek istediginize emin misiniz?', function () {
+        confirmModal('Kampanyayı Sil', campaign.name + ' kampanyasını silmek istediğinize emin misiniz?', function () {
             $.ajax({
                 url: '/proxy/campaigns/' + campaign.uid,
                 method: 'DELETE'

@@ -16,7 +16,7 @@ function ContactDetailViewModel() {
         }).done(function(data) {
             self.contact(data);
         }).fail(function() {
-            toastr.error('Kisi bilgisi yuklenemedi');
+            toastr.error('Kişi bilgisi yüklenemedi');
         });
     };
 

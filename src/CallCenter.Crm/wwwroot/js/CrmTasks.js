@@ -62,7 +62,7 @@ function CrmTasksViewModel() {
             });
             self.tasks(items);
         }).fail(function() {
-            toastr.error('Gorevler yuklenemedi');
+            toastr.error('Görevler yüklenemedi');
         });
     };
 
@@ -85,10 +85,10 @@ function CrmTasksViewModel() {
     };
 
     self.getStatusName = function(id) {
-        if (id === 1) return 'Yapilacak';
+        if (id === 1) return 'Yapılacak';
         if (id === 2) return 'Devam Ediyor';
-        if (id === 3) return 'Tamamlandi';
-        if (id === 4) return 'Iptal';
+        if (id === 3) return 'Tamamlandı';
+        if (id === 4) return 'İptal';
         return '-';
     };
 
@@ -138,7 +138,7 @@ function CrmTasksViewModel() {
         };
 
         if (!data.title) {
-            toastr.warning('Baslik zorunludur');
+            toastr.warning('Başlık zorunludur');
             return;
         }
 
@@ -159,10 +159,10 @@ function CrmTasksViewModel() {
         }).done(function() {
             formModal.hide();
             self.loadData();
-            toastr.success(self.isEditing() ? 'Gorev guncellendi' : 'Gorev olusturuldu');
+            toastr.success(self.isEditing() ? 'Görev güncellendi' : 'Görev oluşturuldu');
             self.isSaving(false);
         }).fail(function(xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
+            toastr.error(xhr.responseJSON?.error || 'Bir hata oluştu');
             self.isSaving(false);
         });
     };

@@ -13,7 +13,7 @@
     <!-- ko if: isLoading() -->
     <div class="text-center py-5">
         <div class="spinner-border text-primary"></div>
-        <p class="text-muted mt-2 small">Yukleniyor...</p>
+        <p class="text-muted mt-2 small">Yükleniyor...</p>
     </div>
     <!-- /ko -->
 
@@ -35,7 +35,7 @@
                         <span class="badge bg-success-subtle text-success ms-1"><i class="bi bi-check-circle me-1"></i>Aktif</span>
                         <!-- /ko -->
                         <!-- ko if: conn().isActive && !conn().isConnected -->
-                        <span class="badge bg-warning-subtle text-warning ms-1"><i class="bi bi-exclamation-triangle me-1"></i>Baglanti Yok</span>
+                        <span class="badge bg-warning-subtle text-warning ms-1"><i class="bi bi-exclamation-triangle me-1"></i>Bağlantı Yok</span>
                         <!-- /ko -->
                         <!-- ko ifnot: conn().isActive -->
                         <span class="badge bg-secondary-subtle text-secondary ms-1"><i class="bi bi-pause-circle me-1"></i>Pasif</span>
@@ -61,12 +61,12 @@
             <!-- Info Row -->
             <div class="row g-3 mt-3">
                 <div class="col-md-3">
-                    <div class="small text-muted">Olusturulma</div>
+                    <div class="small text-muted">Oluşturulma</div>
                     <div class="small fw-semibold" data-bind="text: $root.formatDate(conn().createdAt)"></div>
                 </div>
                 <div class="col-md-3">
                     <div class="small text-muted">Son Senkronizasyon</div>
-                    <div class="small fw-semibold" data-bind="text: conn().lastSyncAt ? $root.formatDate(conn().lastSyncAt) : 'Henuz yapilmadi'"></div>
+                    <div class="small fw-semibold" data-bind="text: conn().lastSyncAt ? $root.formatDate(conn().lastSyncAt) : 'Henüz yapilmadi'"></div>
                 </div>
                 <div class="col-md-3">
                     <div class="small text-muted">Son Test</div>
@@ -87,7 +87,7 @@
                 </div>
                 <div class="col-md-3">
                     <div class="small text-muted">Cagri Loglama</div>
-                    <div class="small fw-semibold" data-bind="text: conn().autoLogCalls ? 'Aktif' : 'Kapali'"></div>
+                    <div class="small fw-semibold" data-bind="text: conn().autoLogCalls ? 'Aktif' : 'Kapalı'"></div>
                 </div>
             </div>
 
@@ -129,14 +129,14 @@
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label small fw-semibold">Baglanti Adi</label>
+                            <label class="form-label small fw-semibold">Bağlantı Adi</label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: editForm.name" />
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-semibold">Rehber Senkronizasyon</label>
                             <select class="form-select form-select-sm" data-bind="value: editForm.contactSyncDirectionId">
                                 <option value="0">Senkronizasyon yok</option>
-                                <option value="1">Dis sisteme gonder</option>
+                                <option value="1">Dis sisteme gönder</option>
                                 <option value="2">Dis sistemden al</option>
                                 <option value="3">Cift yonlu</option>
                             </select>
@@ -161,7 +161,7 @@
         <!-- Webhooks Tab -->
         <div class="tab-pane fade" id="tab-webhooks">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-muted small">Bu baglantiya ait webhooklar</span>
+                <span class="text-muted small">Bu bağlantıya ait webhooklar</span>
                 <button class="btn btn-primary btn-sm" data-bind="click: openNewWebhook">
                     <i class="bi bi-plus-lg me-1"></i>Yeni Webhook
                 </button>
@@ -207,7 +207,7 @@
                     <!-- ko if: !conn().webhooks || conn().webhooks.length === 0 -->
                     <div class="text-center text-muted py-4 small">
                         <i class="bi bi-broadcast" style="font-size: 1.5rem;"></i>
-                        <p class="mt-2">Henuz webhook eklenmemis</p>
+                        <p class="mt-2">Henüz webhook eklenmemiş</p>
                     </div>
                     <!-- /ko -->
                 </div>
@@ -217,7 +217,7 @@
         <!-- API Keys Tab -->
         <div class="tab-pane fade" id="tab-apikeys">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-muted small">Bu baglantiya ait API anahtarlari</span>
+                <span class="text-muted small">Bu bağlantıya ait API anahtarlari</span>
                 <button class="btn btn-primary btn-sm" data-bind="click: openNewApiKey">
                     <i class="bi bi-plus-lg me-1"></i>Yeni API Key
                 </button>
@@ -231,7 +231,7 @@
                                     <th>Ad</th>
                                     <th>Prefix</th>
                                     <th>Yetkiler</th>
-                                    <th>Son Kullanim</th>
+                                    <th>Son Kullanım</th>
                                     <th style="width:80px;"></th>
                                 </tr>
                             </thead>
@@ -242,7 +242,7 @@
                                     <td class="small" data-bind="text: (scopes || []).join(', ') || '-'"></td>
                                     <td class="small text-muted" data-bind="text: lastUsedAt ? $root.formatDate(lastUsedAt) : 'Kullanilmadi'"></td>
                                     <td>
-                                        <button class="btn btn-outline-danger btn-sm" title="Iptal Et" data-bind="click: $root.revokeApiKey">
+                                        <button class="btn btn-outline-danger btn-sm" title="İptal Et" data-bind="click: $root.revokeApiKey">
                                             <i class="bi bi-x-circle"></i>
                                         </button>
                                     </td>
@@ -253,7 +253,7 @@
                     <!-- ko if: !conn().apiKeys || conn().apiKeys.length === 0 -->
                     <div class="text-center text-muted py-4 small">
                         <i class="bi bi-key" style="font-size: 1.5rem;"></i>
-                        <p class="mt-2">Henuz API key olusturulmamis</p>
+                        <p class="mt-2">Henüz API key oluşturulmamış</p>
                     </div>
                     <!-- /ko -->
                 </div>
@@ -290,14 +290,14 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="form-text">Bos birakirsaniz tum eventler gonderilir</div>
+                        <div class="form-text">Bos birakirsaniz tüm eventler gönderilir</div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveWebhook, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        Olustur
+                        Oluştur
                     </button>
                 </div>
             </div>
@@ -330,10 +330,10 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: createApiKey, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        Olustur
+                        Oluştur
                     </button>
                 </div>
             </div>
@@ -345,7 +345,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-warning-subtle">
-                    <h6 class="modal-title"><i class="bi bi-exclamation-triangle me-1"></i>API Key Olusturuldu</h6>
+                    <h6 class="modal-title"><i class="bi bi-exclamation-triangle me-1"></i>API Key Oluşturuldu</h6>
                 </div>
                 <div class="modal-body">
                     <div class="alert alert-warning small">

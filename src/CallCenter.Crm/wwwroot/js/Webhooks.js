@@ -44,7 +44,7 @@ function WebhooksViewModel() {
         $.ajax({ url: '/proxy/integrations/webhooks', method: 'GET' }).done(function (data) {
             self.webhooks(data);
         }).fail(function () {
-            toastr.error('Webhooklar yuklenemedi');
+            toastr.error('Webhooklar yüklenemedi');
         });
     };
 
@@ -86,24 +86,24 @@ function WebhooksViewModel() {
             })
         }).done(function () {
             formModal.hide();
-            toastr.success('Webhook olusturuldu');
+            toastr.success('Webhook oluşturuldu');
             self.loadWebhooks();
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.message || 'Webhook olusturulamadi');
+            toastr.error(xhr.responseJSON?.message || 'Webhook oluşturulamadı');
             self.isSaving(false);
         });
     };
 
     self.testWebhook = function (wh) {
-        toastr.info('Test webhook gonderiliyor...');
+        toastr.info('Test webhook gönderiliyor...');
         $.ajax({
             url: '/proxy/integrations/webhooks/' + wh.uid + '/test',
             method: 'POST'
         }).done(function () {
-            toastr.success('Test webhook gonderildi');
+            toastr.success('Test webhook gönderildi');
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.message || 'Test basarisiz');
+            toastr.error(xhr.responseJSON?.message || 'Test başarısız');
         });
     };
 
@@ -117,12 +117,12 @@ function WebhooksViewModel() {
             toastr.success(wh.isActive ? 'Webhook pasife alindi' : 'Webhook aktif edildi');
             self.loadWebhooks();
         }).fail(function () {
-            toastr.error('Guncelleme basarisiz');
+            toastr.error('Güncelleme başarısız');
         });
     };
 
     self.removeWebhook = function (wh) {
-        confirmModal('Webhook Sil', wh.name + ' webhook\'unu silmek istediginize emin misiniz?', function () {
+        confirmModal('Webhook Sil', wh.name + ' webhook\'unu silmek istediğinize emin misiniz?', function () {
             $.ajax({
                 url: '/proxy/integrations/webhooks/' + wh.uid,
                 method: 'DELETE'
@@ -148,7 +148,7 @@ function WebhooksViewModel() {
             self.deliveries(result.items || result.data || result || []);
             self.isLoadingDeliveries(false);
         }).fail(function () {
-            toastr.error('Loglar yuklenemedi');
+            toastr.error('Loglar yüklenemedi');
             self.isLoadingDeliveries(false);
         });
     };
