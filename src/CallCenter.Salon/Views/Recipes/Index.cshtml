@@ -115,7 +115,7 @@
                             <div class="position-relative" data-bind="with: serviceAutocomplete">
                                 <div class="input-group input-group-sm">
                                     <input type="text" class="form-control" placeholder="@(Translation.T("salon.recipes.auto.hizmet_secin", "Hizmet seçin..."))"
-                                           data-bind="value: query, valueUpdate: 'afterkeydown',
+                                           data-bind="textInput: query,
                                                       event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
                                     <!-- ko if: selectedName() -->
                                     <button class="btn btn-outline-secondary" data-bind="click: clear"><i class="bi bi-x"></i></button>
@@ -159,7 +159,7 @@
                                         <td>
                                             <div class="position-relative" data-bind="with: productAutocomplete">
                                                 <input type="text" class="form-control form-control-sm" placeholder="@(Translation.T("salon.recipes.auto.urun_ara", "Ürün ara..."))"
-                                                       data-bind="value: query, valueUpdate: 'afterkeydown',
+                                                       data-bind="textInput: query,
                                                                   event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
                                                 <div class="dropdown-menu w-100 shadow-sm" style="max-height:180px;overflow-y:auto;z-index:1060;"
                                                      data-bind="css: { show: showDropdown() && filteredItems().length > 0 }">

@@ -225,20 +225,20 @@
 
                         <div class="col-12">
                             <label class="form-label small"><t key="salon.staff.auto.ad_soyad_required">Ad Soyad *</t></label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.fullName" />
+                            <input type="text" class="form-control form-control-sm" data-bind="textInput: form.fullName" />
                         </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.account.email">E-posta *</t></label>
-                            <input type="email" class="form-control form-control-sm" data-bind="value: form.email" />
+                            <input type="email" class="form-control form-control-sm" data-bind="textInput: form.email" />
                         </div>
                         <div class="col-6" data-bind="visible: !isOwnerEdit()">
                             <label class="form-label small"><t key="salon.staff.auto.unvan_2">Unvan</t></label>
-                            <input type="text" class="form-control form-control-sm" placeholder="@(Translation.T("salon.staff.auto.placeholder_orn_kuafor_guzellik_uzmani", "Örn: Kuaför, Güzellik Uzmanı..."))" data-bind="value: form.title" />
+                            <input type="text" class="form-control form-control-sm" placeholder="@(Translation.T("salon.staff.auto.placeholder_orn_kuafor_guzellik_uzmani", "Örn: Kuaför, Güzellik Uzmanı..."))" data-bind="textInput: form.title" />
                         </div>
                         <!-- ko if: !isEditing() -->
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.account.username">Kullanıcı Adı *</t></label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.userName, valueUpdate: 'afterkeydown',
+                            <input type="text" class="form-control form-control-sm" data-bind="textInput: form.userName,
                                 css: { 'is-valid': usernameAvailable() === true, 'is-invalid': usernameAvailable() === false }" />
                             <!-- ko if: usernameChecking() -->
                             <small class="text-muted"><span class="spinner-border spinner-border-sm me-1"></span><t key="salon.staff.auto.kontrol_ediliyor">Kontrol ediliyor...</t></small>
@@ -253,7 +253,7 @@
                         <!-- /ko -->
                         <div class="col-6">
                             <label class="form-label small" data-bind="text: isEditing() ? 'Sifre (bos birakilabilir)' : 'Sifre *'"></label>
-                            <input type="password" class="form-control form-control-sm" data-bind="value: form.password" />
+                            <input type="password" class="form-control form-control-sm" data-bind="textInput: form.password" />
                         </div>
 
                         <!-- Salon sahibi icin gizlenen alanlar -->

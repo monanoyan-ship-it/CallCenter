@@ -1,13 +1,14 @@
 @{
-    ViewData["Title"] = "Giris";
+    ViewData["Title"] = "Giriş";
     Layout = null;
+    var returnUrl = ViewBag.ReturnUrl as string ?? "";
 }
 <!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Giris - CorpLynk CRM</title>
+    <title>Giriş - CorpLynk CRM</title>
     <link href="~/lib/bootstrap/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" rel="stylesheet" />
     <style>
@@ -22,7 +23,7 @@
         <div class="text-center mb-4">
             <i class="bi bi-person-lines-fill text-primary" style="font-size: 2.5rem;"></i>
             <div class="brand-text mt-2">CorpLynk <span>CRM</span></div>
-            <p class="text-muted small mt-1">Musteri iliskileri yonetimi</p>
+            <p class="text-muted small mt-1">Müşteri ilişkileri yönetimi</p>
         </div>
 
         @if (ViewBag.Error != null)
@@ -31,22 +32,23 @@
         }
 
         <form method="post" asp-action="Login">
+            <input type="hidden" name="returnUrl" value="@returnUrl" />
             <div class="mb-3">
-                <label class="form-label small">Kullanici Adi</label>
+                <label class="form-label small">Kullanıcı Adı</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-person"></i></span>
-                    <input type="text" name="username" class="form-control" placeholder="Kullanici adi" required autofocus />
+                    <input type="text" name="username" class="form-control" placeholder="Kullanıcı adı" required autofocus />
                 </div>
             </div>
             <div class="mb-4">
-                <label class="form-label small">Sifre</label>
+                <label class="form-label small">Şifre</label>
                 <div class="input-group">
                     <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                    <input type="password" name="password" class="form-control" placeholder="Sifre" required />
+                    <input type="password" name="password" class="form-control" placeholder="Şifre" required />
                 </div>
             </div>
             <button type="submit" class="btn btn-primary w-100">
-                <i class="bi bi-box-arrow-in-right me-1"></i>Giris Yap
+                <i class="bi bi-box-arrow-in-right me-1"></i>Giriş Yap
             </button>
         </form>
         <div class="text-center mt-3">

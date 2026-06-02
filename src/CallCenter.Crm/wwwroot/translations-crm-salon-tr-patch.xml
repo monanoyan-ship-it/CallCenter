@@ -1,0 +1,590 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Translations ExportDate="2026-06-02T00:00:00Z">
+  <Languages>
+    <Language Code="tr" Name="Türkçe" IsDefault="true" />
+  </Languages>
+  <Keys>
+    <Key Id="crm.logout" Module="common">
+      <Value Lang="tr">Çıkış</Value>
+    </Key>
+    <Key Id="crm.footer.rights" Module="common">
+      <Value Lang="tr">Tüm hakları saklıdır.</Value>
+    </Key>
+    <Key Id="crm.sidebar.overview" Module="sidebar">
+      <Value Lang="tr">Genel Bakış</Value>
+    </Key>
+    <Key Id="crm.sidebar.contacts" Module="sidebar">
+      <Value Lang="tr">Kişiler</Value>
+    </Key>
+    <Key Id="crm.sidebar.deals" Module="sidebar">
+      <Value Lang="tr">Fırsatlar</Value>
+    </Key>
+    <Key Id="crm.sidebar.tasks" Module="sidebar">
+      <Value Lang="tr">Görevler</Value>
+    </Key>
+    <Key Id="crm.sidebar.trackingtasks" Module="sidebar">
+      <Value Lang="tr">Görevler</Value>
+    </Key>
+    <Key Id="crm.sidebar.service_scope" Module="sidebar">
+      <Value Lang="tr">Hizmetlerim</Value>
+    </Key>
+    <Key Id="crm.sidebar.callhistory" Module="sidebar">
+      <Value Lang="tr">Arama Geçmişi</Value>
+    </Key>
+    <Key Id="crm.sidebar.activities" Module="sidebar">
+      <Value Lang="tr">Etkileşimler</Value>
+    </Key>
+    <Key Id="crm.sidebar.integrations" Module="sidebar">
+      <Value Lang="tr">Bağlantılar</Value>
+    </Key>
+    <Key Id="crm.sidebar.salon.memberships" Module="sidebar">
+      <Value Lang="tr">Üyelikler</Value>
+    </Key>
+    <Key Id="crm.sidebar.salon.giftcards" Module="sidebar">
+      <Value Lang="tr">Hediye Kartları</Value>
+    </Key>
+    <Key Id="crm.sidebar.salon.emailcampaigns" Module="sidebar">
+      <Value Lang="tr">E-posta Kampanyaları</Value>
+    </Key>
+    <Key Id="crm.sidebar.salon.reviews" Module="sidebar">
+      <Value Lang="tr">Yorum Yönetimi</Value>
+    </Key>
+    <Key Id="crm.sidebar.salon.winback" Module="sidebar">
+      <Value Lang="tr">Kayıp Müşteri</Value>
+    </Key>
+    <Key Id="crm.common.edit" Module="common">
+      <Value Lang="tr">Düzenle</Value>
+    </Key>
+    <Key Id="crm.common.activate" Module="common">
+      <Value Lang="tr">Aktif Et</Value>
+    </Key>
+    <Key Id="crm.common.btn.cancel" Module="common">
+      <Value Lang="tr">İptal</Value>
+    </Key>
+    <Key Id="crm.common.cancelled" Module="common">
+      <Value Lang="tr">İptal</Value>
+    </Key>
+    <Key Id="crm.common.closed" Module="common">
+      <Value Lang="tr">Kapalı</Value>
+    </Key>
+    <Key Id="crm.common.description" Module="common">
+      <Value Lang="tr">Açıklama</Value>
+    </Key>
+    <Key Id="crm.common.content" Module="common">
+      <Value Lang="tr">İçerik</Value>
+    </Key>
+    <Key Id="crm.common.status.scheduled" Module="common">
+      <Value Lang="tr">Planlı</Value>
+    </Key>
+    <Key Id="crm.common.status.sending" Module="common">
+      <Value Lang="tr">Gönderiliyor</Value>
+    </Key>
+    <Key Id="crm.common.status.completed" Module="common">
+      <Value Lang="tr">Tamamlandı</Value>
+    </Key>
+    <Key Id="crm.common.status_changed" Module="common">
+      <Value Lang="tr">Durum değiştirildi</Value>
+    </Key>
+    <Key Id="crm.common.status_change_failed" Module="common">
+      <Value Lang="tr">Durum değiştirilemedi</Value>
+    </Key>
+    <Key Id="crm.common.all_branches" Module="common">
+      <Value Lang="tr">Tüm şubeler</Value>
+    </Key>
+    <Key Id="crm.salon.common.all_branches" Module="saloncrm">
+      <Value Lang="tr">Tüm Şubeler</Value>
+    </Key>
+    <Key Id="crm.salon.common.branch_target" Module="saloncrm">
+      <Value Lang="tr">Şube hedefi *</Value>
+    </Key>
+    <Key Id="crm.salon.common.branch_target_required" Module="saloncrm">
+      <Value Lang="tr">Şube seçin veya Tüm Şubeler seçeneğini seçin</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.title" Module="saloncrm">
+      <Value Lang="tr">Sadakat</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.desc" Module="saloncrm">
+      <Value Lang="tr">Puan ve müşteri bakiyesi</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.page_title" Module="saloncrm">
+      <Value Lang="tr">Salon - Sadakat</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.tabs_hint" Module="saloncrm">
+      <Value Lang="tr">Müşteriler harcama yaptıkça puan kazanır; belirlediğiniz hizmetlere geldikçe ödül hakkı oluşur.</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.tab.points" Module="saloncrm">
+      <Value Lang="tr">Sadakat Puanı</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.tab.program" Module="saloncrm">
+      <Value Lang="tr">Sadakat Programı</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.settings" Module="saloncrm">
+      <Value Lang="tr">Sadakat Ayarları</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.points_per_tl" Module="saloncrm">
+      <Value Lang="tr">1 TL karşılığı puan</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.point_value" Module="saloncrm">
+      <Value Lang="tr">1 puan değeri</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.min_redeem_points" Module="saloncrm">
+      <Value Lang="tr">Minimum kullanım puanı</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.client_points" Module="saloncrm">
+      <Value Lang="tr">Müşteri Puanları</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.client" Module="saloncrm">
+      <Value Lang="tr">Müşteri</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.earned" Module="saloncrm">
+      <Value Lang="tr">Kazanılan</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.balance_value" Module="saloncrm">
+      <Value Lang="tr">TL Karşılığı</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.empty" Module="saloncrm">
+      <Value Lang="tr">Sadakat puanı olan müşteri yok</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.config_load_failed" Module="saloncrm">
+      <Value Lang="tr">Sadakat ayarları yüklenemedi</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.config_saved" Module="saloncrm">
+      <Value Lang="tr">Sadakat ayarları kaydedildi</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.config_save_failed" Module="saloncrm">
+      <Value Lang="tr">Sadakat ayarları kaydedilemedi</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.clients_load_failed" Module="saloncrm">
+      <Value Lang="tr">Müşteri puanları yüklenemedi</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.hint" Module="saloncrm">
+      <Value Lang="tr">Belirli hizmetlere düzenli gelen müşterilere otomatik ödül tanımlayın.</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.stat.active" Module="saloncrm">
+      <Value Lang="tr">Takipteki Müşteri</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.stat.earned" Module="saloncrm">
+      <Value Lang="tr">Kazanılan Ödül</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.stat.available" Module="saloncrm">
+      <Value Lang="tr">Kullanılabilir Ödül</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.col.service" Module="saloncrm">
+      <Value Lang="tr">Takip Edilen Hizmet</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.col.required" Module="saloncrm">
+      <Value Lang="tr">Gerekli Ziyaret</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.col.reward" Module="saloncrm">
+      <Value Lang="tr">Ödül Hizmeti</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.col.actions" Module="saloncrm">
+      <Value Lang="tr">İşlemler</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.modal.edit_title" Module="saloncrm">
+      <Value Lang="tr">Program Düzenle</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.form.service" Module="saloncrm">
+      <Value Lang="tr">Takip Edilen Hizmet</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.form.required" Module="saloncrm">
+      <Value Lang="tr">Kaç Ziyaret Sonra</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.form.reward" Module="saloncrm">
+      <Value Lang="tr">Ödül Hizmeti</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.client_progress" Module="saloncrm">
+      <Value Lang="tr">Müşteri Takibi</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.col.client" Module="saloncrm">
+      <Value Lang="tr">Müşteri</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.col.progress" Module="saloncrm">
+      <Value Lang="tr">Ziyaret</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.col.earned" Module="saloncrm">
+      <Value Lang="tr">Kazanılan Ödül</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.services_load_failed" Module="saloncrm">
+      <Value Lang="tr">Hizmetler yüklenemedi</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.validation.service" Module="saloncrm">
+      <Value Lang="tr">Takip edilecek hizmeti seçin</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.validation.reward" Module="saloncrm">
+      <Value Lang="tr">Ödül hizmeti zorunlu</Value>
+    </Key>
+    <Key Id="crm.salon.loyalty.program.validation.required" Module="saloncrm">
+      <Value Lang="tr">Ziyaret sayısı en az 1 olmalı</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.page_title" Module="saloncrm">
+      <Value Lang="tr">Salon - Üyelikler</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.title" Module="saloncrm">
+      <Value Lang="tr">Üyelikler</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.desc" Module="saloncrm">
+      <Value Lang="tr">Plan ve kullanım takibi</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.assign" Module="saloncrm">
+      <Value Lang="tr">Müşteriye Üyelik</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.plans" Module="saloncrm">
+      <Value Lang="tr">Üyelik Planları</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.discount" Module="saloncrm">
+      <Value Lang="tr">İndirim</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.member" Module="saloncrm">
+      <Value Lang="tr">Üye</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.make_member" Module="saloncrm">
+      <Value Lang="tr">Üye Yap</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.no_plans" Module="saloncrm">
+      <Value Lang="tr">Üyelik planı yok</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.client_memberships" Module="saloncrm">
+      <Value Lang="tr">Müşteri Üyelikleri</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.client" Module="saloncrm">
+      <Value Lang="tr">Müşteri</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.period" Module="saloncrm">
+      <Value Lang="tr">Dönem</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.no_memberships" Module="saloncrm">
+      <Value Lang="tr">Müşteri üyeliği yok</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.edit_plan" Module="saloncrm">
+      <Value Lang="tr">Planı Düzenle</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.plan_name_required" Module="saloncrm">
+      <Value Lang="tr">Plan Adı *</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.discount_percent" Module="saloncrm">
+      <Value Lang="tr">İndirim %</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.days" Module="saloncrm">
+      <Value Lang="tr">Gün</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.priority_booking" Module="saloncrm">
+      <Value Lang="tr">Öncelikli randevu hakkı</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.services_empty" Module="saloncrm">
+      <Value Lang="tr">Hizmet listesi yüklenemedi veya hizmet yok.</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.assign_modal" Module="saloncrm">
+      <Value Lang="tr">Müşteriye Üyelik Ata</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.select_plan" Module="saloncrm">
+      <Value Lang="tr">Plan seçin</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.client_required" Module="saloncrm">
+      <Value Lang="tr">Müşteri *</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.select_client" Module="saloncrm">
+      <Value Lang="tr">Müşteri seçin</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.create_client" Module="saloncrm">
+      <Value Lang="tr">Yeni müşteri oluştur</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.create_and_select" Module="saloncrm">
+      <Value Lang="tr">Oluştur ve seç</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.no_end_date" Module="saloncrm">
+      <Value Lang="tr">Süresiz</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.plans_load_failed" Module="saloncrm">
+      <Value Lang="tr">Üyelik planları yüklenemedi</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.load_failed" Module="saloncrm">
+      <Value Lang="tr">Müşteri üyelikleri yüklenemedi</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.plan_name_required_warning" Module="saloncrm">
+      <Value Lang="tr">Plan adı zorunludur</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.delete_plan_title" Module="saloncrm">
+      <Value Lang="tr">Planı Sil</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.delete_plan_confirm" Module="saloncrm">
+      <Value Lang="tr">'{name}' planını silmek istediğinize emin misiniz?</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.client_created" Module="saloncrm">
+      <Value Lang="tr">Müşteri oluşturuldu ve seçildi</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.client_create_failed" Module="saloncrm">
+      <Value Lang="tr">Müşteri oluşturulamadı</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.plan_client_required" Module="saloncrm">
+      <Value Lang="tr">Plan ve müşteri zorunludur</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.created" Module="saloncrm">
+      <Value Lang="tr">Üyelik oluşturuldu</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.create_failed" Module="saloncrm">
+      <Value Lang="tr">Üyelik oluşturulamadı</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.frozen_success" Module="saloncrm">
+      <Value Lang="tr">Üyelik donduruldu</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.freeze_failed" Module="saloncrm">
+      <Value Lang="tr">Üyelik dondurulamadı</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.cancel_title" Module="saloncrm">
+      <Value Lang="tr">Üyelik İptali</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.cancel_confirm" Module="saloncrm">
+      <Value Lang="tr">Üyeliği iptal etmek istediğinize emin misiniz?</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.cancelled_success" Module="saloncrm">
+      <Value Lang="tr">Üyelik iptal edildi</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.cancel_failed" Module="saloncrm">
+      <Value Lang="tr">Üyelik iptal edilemedi</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.activated_success" Module="saloncrm">
+      <Value Lang="tr">Üyelik aktif edildi</Value>
+    </Key>
+    <Key Id="crm.salon.memberships.activate_failed" Module="saloncrm">
+      <Value Lang="tr">Üyelik aktif edilemedi</Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.page_title" Module="saloncrm">
+      <Value Lang="tr">Salon - Hediye Kartları</Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.title" Module="saloncrm">
+      <Value Lang="tr">Hediye Kartları</Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.desc" Module="saloncrm">
+      <Value Lang="tr">Kart ve bakiye işlemleri</Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.search_placeholder" Module="saloncrm">
+      <Value Lang="tr">Kart, alıcı veya gönderen ara...</Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.new" Module="saloncrm">
+      <Value Lang="tr">Yeni Hediye Kartı</Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.recipient" Module="saloncrm">
+      <Value Lang="tr">Alıcı</Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.sender" Module="saloncrm">
+      <Value Lang="tr">Gönderen</Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.branch" Module="saloncrm">
+      <Value Lang="tr">Şube</Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.empty" Module="saloncrm">
+      <Value Lang="tr">Hediye kartı bulunamadı</Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.payment" Module="saloncrm">
+      <Value Lang="tr">Ödeme</Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.recipient_phone" Module="saloncrm">
+      <Value Lang="tr">Alıcı Telefon</Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.expires_at" Module="saloncrm">
+      <Value Lang="tr">Son Kullanım</Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.load_failed" Module="saloncrm">
+      <Value Lang="tr">Hediye kartları yüklenemedi</Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.created" Module="saloncrm">
+      <Value Lang="tr">Hediye kartı oluşturuldu: </Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.create_failed" Module="saloncrm">
+      <Value Lang="tr">Hediye kartı oluşturulamadı</Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.close_title" Module="saloncrm">
+      <Value Lang="tr">Hediye Kartını Kapat</Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.close_confirm" Module="saloncrm">
+      <Value Lang="tr">'{code}' kartını kapatmak istediğinize emin misiniz?</Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.closed" Module="saloncrm">
+      <Value Lang="tr">Hediye kartı kapatıldı</Value>
+    </Key>
+    <Key Id="crm.salon.giftcards.close_failed" Module="saloncrm">
+      <Value Lang="tr">Hediye kartı kapatılamadı</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.sms" Module="saloncrm">
+      <Value Lang="tr">SMS Kampanyaları</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.reminders" Module="saloncrm">
+      <Value Lang="tr">Hatırlatmalar</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.reminders_empty" Module="saloncrm">
+      <Value Lang="tr">Hatırlatma yok.</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.recipients" Module="saloncrm">
+      <Value Lang="tr">Alıcı</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.sent" Module="saloncrm">
+      <Value Lang="tr">Gönderilen</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.direction" Module="saloncrm">
+      <Value Lang="tr">Yön</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.client" Module="saloncrm">
+      <Value Lang="tr">Müşteri</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.form_title" Module="saloncrm">
+      <Value Lang="tr">SMS Kampanyası</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.segment_presets" Module="saloncrm">
+      <Value Lang="tr">Hazır Müşteri Grupları</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.reminder_form_title" Module="saloncrm">
+      <Value Lang="tr">Hatırlatma</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.reply" Module="saloncrm">
+      <Value Lang="tr">Mesaj Yanıtı</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.load_failed" Module="saloncrm">
+      <Value Lang="tr">Kampanyalar yüklenemedi</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.reminders_load_failed" Module="saloncrm">
+      <Value Lang="tr">Hatırlatmalar yüklenemedi</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.inbox_load_failed" Module="saloncrm">
+      <Value Lang="tr">Mesaj kutusu yüklenemedi</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.preview_failed" Module="saloncrm">
+      <Value Lang="tr">Önizleme alınamadı</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.send_confirm" Module="saloncrm">
+      <Value Lang="tr">'{name}' kampanyası gönderilsin mi?</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.sent_success" Module="saloncrm">
+      <Value Lang="tr">Kampanya gönderildi</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.send_failed" Module="saloncrm">
+      <Value Lang="tr">Kampanya gönderilemedi</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.delete_confirm" Module="saloncrm">
+      <Value Lang="tr">Bu kampanyayı silmek istediğinize emin misiniz?</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.reminder_saved" Module="saloncrm">
+      <Value Lang="tr">Hatırlatma kaydedildi</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.reminder_save_failed" Module="saloncrm">
+      <Value Lang="tr">Hatırlatma kaydedilemedi</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.reminder_delete_confirm" Module="saloncrm">
+      <Value Lang="tr">Bu hatırlatmayı silmek istediğinize emin misiniz?</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.reminder_deleted" Module="saloncrm">
+      <Value Lang="tr">Hatırlatma silindi</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.reply_sent" Module="saloncrm">
+      <Value Lang="tr">Mesaj gönderildi</Value>
+    </Key>
+    <Key Id="crm.salon.campaigns.reply_failed" Module="saloncrm">
+      <Value Lang="tr">Mesaj gönderilemedi</Value>
+    </Key>
+    <Key Id="crm.salon.emailcampaigns.page_title" Module="saloncrm">
+      <Value Lang="tr">Salon - E-posta Kampanyaları</Value>
+    </Key>
+    <Key Id="crm.salon.emailcampaigns.title" Module="saloncrm">
+      <Value Lang="tr">E-posta Kampanyaları</Value>
+    </Key>
+    <Key Id="crm.salon.emailcampaigns.empty" Module="saloncrm">
+      <Value Lang="tr">E-posta kampanyası yok.</Value>
+    </Key>
+    <Key Id="crm.salon.emailcampaigns.form_title" Module="saloncrm">
+      <Value Lang="tr">E-posta Kampanyası</Value>
+    </Key>
+    <Key Id="crm.salon.emailcampaigns.segment_filter" Module="saloncrm">
+      <Value Lang="tr">Gelişmiş müşteri filtresi</Value>
+    </Key>
+    <Key Id="crm.salon.emailcampaigns.segment_presets" Module="saloncrm">
+      <Value Lang="tr">Hazır Müşteri Grupları</Value>
+    </Key>
+    <Key Id="crm.salon.emailcampaigns.load_failed" Module="saloncrm">
+      <Value Lang="tr">E-posta kampanyaları yüklenemedi</Value>
+    </Key>
+    <Key Id="crm.salon.emailcampaigns.preview_failed" Module="saloncrm">
+      <Value Lang="tr">Önizleme alınamadı</Value>
+    </Key>
+    <Key Id="crm.salon.emailcampaigns.required" Module="saloncrm">
+      <Value Lang="tr">Konu ve içerik zorunludur</Value>
+    </Key>
+    <Key Id="crm.salon.emailcampaigns.saved" Module="saloncrm">
+      <Value Lang="tr">E-posta kampanyası kaydedildi</Value>
+    </Key>
+    <Key Id="crm.salon.emailcampaigns.save_failed" Module="saloncrm">
+      <Value Lang="tr">E-posta kampanyası kaydedilemedi</Value>
+    </Key>
+    <Key Id="crm.salon.emailcampaigns.send_confirm" Module="saloncrm">
+      <Value Lang="tr">'{subject}' kampanyası gönderilsin mi?</Value>
+    </Key>
+    <Key Id="crm.salon.emailcampaigns.sent_success" Module="saloncrm">
+      <Value Lang="tr">E-posta kampanyası gönderildi</Value>
+    </Key>
+    <Key Id="crm.salon.emailcampaigns.send_failed" Module="saloncrm">
+      <Value Lang="tr">E-posta kampanyası gönderilemedi</Value>
+    </Key>
+    <Key Id="crm.salon.emailcampaigns.delete_confirm" Module="saloncrm">
+      <Value Lang="tr">Bu e-posta kampanyasını silmek istediğinize emin misiniz?</Value>
+    </Key>
+    <Key Id="crm.salon.emailcampaigns.deleted" Module="saloncrm">
+      <Value Lang="tr">E-posta kampanyası silindi</Value>
+    </Key>
+    <Key Id="crm.salon.reviews.page_title" Module="saloncrm">
+      <Value Lang="tr">Salon - Yorum Yönetimi</Value>
+    </Key>
+    <Key Id="crm.salon.reviews.status.approved" Module="saloncrm">
+      <Value Lang="tr">Onaylandı</Value>
+    </Key>
+    <Key Id="crm.salon.reviews.load_failed" Module="saloncrm">
+      <Value Lang="tr">Yorumlar yüklenemedi</Value>
+    </Key>
+    <Key Id="crm.salon.reviews.status_saved" Module="saloncrm">
+      <Value Lang="tr">Yorum durumu güncellendi</Value>
+    </Key>
+    <Key Id="crm.salon.reviews.status_save_failed" Module="saloncrm">
+      <Value Lang="tr">Yorum durumu güncellenemedi</Value>
+    </Key>
+    <Key Id="crm.salon.reviews.delete_confirm" Module="saloncrm">
+      <Value Lang="tr">Bu yorumu silmek istediğinize emin misiniz?</Value>
+    </Key>
+    <Key Id="crm.salon.winback.page_title" Module="saloncrm">
+      <Value Lang="tr">Salon - Kayıp Müşteri Geri Kazanım</Value>
+    </Key>
+    <Key Id="crm.salon.winback.title" Module="saloncrm">
+      <Value Lang="tr">Kayıp Müşteri Geri Kazanım</Value>
+    </Key>
+    <Key Id="crm.salon.winback.load_failed" Module="saloncrm">
+      <Value Lang="tr">Geri kazanım planları yüklenemedi</Value>
+    </Key>
+    <Key Id="crm.salon.winback.saved" Module="saloncrm">
+      <Value Lang="tr">Geri kazanım planı kaydedildi</Value>
+    </Key>
+    <Key Id="crm.salon.winback.save_failed" Module="saloncrm">
+      <Value Lang="tr">Geri kazanım planı kaydedilemedi</Value>
+    </Key>
+    <Key Id="crm.salon.winback.preview_text" Module="saloncrm">
+      <Value Lang="tr">Uygun müşteri: {eligible}, SMS: {sms}, e-posta: {email}</Value>
+    </Key>
+    <Key Id="crm.salon.winback.preview_title" Module="saloncrm">
+      <Value Lang="tr">Önizleme</Value>
+    </Key>
+    <Key Id="crm.salon.winback.preview_failed" Module="saloncrm">
+      <Value Lang="tr">Önizleme alınamadı</Value>
+    </Key>
+    <Key Id="crm.salon.winback.create_campaign_confirm" Module="saloncrm">
+      <Value Lang="tr">'{name}' planından kampanya oluşturulsun mu?</Value>
+    </Key>
+    <Key Id="crm.salon.winback.campaign_created" Module="saloncrm">
+      <Value Lang="tr">Geri kazanım kampanyası oluşturuldu</Value>
+    </Key>
+    <Key Id="crm.salon.winback.campaign_create_failed" Module="saloncrm">
+      <Value Lang="tr">Kampanya oluşturulamadı</Value>
+    </Key>
+    <Key Id="crm.salon.winback.delete_confirm" Module="saloncrm">
+      <Value Lang="tr">Bu geri kazanım planını silmek istediğinize emin misiniz?</Value>
+    </Key>
+    <Key Id="crm.salon.winback.deleted" Module="saloncrm">
+      <Value Lang="tr">Geri kazanım planı silindi</Value>
+    </Key>
+  <Key Id="crm.salon.loyalty.program.col.available" Module="saloncrm"><Value Lang="tr">Kullanılabilir</Value></Key><Key Id="crm.page.dashboard" Module="pages"><Value Lang="tr">Ana Sayfa</Value></Key><Key Id="crm.sidebar.scopes" Module="sidebar"><Value Lang="tr">Uygulamalar</Value></Key><Key Id="CrmModule.Dashboard" Module="modules"><Value Lang="tr">Ana Sayfa</Value></Key><Key Id="crm.sidebar.dashboard" Module="sidebar"><Value Lang="tr">Ana Sayfa</Value></Key></Keys>
+</Translations>

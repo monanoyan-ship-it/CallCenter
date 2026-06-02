@@ -56,7 +56,7 @@ function DealsViewModel() {
         }).done(function(data) {
             self.deals(data);
         }).fail(function() {
-            toastr.error('Firsatlar yuklenemedi');
+            toastr.error('Fırsatlar yüklenemedi');
         });
     };
 
@@ -111,7 +111,7 @@ function DealsViewModel() {
         };
 
         if (!data.title) {
-            toastr.warning('Firsat adi zorunludur');
+            toastr.warning('Fırsat adı zorunludur');
             return;
         }
 
@@ -131,22 +131,22 @@ function DealsViewModel() {
         }).done(function() {
             formModal.hide();
             self.loadData();
-            toastr.success(self.isEditing() ? 'Firsat guncellendi' : 'Firsat olusturuldu');
+            toastr.success(self.isEditing() ? 'Fırsat güncellendi' : 'Fırsat oluşturuldu');
             self.isSaving(false);
         }).fail(function(xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
+            toastr.error(xhr.responseJSON?.error || 'Bir hata oluştu');
             self.isSaving(false);
         });
     };
 
     self.remove = function(deal) {
-        confirmModal('Firsati Sil', 'Bu firsati silmek istediginize emin misiniz?', function () {
+        confirmModal('Fırsatı Sil', 'Bu fırsatı silmek istediğinize emin misiniz?', function () {
             $.ajax({
                 url: '/proxy/crm/deals/' + deal.id,
                 method: 'DELETE'
             }).done(function() {
                 self.loadData();
-                toastr.success('Firsat silindi');
+                toastr.success('Fırsat silindi');
             }).fail(function() {
                 toastr.error('Silinemedi');
             });

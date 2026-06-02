@@ -15,7 +15,8 @@ public abstract class CrmBaseController : Controller
         var token = HttpContext.Session.GetString("Token");
         if (string.IsNullOrEmpty(token) && context.Controller.GetType() != typeof(AccountController))
         {
-            context.Result = RedirectToAction("Login", "Account");
+            var returnUrl = $"{Request.PathBase}{Request.Path}{Request.QueryString}";
+            context.Result = RedirectToAction("Login", "Account", new { returnUrl });
             return;
         }
 
@@ -102,5 +103,5 @@ public abstract class CrmBaseController : Controller
     }
 
     protected IActionResult? RequireCrmScope(string scopeKey)
-        => HasCrmScope(scopeKey) ? null : RedirectToAction("Index", "Home");
+        => HasCrmScope(scopeKey) ? null : RedirectToAction("NoAccess", "Home", new { scope = scopeKey });
 }

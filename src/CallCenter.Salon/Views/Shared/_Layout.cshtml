@@ -4,6 +4,7 @@
     var __layoutLang = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName;
     var __layoutTranslations = await Translation.GetAllAsync(__layoutLang);
     var __layoutTranslationsJson = System.Text.Json.JsonSerializer.Serialize(__layoutTranslations);
+    var __crmBaseUrl = (Configuration["CrmBaseUrl"] ?? "https://crm.corplynk.com").TrimEnd('/');
 }
 <!DOCTYPE html>
 <html lang="@__layoutLang">
@@ -65,10 +66,10 @@
          data-full-name="@__jwt.FullName"
          data-jwt-branch="@(__jwt.BranchId?.ToString() ?? "")"
          data-session-key="@__layoutSessionKey"
+         data-crm-base="@__crmBaseUrl"
          data-translations="@__layoutTranslationsJson"></div>
     @if (__jwt.IsAuthenticated)
     {
-        var __crmBaseUrl = (Configuration["CrmBaseUrl"] ?? "https://crm.corplynk.com").TrimEnd('/');
         var __callCenterBaseUrl = (Configuration["CallCenterBaseUrl"] ?? "https://cc.corplynk.com").TrimEnd('/');
         var __brandModuleIds = __jwt.CustomerModules.Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(s => int.TryParse(s.Trim(), out var mid) ? mid : 0)
@@ -115,9 +116,9 @@
                 var mainOpen = ctrl is "Home" or "Clients" or "Appointments" or "Waitlist";
                 var opsOpen = ctrl is "Services" or "Staff" or "Recipes" or "PersonnelPrices" or "LoyaltyPackages";
                 var stockOpen = ctrl is "Products" or "Suppliers";
-                var financeOpen = ctrl is "Invoices" or "Cash" or "Expenses" or "GiftCards";
+                var financeOpen = ctrl is "Invoices" or "Cash" or "Expenses";
                 var reportOpen = ctrl is "Reports";
-                var marketingOpen = ctrl is "Marketing" or "Campaigns" or "Memberships" or "EmailCampaigns" or "Reviews" or "Winback";
+                var marketingOpen = false;
                 var managementOpen = ctrl is "Branches" or "Profile" or "NoShowPolicy" or "ConsentForms" or "BeforeAfter" or "EmailSettings" or "PageSettings" or "PaymentInfo" or "DataImport";
             }
 
@@ -171,10 +172,6 @@
 
             @{
                 var financePages = new List<string> { "Invoices", "Cash", "Expenses" };
-                if (!canShow("Marketing"))
-                {
-                    financePages.Add("GiftCards");
-                }
                 var finLinks = financePages.Where(p => canShow(p)).ToArray();
             }
             @if (finLinks.Length > 0)
@@ -186,15 +183,11 @@
                     @if (canShow("Invoices")) { <a class="nav-link @(ctrl == "Invoices" ? "active" : "")" href="/Invoices"><i class="bi bi-receipt me-2"></i><t key="salon.sidebar.invoices">Adisyonlar</t></a> }
                     @if (canShow("Cash")) { <a class="nav-link @(ctrl == "Cash" ? "active" : "")" href="/Cash"><i class="bi bi-cash-stack me-2"></i><t key="salon.sidebar.cash">Kasa</t></a> }
                     @if (canShow("Expenses")) { <a class="nav-link @(ctrl == "Expenses" ? "active" : "")" href="/Expenses"><i class="bi bi-credit-card me-2"></i><t key="salon.sidebar.expenses">Masraflar</t></a> }
-                    @if (financePages.Contains("GiftCards") && canShow("GiftCards")) { <a class="nav-link @(ctrl == "GiftCards" ? "active" : "")" href="/GiftCards"><i class="bi bi-gift me-2"></i><t key="salon.sidebar.gift_cards">Hediye Kartlari</t></a> }
                 </div>
             }
 
             @{
-                var legacyMarketingPages = new[] { "Campaigns", "Memberships", "EmailCampaigns", "Reviews", "Winback" };
-                var mktLinks = canShow("Marketing")
-                    ? new[] { "Marketing" }
-                    : legacyMarketingPages.Where(p => canShow(p)).ToArray();
+                var mktLinks = Array.Empty<string>();
             }
             @if (mktLinks.Length > 0)
             {

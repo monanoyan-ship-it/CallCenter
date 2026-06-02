@@ -24,7 +24,7 @@ public class ProxyController : CrmBaseController
         using var client = CreateApiClient();
         using var reader = new StreamReader(Request.Body);
         var body = await reader.ReadToEndAsync();
-        var response = await client.PostAsync($"api/{safePath}",
+        var response = await client.PostAsync($"api/{safePath}{Request.QueryString}",
             new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
         return await ToJsonResult(response);
     }
@@ -37,7 +37,7 @@ public class ProxyController : CrmBaseController
         using var client = CreateApiClient();
         using var reader = new StreamReader(Request.Body);
         var body = await reader.ReadToEndAsync();
-        var response = await client.PutAsync($"api/{safePath}",
+        var response = await client.PutAsync($"api/{safePath}{Request.QueryString}",
             new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
         return await ToJsonResult(response);
     }
@@ -48,7 +48,7 @@ public class ProxyController : CrmBaseController
         if (!TryNormalizePath(path, out var safePath)) return ForbidProxyPath();
         if (!ProxyCsrfGuard.IsSafeOrSameOrigin(Request)) return ForbidCsrf();
         using var client = CreateApiClient();
-        var response = await client.DeleteAsync($"api/{safePath}");
+        var response = await client.DeleteAsync($"api/{safePath}{Request.QueryString}");
         return await ToJsonResult(response);
     }
 

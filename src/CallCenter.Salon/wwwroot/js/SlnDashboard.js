@@ -4,6 +4,11 @@
     function dashT(key, fallback) {
         return (window.salonT || function (k, f) { return f || k; })(key, fallback);
     }
+    function crmUrl(path) {
+        var data = document.getElementById('salon-layout-data');
+        var base = data ? (data.getAttribute('data-crm-base') || '') : '';
+        return base.replace(/\/$/, '') + path;
+    }
     function fmt(n) { return (n || 0).toLocaleString(DASH_LOCALE); }
     function fmtMoney(n) {
         return (Number(n) || 0).toLocaleString(DASH_LOCALE, { maximumFractionDigits: 2 });
@@ -118,7 +123,7 @@
                 icon: 'bi-balloon-heart',
                 title: tmpl(dashT('salon.dashboard.action.birthday_title', '{count} müşterinin doğum günü var'), { count: fmt(reminders.length) }),
                 desc: tmpl(dashT('salon.dashboard.action.birthday_desc', 'İlk olarak {client} için kişisel mesaj hazırlayabilirsin.'), { client: reminders[0].fullName || '-' }),
-                href: '/Marketing?tab=campaigns'
+                href: crmUrl('/SalonCrm/Campaigns')
             });
         }
 

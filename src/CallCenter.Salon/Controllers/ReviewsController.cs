@@ -6,9 +6,6 @@ public class ReviewsController : SlnBaseController
 {
     public IActionResult Index()
     {
-        if (MarketingRouteAccess.CanUseConsolidated(HttpContext))
-            return RedirectToAction("Index", "Marketing", new { tab = "reviews" });
-
-        return View();
+        return MarketingRouteAccess.RedirectToCrm(this, "/SalonCrm/Reviews");
     }
 }

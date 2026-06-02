@@ -16,6 +16,7 @@ public class DataDeletionController : Controller
     }
 
     [HttpGet("data-deletion")]
+    [HttpGet("DataDeletion")]
     [HttpGet("kvkk-request")]
     public IActionResult Index()
     {
@@ -23,6 +24,7 @@ public class DataDeletionController : Controller
     }
 
     [HttpPost("data-deletion")]
+    [HttpPost("DataDeletion")]
     [HttpPost("kvkk-request")]
     public async Task<IActionResult> Submit([FromBody] PublicDataSubjectRequestCreateDto dto)
     {

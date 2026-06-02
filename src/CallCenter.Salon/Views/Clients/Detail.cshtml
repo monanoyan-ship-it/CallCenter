@@ -1,7 +1,9 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
+@inject IConfiguration Configuration
 @{
     ViewData["Title"] = Translation.T("salon.clients.auto.musteri_detay", "Müşteri Detay");
     var clientId = (int)ViewData["ClientId"]!;
+    var crmBaseUrl = (Configuration["CrmBaseUrl"] ?? "https://crm.corplynk.com").TrimEnd('/');
 }
 
 <div id="client-detail-vm">
@@ -81,7 +83,7 @@
                 <h6 class="mb-1"><i class="bi bi-wallet2 me-2 text-primary"></i><t key="salon.clients.wallet.title">Müşteri Hakları</t></h6>
                 <small class="text-muted"><t key="salon.clients.wallet.desc">Üyelik, seans hakkı, puan ve hediye kartlarını birlikte gösterir.</t></small>
             </div>
-            <a class="btn btn-outline-primary btn-sm" href="/Marketing?tab=loyalty">
+            <a class="btn btn-outline-primary btn-sm" href="@($"{crmBaseUrl}/SalonCrm/Loyalty")">
                 <i class="bi bi-arrow-up-right me-1"></i><t key="salon.clients.wallet.open_marketing">Sadakat ve üyelik ekranını aç</t>
             </a>
         </div>

@@ -47,6 +47,13 @@ function createAutocomplete(sourceArray, textField, valueObservable, maxShow) {
     };
 
     ac.onBlur = function () {
+        var q = (ac.query() || '').trim().toLowerCase();
+        if (q && !ko.unwrap(valueObservable)) {
+            var exact = (sourceArray() || []).find(function (item) {
+                return String(item[textField] || '').trim().toLowerCase() === q;
+            });
+            if (exact) ac.select(exact);
+        }
         blurTimeout = setTimeout(function () { ac.showDropdown(false); }, 200);
         return true;
     };

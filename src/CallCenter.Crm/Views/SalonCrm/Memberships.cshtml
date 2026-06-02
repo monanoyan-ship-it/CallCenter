@@ -1,11 +1,11 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = Translation.T("crm.salon.memberships.page_title", "Salon - Uyelikler");
+    ViewData["Title"] = Translation.T("crm.salon.memberships.page_title", "Salon - Üyelikler");
 }
 
 @section Styles {
     <style>
-        .crm-actions-plan { width: 96px; }
+        .crm-actions-plan { width: 132px; }
         .crm-actions-membership { width: 140px; }
         .crm-empty-icon { font-size: 2rem; }
     </style>
@@ -18,7 +18,7 @@
                 <i class="bi bi-plus-lg me-1"></i><t key="crm.salon.memberships.new_plan">Yeni Plan</t>
             </button>
             <button class="btn btn-outline-primary btn-sm" data-bind="click: openNewMembership">
-                <i class="bi bi-person-plus me-1"></i><t key="crm.salon.memberships.assign">Musteriye Uyelik</t>
+                <i class="bi bi-person-plus me-1"></i><t key="crm.salon.memberships.assign">Müşteriye Üyelik</t>
             </button>
         </div>
         <button class="btn btn-outline-secondary btn-sm" data-bind="click: loadData">
@@ -29,7 +29,7 @@
     <div class="row g-3">
         <div class="col-lg-5">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white fw-semibold small"><t key="crm.salon.memberships.plans">Uyelik Planlari</t></div>
+                <div class="card-header bg-white fw-semibold small"><t key="crm.salon.memberships.plans">Üyelik Planları</t></div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0 align-middle">
@@ -37,8 +37,8 @@
                                 <tr>
                                     <th><t key="crm.salon.memberships.plan">Plan</t></th>
                                     <th><t key="crm.salon.memberships.price">Fiyat</t></th>
-                                    <th><t key="crm.salon.memberships.discount">Indirim</t></th>
-                                    <th><t key="crm.salon.memberships.member">Uye</t></th>
+                                    <th><t key="crm.salon.memberships.discount">İndirim</t></th>
+                                    <th><t key="crm.salon.memberships.member">Üye</t></th>
                                     <th class="crm-actions-plan"></th>
                                 </tr>
                             </thead>
@@ -47,13 +47,29 @@
                                     <td>
                                         <div class="fw-semibold small" data-bind="text: name"></div>
                                         <div class="text-muted small" data-bind="text: description"></div>
+                                        <!-- ko if: serviceDetails && serviceDetails.length > 0 -->
+                                        <div class="small text-muted mt-1" data-bind="foreach: serviceDetails">
+                                            <span class="badge bg-light text-dark border me-1 mb-1">
+                                                <span data-bind="text: serviceName"></span>
+                                                <!-- ko if: freeCount > 0 -->
+                                                <span data-bind="text: ' ' + freeCount + 'x'"></span>
+                                                <!-- /ko -->
+                                                <!-- ko if: discountPercent > 0 && (!freeCount || freeCount === 0) -->
+                                                <span data-bind="text: ' %' + discountPercent"></span>
+                                                <!-- /ko -->
+                                            </span>
+                                        </div>
+                                        <!-- /ko -->
                                     </td>
                                     <td class="small" data-bind="text: $parent.money(price)"></td>
                                     <td class="small" data-bind="text: discountPercent + '%'"></td>
                                     <td class="small" data-bind="text: activeMembers || 0"></td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-secondary" title="@Translation.T("crm.common.edit", "Duzenle")" data-bind="click: $parent.openEditPlan">
+                                            <button class="btn btn-outline-success" title="@Translation.T("crm.salon.memberships.make_member", "Üye Yap")" data-bind="click: $parent.openNewMembership">
+                                                <i class="bi bi-person-plus"></i>
+                                            </button>
+                                            <button class="btn btn-outline-secondary" title="@Translation.T("crm.common.edit", "Düzenle")" data-bind="click: $parent.openEditPlan">
                                                 <i class="bi bi-pencil"></i>
                                             </button>
                                             <button class="btn btn-outline-danger" title="@Translation.T("crm.common.delete", "Sil")" data-bind="click: $parent.removePlan">
@@ -68,7 +84,7 @@
                     <!-- ko if: plans().length === 0 -->
                     <div class="text-center text-muted py-4">
                         <i class="crm-empty-icon bi bi-award"></i>
-                        <p class="mt-2 small"><t key="crm.salon.memberships.no_plans">Uyelik plani yok</t></p>
+                        <p class="mt-2 small"><t key="crm.salon.memberships.no_plans">Üyelik planı yok</t></p>
                     </div>
                     <!-- /ko -->
                 </div>
@@ -77,15 +93,15 @@
 
         <div class="col-lg-7">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white fw-semibold small"><t key="crm.salon.memberships.client_memberships">Musteri Uyelikleri</t></div>
+                <div class="card-header bg-white fw-semibold small"><t key="crm.salon.memberships.client_memberships">Müşteri Üyelikleri</t></div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0 align-middle">
                             <thead class="table-light">
                                 <tr>
-                                    <th><t key="crm.salon.memberships.client">Musteri</t></th>
+                                    <th><t key="crm.salon.memberships.client">Müşteri</t></th>
                                     <th><t key="crm.salon.memberships.plan">Plan</t></th>
-                                    <th><t key="crm.salon.memberships.period">Donem</t></th>
+                                    <th><t key="crm.salon.memberships.period">Dönem</t></th>
                                     <th><t key="crm.common.status">Durum</t></th>
                                     <th class="crm-actions-membership"></th>
                                 </tr>
@@ -106,7 +122,7 @@
                                             <button class="btn btn-outline-success" title="@Translation.T("crm.common.activate", "Aktif Et")" data-bind="click: $parent.reactivateMembership">
                                                 <i class="bi bi-play"></i>
                                             </button>
-                                            <button class="btn btn-outline-danger" title="@Translation.T("crm.common.btn.cancel", "Iptal")" data-bind="click: $parent.cancelMembership">
+                                            <button class="btn btn-outline-danger" title="@Translation.T("crm.common.btn.cancel", "İptal")" data-bind="click: $parent.cancelMembership">
                                                 <i class="bi bi-x-lg"></i>
                                             </button>
                                         </div>
@@ -118,7 +134,7 @@
                     <!-- ko if: memberships().length === 0 -->
                     <div class="text-center text-muted py-4">
                         <i class="crm-empty-icon bi bi-person-badge"></i>
-                        <p class="mt-2 small"><t key="crm.salon.memberships.no_memberships">Musteri uyeligi yok</t></p>
+                        <p class="mt-2 small"><t key="crm.salon.memberships.no_memberships">Müşteri üyeliği yok</t></p>
                     </div>
                     <!-- /ko -->
                 </div>
@@ -127,44 +143,81 @@
     </div>
 
     <div class="modal fade" id="membershipPlanModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title" data-bind="text: isEditingPlan() ? window.crmT('crm.salon.memberships.edit_plan', 'Plani Duzenle') : window.crmT('crm.salon.memberships.new_plan', 'Yeni Plan')"></h6>
+                    <h6 class="modal-title" data-bind="text: isEditingPlan() ? window.crmT('crm.salon.memberships.edit_plan', 'Planı Düzenle') : window.crmT('crm.salon.memberships.new_plan', 'Yeni Plan')"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small"><t key="crm.salon.memberships.plan_name_required">Plan Adi *</t></label>
+                            <label class="form-label small"><t key="crm.salon.memberships.plan_name_required">Plan Adı *</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: planForm.name" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label small"><t key="crm.common.description">Aciklama</t></label>
+                            <label class="form-label small"><t key="crm.common.description">Açıklama</t></label>
                             <textarea class="form-control form-control-sm" rows="2" data-bind="value: planForm.description"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small"><t key="crm.salon.common.branch_target">Şube hedefi *</t></label>
+                            <select class="form-select form-select-sm"
+                                    data-bind="options: branchTargetOptions,
+                                               optionsText: 'name',
+                                               optionsValue: 'id',
+                                               value: planForm.branchTarget"></select>
                         </div>
                         <div class="col-4">
                             <label class="form-label small"><t key="crm.salon.memberships.price">Fiyat</t></label>
                             <input type="number" min="0" step="1" class="form-control form-control-sm" data-bind="value: planForm.price" />
                         </div>
                         <div class="col-4">
-                            <label class="form-label small"><t key="crm.salon.memberships.discount_percent">Indirim %</t></label>
+                            <label class="form-label small"><t key="crm.salon.memberships.discount_percent">İndirim %</t></label>
                             <input type="number" min="0" max="100" step="1" class="form-control form-control-sm" data-bind="value: planForm.discountPercent" />
                         </div>
                         <div class="col-4">
-                            <label class="form-label small"><t key="crm.salon.memberships.days">Gun</t></label>
+                            <label class="form-label small"><t key="crm.salon.memberships.days">Gün</t></label>
                             <input type="number" min="1" step="1" class="form-control form-control-sm" data-bind="value: planForm.durationDays" />
                         </div>
                         <div class="col-12">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="priorityBooking" data-bind="checked: planForm.priorityBooking" />
-                                <label class="form-check-label small" for="priorityBooking"><t key="crm.salon.memberships.priority_booking">Oncelikli randevu hakki</t></label>
+                                <label class="form-check-label small" for="priorityBooking"><t key="crm.salon.memberships.priority_booking">Öncelikli randevu hakkı</t></label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold"><t key="crm.salon.memberships.included_services">Dahil Hizmetler</t></label>
+                            <div class="border rounded p-2 bg-light">
+                                <!-- ko if: services().length === 0 -->
+                                <div class="small text-muted"><t key="crm.salon.memberships.services_empty">Hizmet listesi yüklenemedi veya hizmet yok.</t></div>
+                                <!-- /ko -->
+                                <!-- ko if: services().length > 0 -->
+                                <div class="row g-2" data-bind="foreach: services">
+                                    <div class="col-md-6">
+                                        <label class="form-check small mb-1">
+                                            <input class="form-check-input" type="checkbox"
+                                                   data-bind="checked: $parent.planForm.serviceIds, checkedValue: id" />
+                                            <span class="form-check-label" data-bind="text: name"></span>
+                                        </label>
+                                        <!-- ko if: $parent.serviceSelected(id) -->
+                                        <div class="row g-1 ms-3">
+                                            <div class="col-6">
+                                                <input type="number" min="0" class="form-control form-control-sm" placeholder="Hak" data-bind="value: $parent.serviceDetail(id).freeCount" />
+                                            </div>
+                                            <div class="col-6">
+                                                <input type="number" min="0" max="100" class="form-control form-control-sm" placeholder="İndirim %" data-bind="value: $parent.serviceDetail(id).discountPercent" />
+                                            </div>
+                                        </div>
+                                        <!-- /ko -->
+                                    </div>
+                                </div>
+                                <!-- /ko -->
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">Iptal</t></button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: savePlan, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="crm.common.btn.save">Kaydet</t>
@@ -178,23 +231,44 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title"><t key="crm.salon.memberships.assign_modal">Musteriye Uyelik Ata</t></h6>
+                    <h6 class="modal-title"><t key="crm.salon.memberships.assign_modal">Müşteriye Üyelik Ata</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label small"><t key="crm.salon.memberships.plan_required">Plan *</t></label>
-                            <select class="form-select form-select-sm" data-bind="value: memberForm.planId, options: plans, optionsText: 'name', optionsValue: 'id', optionsCaption: window.crmT('crm.salon.memberships.select_plan', 'Plan secin')"></select>
+                            <select class="form-select form-select-sm" data-bind="value: memberForm.planId, options: plans, optionsText: 'name', optionsValue: 'id', optionsCaption: window.crmT('crm.salon.memberships.select_plan', 'Plan seçin')"></select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small"><t key="crm.salon.memberships.client_required">Musteri *</t></label>
-                            <select class="form-select form-select-sm" data-bind="value: memberForm.slnClientId, options: clients, optionsText: 'fullName', optionsValue: 'id', optionsCaption: window.crmT('crm.salon.memberships.select_client', 'Musteri secin')"></select>
+                            <label class="form-label small"><t key="crm.salon.memberships.client_required">Müşteri *</t></label>
+                            <select class="form-select form-select-sm" data-bind="value: memberForm.slnClientId, options: clients, optionsText: 'fullName', optionsValue: 'id', optionsCaption: window.crmT('crm.salon.memberships.select_client', 'Müşteri seçin')"></select>
                         </div>
+                        <div class="col-12">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: toggleNewClient">
+                                <i class="bi bi-person-plus me-1"></i><t key="crm.salon.memberships.create_client">Yeni müşteri oluştur</t>
+                            </button>
+                        </div>
+                        <!-- ko if: newClientVisible -->
+                        <div class="col-7">
+                            <label class="form-label small"><t key="crm.salon.memberships.new_client_name">Ad Soyad *</t></label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: newClientForm.fullName" />
+                        </div>
+                        <div class="col-5">
+                            <label class="form-label small"><t key="crm.salon.memberships.new_client_phone">Telefon *</t></label>
+                            <input type="text" class="form-control form-control-sm" data-bind="value: newClientForm.phone" />
+                        </div>
+                        <div class="col-12">
+                            <button type="button" class="btn btn-success btn-sm" data-bind="click: saveNewClient, disable: isCreatingClient">
+                                <span data-bind="visible: isCreatingClient" class="spinner-border spinner-border-sm me-1"></span>
+                                <i class="bi bi-check-lg me-1" data-bind="visible: !isCreatingClient()"></i><t key="crm.salon.memberships.create_and_select">Oluştur ve seç</t>
+                            </button>
+                        </div>
+                        <!-- /ko -->
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">Iptal</t></button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveMembership, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="crm.common.btn.save">Kaydet</t>

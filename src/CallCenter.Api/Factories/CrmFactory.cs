@@ -166,15 +166,13 @@ public class CrmFactory : ICrmFactory
             .ToList();
 
         var hasCrmProduct = productTypeIds.Contains(ProductTypes.Ids.Crm);
-        var hasSalonProduct = productTypeIds.Contains(ProductTypes.Ids.Salon);
-        var hasCallCenterProduct = productTypeIds.Contains(ProductTypes.Ids.CallCenter);
         var hasCoreCrmModules = activeCrmModuleIds.Any(id => CrmModuleGroups.GetGroupId(id) == CrmModuleGroups.Ids.Core);
         var hasSalonCrmModules = activeCrmModuleIds.Any(id => CrmModuleGroups.GetGroupId(id) == CrmModuleGroups.Ids.Salon);
         var hasCallCenterCrmModules = activeCrmModuleIds.Any(id => CrmModuleGroups.GetGroupId(id) == CrmModuleGroups.Ids.CallCenter);
 
         var hasStandaloneCrm = hasCrmProduct && hasCoreCrmModules;
-        var hasSalonCrm = hasCrmProduct && hasSalonProduct && hasSalonCrmModules;
-        var hasCallCenterCrm = hasCrmProduct && hasCallCenterProduct && hasCallCenterCrmModules;
+        var hasSalonCrm = hasCrmProduct && hasSalonCrmModules;
+        var hasCallCenterCrm = hasCrmProduct && hasCallCenterCrmModules;
 
         var scopes = new List<CrmScopeDto>();
         if (hasStandaloneCrm)

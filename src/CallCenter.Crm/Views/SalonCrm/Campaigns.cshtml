@@ -5,21 +5,22 @@
 
 <div id="salon-campaigns-vm">
     <ul class="nav nav-tabs mb-3">
-        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#smsCampaigns" type="button"><t key="crm.salon.campaigns.sms">SMS Kampanyalari</t></button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#smsReminders" type="button"><t key="crm.salon.campaigns.reminders">Hatirlatmalar</t></button></li>
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#smsCampaigns" type="button"><t key="crm.salon.campaigns.sms">SMS Kampanyaları</t></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#smsReminders" type="button"><t key="crm.salon.campaigns.reminders">Hatırlatmalar</t></button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#smsInbox" type="button"><t key="crm.salon.campaigns.inbox">Mesaj Kutusu</t></button></li>
     </ul>
 
     <div class="tab-content">
         <div class="tab-pane fade show active" id="smsCampaigns">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="mb-0"><t key="crm.salon.campaigns.sms">SMS Kampanyalari</t></h6>
+                <h6 class="mb-0"><t key="crm.salon.campaigns.sms">SMS Kampanyaları</t></h6>
                 <button class="btn btn-primary btn-sm" data-bind="click: openCampaign"><i class="bi bi-plus-lg me-1"></i><t key="crm.common.new">Yeni</t></button>
             </div>
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0 align-middle">
-                            <thead class="table-light"><tr><th><t key="crm.common.name">Ad</t></th><th><t key="crm.common.status">Durum</t></th><th><t key="crm.salon.campaigns.recipients">Alici</t></th><th><t key="crm.salon.campaigns.sent">Gonderilen</t></th><th><t key="crm.common.date">Tarih</t></th><th class="text-end"></th></tr></thead>
+                            <thead class="table-light"><tr><th><t key="crm.common.name">Ad</t></th><th><t key="crm.common.status">Durum</t></th><th><t key="crm.salon.campaigns.recipients">Alıcı</t></th><th><t key="crm.salon.campaigns.sent">Gönderilen</t></th><th><t key="crm.common.date">Tarih</t></th><th class="text-end"></th></tr></thead>
                             <tbody data-bind="foreach: campaigns">
                                 <tr>
                                     <td class="fw-semibold small" data-bind="text: name"></td>
@@ -45,7 +46,7 @@
 
         <div class="tab-pane fade" id="smsReminders">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="mb-0"><t key="crm.salon.campaigns.reminders">Hatirlatmalar</t></h6>
+                <h6 class="mb-0"><t key="crm.salon.campaigns.reminders">Hatırlatmalar</t></h6>
                 <button class="btn btn-primary btn-sm" data-bind="click: openReminder"><i class="bi bi-plus-lg me-1"></i><t key="crm.common.new">Yeni</t></button>
             </div>
             <div class="card border-0 shadow-sm">
@@ -57,7 +58,7 @@
                                 <tr>
                                     <td class="fw-semibold small" data-bind="text: reminderTypeName"></td>
                                     <td class="small text-truncate" style="max-width:420px" data-bind="text: messageTemplate"></td>
-                                    <td><span class="badge" data-bind="css: isActive ? 'bg-success' : 'bg-secondary', text: isActive ? window.crmT('crm.common.active', 'Aktif') : window.crmT('crm.common.closed', 'Kapali')"></span></td>
+                                    <td><span class="badge" data-bind="css: isActive ? 'bg-success' : 'bg-secondary', text: isActive ? window.crmT('crm.common.active', 'Aktif') : window.crmT('crm.common.closed', 'Kapalı')"></span></td>
                                     <td class="text-end">
                                         <div class="btn-group btn-group-sm">
                                             <button class="btn btn-outline-primary" data-bind="click: $parent.editReminder"><i class="bi bi-pencil"></i></button>
@@ -69,7 +70,35 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="text-center text-muted py-4" data-bind="visible: reminders().length === 0"><t key="crm.salon.campaigns.reminders_empty">Hatirlatma yok.</t></div>
+                    <div class="text-center text-muted py-4" data-bind="visible: reminders().length === 0"><t key="crm.salon.campaigns.reminders_empty">Hatırlatma yok.</t></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="smsInbox">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0"><t key="crm.salon.campaigns.inbox">Mesaj Kutusu</t></h6>
+                <button class="btn btn-outline-secondary btn-sm" data-bind="click: loadInbox"><i class="bi bi-arrow-clockwise me-1"></i><t key="crm.common.btn.refresh">Yenile</t></button>
+            </div>
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0 align-middle">
+                            <thead class="table-light"><tr><th><t key="crm.salon.campaigns.direction">Yön</t></th><th><t key="crm.salon.campaigns.client">Müşteri</t></th><th><t key="crm.salon.campaigns.phone">Telefon</t></th><th><t key="crm.common.message">Mesaj</t></th><th><t key="crm.common.status">Durum</t></th><th><t key="crm.common.date">Tarih</t></th><th class="text-end"></th></tr></thead>
+                            <tbody data-bind="foreach: inboxMessages">
+                                <tr>
+                                    <td class="small"><span class="badge" data-bind="text: directionText, css: directionId === 2 ? 'bg-info' : 'bg-secondary'"></span></td>
+                                    <td class="small" data-bind="text: clientName || '-'"></td>
+                                    <td class="small" data-bind="text: phoneNumber"></td>
+                                    <td class="small text-truncate" style="max-width:360px" data-bind="text: messageBody || templateName || '-'"></td>
+                                    <td class="small" data-bind="text: statusText"></td>
+                                    <td class="small" data-bind="text: $parent.dateText(createdAt)"></td>
+                                    <td class="text-end"><button class="btn btn-outline-primary btn-sm" data-bind="click: $parent.openReply"><i class="bi bi-reply"></i></button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center text-muted py-4" data-bind="visible: inboxMessages().length === 0"><t key="crm.salon.campaigns.inbox_empty">Mesaj yok.</t></div>
                 </div>
             </div>
         </div>
@@ -78,16 +107,36 @@
     <div class="modal fade" id="salonCampaignModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header"><h6 class="modal-title"><t key="crm.salon.campaigns.form_title">SMS Kampanyasi</t></h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-header"><h6 class="modal-title"><t key="crm.salon.campaigns.form_title">SMS Kampanyası</t></h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
                     <label class="form-label small"><t key="crm.common.name">Ad</t></label>
                     <input class="form-control form-control-sm mb-2" data-bind="value: campaignForm.name" />
+                    <label class="form-label small"><t key="crm.salon.common.branch_target">Şube hedefi *</t></label>
+                    <select class="form-select form-select-sm mb-2"
+                            data-bind="options: branchTargetOptions,
+                                       optionsText: 'name',
+                                       optionsValue: 'id',
+                                       value: campaignForm.branchTarget"></select>
                     <label class="form-label small"><t key="crm.common.message">Mesaj</t></label>
                     <textarea class="form-control form-control-sm mb-2" rows="4" data-bind="value: campaignForm.messageTemplate"></textarea>
+                    <label class="form-label small"><t key="crm.salon.campaigns.segment_presets">Hazır Müşteri Grupları</t></label>
+                    <div class="d-flex flex-wrap gap-2 mb-2" data-bind="foreach: segmentPresets">
+                        <button type="button" class="btn btn-outline-secondary btn-sm text-start" data-bind="click: $parent.applySegmentPreset, attr: { title: description }">
+                            <span data-bind="text: name"></span>
+                            <span class="badge bg-light text-dark ms-1" data-bind="text: smsReachableClients + '/' + matchingClients"></span>
+                        </button>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 small text-muted mb-2">
+                        <span>Hedef: <strong data-bind="text: segmentPreviewCount"></strong></span>
+                        <span>SMS: <strong data-bind="text: segmentSmsReachableCount"></strong></span>
+                        <span>Telefon eksik: <strong data-bind="text: segmentMissingPhoneCount"></strong></span>
+                        <span>Maliyet: <strong data-bind="text: money(segmentEstimatedSmsCost())"></strong></span>
+                        <button type="button" class="btn btn-outline-info btn-sm py-0" data-bind="click: previewSegment"><i class="bi bi-eye me-1"></i>Önizle</button>
+                    </div>
                     <label class="form-label small"><t key="crm.common.schedule">Zamanlama</t></label>
                     <input type="datetime-local" class="form-control form-control-sm" data-bind="value: campaignForm.scheduledAt" />
                 </div>
-                <div class="modal-footer"><button class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">Iptal</t></button><button class="btn btn-primary btn-sm" data-bind="click: saveCampaign, disable: isSaving"><t key="crm.common.btn.save">Kaydet</t></button></div>
+                <div class="modal-footer"><button class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">İptal</t></button><button class="btn btn-primary btn-sm" data-bind="click: saveCampaign, disable: isSaving"><t key="crm.common.btn.save">Kaydet</t></button></div>
             </div>
         </div>
     </div>
@@ -95,18 +144,39 @@
     <div class="modal fade" id="salonReminderModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header"><h6 class="modal-title"><t key="crm.salon.campaigns.reminder_form_title">Hatirlatma</t></h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-header"><h6 class="modal-title"><t key="crm.salon.campaigns.reminder_form_title">Hatırlatma</t></h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
                     <label class="form-label small"><t key="crm.common.type">Tip</t></label>
-                    <select class="form-select form-select-sm mb-2" data-bind="value: reminderForm.reminderTypeId"><option value="1">Dogum gunu</option><option value="3">Randevu</option><option value="4">Pasif musteri</option></select>
+                    <select class="form-select form-select-sm mb-2" data-bind="value: reminderForm.reminderTypeId"><option value="1">Doğum günü</option><option value="3">Randevu</option><option value="4">Gelmeyen müşteri</option></select>
+                    <label class="form-label small"><t key="crm.salon.common.branch_target">Şube hedefi *</t></label>
+                    <select class="form-select form-select-sm mb-2"
+                            data-bind="options: branchTargetOptions,
+                                       optionsText: 'name',
+                                       optionsValue: 'id',
+                                       value: reminderForm.branchTarget"></select>
                     <label class="form-label small"><t key="crm.common.message">Mesaj</t></label>
                     <textarea class="form-control form-control-sm mb-2" rows="4" data-bind="value: reminderForm.messageTemplate"></textarea>
                     <div class="row g-2">
-                        <div class="col-6"><label class="form-label small">Gun oncesi</label><input type="number" class="form-control form-control-sm" data-bind="value: reminderForm.daysBefore" /></div>
-                        <div class="col-6"><label class="form-label small">Pasif gun</label><input type="number" class="form-control form-control-sm" data-bind="value: reminderForm.inactiveDaysThreshold" /></div>
+                        <div class="col-6"><label class="form-label small">Gün öncesi</label><input type="number" class="form-control form-control-sm" data-bind="value: reminderForm.daysBefore" /></div>
+                        <div class="col-6"><label class="form-label small">Kaç gün gelmeyince</label><input type="number" class="form-control form-control-sm" data-bind="value: reminderForm.inactiveDaysThreshold" /></div>
                     </div>
                 </div>
-                <div class="modal-footer"><button class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">Iptal</t></button><button class="btn btn-primary btn-sm" data-bind="click: saveReminder, disable: isSaving"><t key="crm.common.btn.save">Kaydet</t></button></div>
+                <div class="modal-footer"><button class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">İptal</t></button><button class="btn btn-primary btn-sm" data-bind="click: saveReminder, disable: isSaving"><t key="crm.common.btn.save">Kaydet</t></button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="salonReplyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h6 class="modal-title"><t key="crm.salon.campaigns.reply">Mesaj Yanıtı</t></h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <label class="form-label small"><t key="crm.salon.campaigns.phone">Telefon</t></label>
+                    <input type="text" class="form-control form-control-sm mb-2" data-bind="value: replyForm.phone" />
+                    <label class="form-label small"><t key="crm.common.message">Mesaj</t></label>
+                    <textarea class="form-control form-control-sm" rows="4" data-bind="value: replyForm.message"></textarea>
+                </div>
+                <div class="modal-footer"><button class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">İptal</t></button><button class="btn btn-primary btn-sm" data-bind="click: sendReply, disable: isSaving"><i class="bi bi-send me-1"></i>Gönder</button></div>
             </div>
         </div>
     </div>

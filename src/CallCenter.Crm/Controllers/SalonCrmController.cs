@@ -16,7 +16,7 @@ public class SalonCrmController : CrmBaseController
     {
         if (RequireCrmScope(CrmScopes.Salon) is { } denied) return denied;
 
-        ViewData["Title"] = "Salon - Uyelikler";
+        ViewData["Title"] = "Salon - Üyelikler";
         return View();
     }
 
@@ -24,7 +24,7 @@ public class SalonCrmController : CrmBaseController
     {
         if (RequireCrmScope(CrmScopes.Salon) is { } denied) return denied;
 
-        ViewData["Title"] = "Salon - Hediye Kartlari";
+        ViewData["Title"] = "Salon - Hediye Kartları";
         return View();
     }
 
@@ -40,7 +40,7 @@ public class SalonCrmController : CrmBaseController
     {
         if (RequireCrmScope(CrmScopes.Salon) is { } denied) return denied;
 
-        ViewData["Title"] = "Salon - E-posta Kampanyalari";
+        ViewData["Title"] = "Salon - E-posta Kampanyaları";
         return View();
     }
 
@@ -48,7 +48,7 @@ public class SalonCrmController : CrmBaseController
     {
         if (RequireCrmScope(CrmScopes.Salon) is { } denied) return denied;
 
-        ViewData["Title"] = "Salon - Yorum Yonetimi";
+        ViewData["Title"] = "Salon - Yorum Yönetimi";
         return View();
     }
 
@@ -56,7 +56,7 @@ public class SalonCrmController : CrmBaseController
     {
         if (RequireCrmScope(CrmScopes.Salon) is { } denied) return denied;
 
-        ViewData["Title"] = "Salon - Kayip Musteri Geri Kazanim";
+        ViewData["Title"] = "Salon - Kayıp Müşteri Geri Kazanım";
         return View();
     }
 }

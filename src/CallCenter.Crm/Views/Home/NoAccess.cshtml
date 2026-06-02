@@ -1,0 +1,29 @@
+@model CallCenter.Shared.DTOs.CrmEntitlementsDto
+@{
+    ViewData["Title"] = "CRM Paketi Aktif Değil";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-4 text-center">
+                <div class="rounded-circle bg-warning-subtle text-warning d-inline-flex align-items-center justify-content-center mb-3" style="width:64px;height:64px;">
+                    <i class="bi bi-lock" style="font-size: 2rem;"></i>
+                </div>
+                <h1 class="h4 mb-2">CRM paketi aktif değil</h1>
+                <p class="text-muted mb-4">
+                    Bu kullanıcı aynı hesapla giriş yapabilir; CRM ekranları için firmada ilgili CRM paketi veya modülünün aktif olması gerekir.
+                </p>
+
+                <div class="d-flex flex-wrap gap-2 justify-content-center">
+                    <a class="btn btn-primary" href="/Account/Logout">
+                        <i class="bi bi-box-arrow-left me-1"></i>Farklı hesapla gir
+                    </a>
+                    <a class="btn btn-outline-secondary" href="/">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Tekrar kontrol et
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

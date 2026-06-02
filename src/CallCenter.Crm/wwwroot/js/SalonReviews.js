@@ -4,10 +4,17 @@ function SalonReviewsViewModel() {
 
     self.reviews = ko.observableArray([]);
     self.stats = ko.observable({ totalReviews: 0, pendingCount: 0, approvedCount: 0, rejectedCount: 0, averageRating: 0 });
+    self.filterStatus = ko.observable(0);
 
+    var sourceTexts = {
+        1: t('crm.salon.reviews.source.internal', 'Dahili'),
+        2: 'Google',
+        3: 'Instagram',
+        4: 'Facebook'
+    };
     var statusTexts = {
         1: t('crm.salon.reviews.status.pending', 'Bekliyor'),
-        2: t('crm.salon.reviews.status.approved', 'Onaylandi'),
+        2: t('crm.salon.reviews.status.approved', 'Onaylandı'),
         3: t('crm.salon.reviews.status.rejected', 'Reddedildi')
     };
     var statusBadges = { 1: 'bg-warning text-dark', 2: 'bg-success', 3: 'bg-danger' };
@@ -28,6 +35,16 @@ function SalonReviewsViewModel() {
         return statusBadges[statusId] || 'bg-secondary';
     };
 
+    self.sourceText = function (sourceId) {
+        return sourceTexts[sourceId] || t('crm.common.unknown', 'Bilinmiyor');
+    };
+
+    self.filteredReviews = ko.computed(function () {
+        var status = parseInt(self.filterStatus(), 10) || 0;
+        if (!status) return self.reviews();
+        return self.reviews().filter(function (review) { return review.statusId === status; });
+    });
+
     self.dateText = function (value) {
         if (!value) return '-';
         var d = new Date(value);
@@ -37,7 +54,7 @@ function SalonReviewsViewModel() {
     self.loadData = function () {
         $.get('/proxy/crm/salon/reviews')
             .done(function (data) { self.reviews(items(data)); })
-            .fail(function (xhr) { toastr.error(readError(xhr, t('crm.salon.reviews.load_failed', 'Yorumlar yuklenemedi'))); });
+            .fail(function (xhr) { toastr.error(readError(xhr, t('crm.salon.reviews.load_failed', 'Yorumlar yüklenemedi'))); });
 
         $.get('/proxy/crm/salon/reviews/stats')
             .done(function (data) { self.stats(data || {}); })
@@ -48,13 +65,13 @@ function SalonReviewsViewModel() {
         $.ajax({ url: '/proxy/crm/salon/reviews/' + review.id + '/status/' + statusId, method: 'PUT' })
             .done(function () {
                 self.loadData();
-                toastr.success(t('crm.salon.reviews.status_saved', 'Yorum durumu guncellendi'));
+                toastr.success(t('crm.salon.reviews.status_saved', 'Yorum durumu güncellendi'));
             })
-            .fail(function (xhr) { toastr.error(readError(xhr, t('crm.salon.reviews.status_save_failed', 'Yorum durumu guncellenemedi'))); });
+            .fail(function (xhr) { toastr.error(readError(xhr, t('crm.salon.reviews.status_save_failed', 'Yorum durumu güncellenemedi'))); });
     };
 
     self.remove = function (review) {
-        confirmModal(t('crm.common.confirm', 'Onayla'), t('crm.salon.reviews.delete_confirm', 'Bu yorumu silmek istediginize emin misiniz?'), function () {
+        confirmModal(t('crm.common.confirm', 'Onayla'), t('crm.salon.reviews.delete_confirm', 'Bu yorumu silmek istediğinize emin misiniz?'), function () {
             $.ajax({ url: '/proxy/crm/salon/reviews/' + review.id, method: 'DELETE' })
                 .done(function () {
                     self.loadData();

@@ -3,12 +3,12 @@
 }
 
 <div id="reports-vm">
-    <!-- KPI Ozet -->
+    <!-- KPI Özet -->
     <div class="row g-2 mb-3">
         <div class="col-lg-3 col-6">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .7rem;">Toplam Kisi</div>
+                    <div class="text-muted" style="font-size: .7rem;">Toplam Kişi</div>
                     <div class="fw-bold text-primary fs-5" data-bind="text: dashboard().totalContacts || 0">0</div>
                 </div>
             </div>
@@ -16,7 +16,7 @@
         <div class="col-lg-3 col-6">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .7rem;">Acik Talepler</div>
+                    <div class="text-muted" style="font-size: .7rem;">Açık Talepler</div>
                     <div class="fw-bold text-danger fs-5" data-bind="text: dashboard().openTickets || 0">0</div>
                 </div>
             </div>
@@ -24,7 +24,7 @@
         <div class="col-lg-3 col-6">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .7rem;">Aktif Firsatlar</div>
+                    <div class="text-muted" style="font-size: .7rem;">Aktif Fırsatlar</div>
                     <div class="fw-bold text-success fs-5" data-bind="text: dashboard().activeDeals || 0">0</div>
                 </div>
             </div>
@@ -32,7 +32,7 @@
         <div class="col-lg-3 col-6">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .7rem;">Pipeline Degeri</div>
+                    <div class="text-muted" style="font-size: .7rem;">Fırsat Toplamı</div>
                     <div class="fw-bold text-info fs-5" data-bind="text: pipelineText">0 TL</div>
                 </div>
             </div>
@@ -40,11 +40,11 @@
     </div>
 
     <div class="row g-3">
-        <!-- Talep Dagilimi -->
+        <!-- Talep Dağılımı -->
         <div class="col-lg-6">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-transparent border-0 fw-semibold">
-                    <i class="bi bi-ticket-detailed-fill me-1"></i>Talep Durum Dagilimi
+                    <i class="bi bi-ticket-detailed-fill me-1"></i>Talep Durum Dağılımı
                 </div>
                 <div class="card-body">
                     <div data-bind="foreach: ticketStats">
@@ -65,11 +65,11 @@
             </div>
         </div>
 
-        <!-- Firsat Asamalari -->
+        <!-- Fırsat Aşamaları -->
         <div class="col-lg-6">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-transparent border-0 fw-semibold">
-                    <i class="bi bi-kanban-fill me-1"></i>Firsat Pipeline Dagilimi
+                    <i class="bi bi-kanban-fill me-1"></i>Fırsat Aşamaları
                 </div>
                 <div class="card-body">
                     <div data-bind="foreach: dealStats">
@@ -90,11 +90,11 @@
             </div>
         </div>
 
-        <!-- Son Etkilesimler -->
+        <!-- Son Etkileşimler -->
         <div class="col-lg-6">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-transparent border-0 fw-semibold">
-                    <i class="bi bi-clock-history me-1"></i>Son Etkilesimler
+                    <i class="bi bi-clock-history me-1"></i>Son Etkileşimler
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -110,17 +110,17 @@
                         </table>
                     </div>
                     <!-- ko if: recentActivities().length === 0 -->
-                    <div class="text-center text-muted py-3 small">Etkilesim yok</div>
+                    <div class="text-center text-muted py-3 small">Etkileşim yok</div>
                     <!-- /ko -->
                 </div>
             </div>
         </div>
 
-        <!-- Yaklasan Gorevler -->
+        <!-- Yaklaşan Görevler -->
         <div class="col-lg-6">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-transparent border-0 fw-semibold">
-                    <i class="bi bi-check2-square me-1"></i>Yaklasan Gorevler
+                    <i class="bi bi-check2-square me-1"></i>Yaklaşan Görevler
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -135,7 +135,7 @@
                         </table>
                     </div>
                     <!-- ko if: upcomingTasks().length === 0 -->
-                    <div class="text-center text-muted py-3 small">Gorev yok</div>
+                    <div class="text-center text-muted py-3 small">Görev yok</div>
                     <!-- /ko -->
                 </div>
             </div>

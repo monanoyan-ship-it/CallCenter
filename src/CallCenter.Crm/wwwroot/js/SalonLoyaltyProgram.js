@@ -40,7 +40,7 @@ function SalonLoyaltyProgramViewModel() {
     self.loadServices = function () {
         $.ajax({ url: '/proxy/crm/salon/services-lookup', method: 'GET' })
             .done(function (data) { self.services(normalizeList(data)); })
-            .fail(function (xhr) { toastr.error(t('crm.salon.loyalty.program.services_load_failed', 'Hizmetler yuklenemedi')); });
+            .fail(function (xhr) { toastr.error(t('crm.salon.loyalty.program.services_load_failed', 'Hizmetler yüklenemedi')); });
     };
 
     function resetForm() {
@@ -78,9 +78,9 @@ function SalonLoyaltyProgramViewModel() {
             isActive: !!self.form.isActive()
         };
         if (!payload.name) { toastr.warning(t('crm.salon.loyalty.program.validation.name', 'Ad zorunlu')); return; }
-        if (!payload.serviceId) { toastr.warning(t('crm.salon.loyalty.program.validation.service', 'Sayilan hizmet zorunlu')); return; }
-        if (!payload.rewardServiceId) { toastr.warning(t('crm.salon.loyalty.program.validation.reward', 'Odul hizmeti zorunlu')); return; }
-        if (payload.requiredVisits < 1) { toastr.warning(t('crm.salon.loyalty.program.validation.required', 'Esik en az 1 olmali')); return; }
+        if (!payload.serviceId) { toastr.warning(t('crm.salon.loyalty.program.validation.service', 'Takip edilecek hizmeti seçin')); return; }
+        if (!payload.rewardServiceId) { toastr.warning(t('crm.salon.loyalty.program.validation.reward', 'Ödül hizmeti zorunlu')); return; }
+        if (payload.requiredVisits < 1) { toastr.warning(t('crm.salon.loyalty.program.validation.required', 'Ziyaret sayısı en az 1 olmalı')); return; }
 
         var id = self.editingId();
         var url = id

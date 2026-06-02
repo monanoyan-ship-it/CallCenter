@@ -35,10 +35,10 @@ function DashboardViewModel() {
                 return t;
             }));
         }).fail(function() {
-            toastr.error('Dashboard verileri yuklenemedi');
+            toastr.error('Ana sayfa verileri yüklenemedi');
         });
 
-        // Cevapsizlari yukle
+        // Cevapsızları yükle
         self.loadCallbacks();
         self.loadPersonnel();
     };
@@ -75,21 +75,21 @@ function DashboardViewModel() {
             contentType: "application/json",
             data: JSON.stringify(self.assignForm.note()),
             success: function() {
-                toastr.success("Atama yapildi");
+                toastr.success("Atama yapıldı");
                 $("#assignModal").modal("hide");
                 self.loadCallbacks();
             },
-            error: function() { toastr.error("Hata olustu"); },
+            error: function() { toastr.error("Bir hata oluştu"); },
             complete: function() { self.isSaving(false); }
         });
     };
 
     self.formatTimeAgo = function(dateStr) {
         var diff = (new Date() - new Date(dateStr)) / 1000;
-        if (diff < 60) return 'Az once';
-        if (diff < 3600) return Math.floor(diff / 60) + ' dk once';
-        if (diff < 86400) return Math.floor(diff / 3600) + ' saat once';
-        return Math.floor(diff / 86400) + ' gun once';
+        if (diff < 60) return 'Az önce';
+        if (diff < 3600) return Math.floor(diff / 60) + ' dk önce';
+        if (diff < 86400) return Math.floor(diff / 3600) + ' saat önce';
+        return Math.floor(diff / 86400) + ' gün önce';
     };
 
     $(document).ready(function() {

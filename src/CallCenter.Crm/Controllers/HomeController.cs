@@ -8,7 +8,7 @@ public class HomeController : CrmBaseController
     {
         var entitlements = GetCrmEntitlements() ?? await RefreshCrmEntitlementsAsync();
         if (entitlements == null || string.IsNullOrWhiteSpace(entitlements.DefaultScope))
-            return RedirectToAction(nameof(Core));
+            return RedirectToAction(nameof(NoAccess));
 
         return entitlements.DefaultScope switch
         {
@@ -31,6 +31,13 @@ public class HomeController : CrmBaseController
     public IActionResult Overview()
     {
         ViewData["Title"] = "CRM Kapsamlari";
+        return View(GetCrmEntitlements());
+    }
+
+    public IActionResult NoAccess(string? scope)
+    {
+        ViewData["Title"] = "CRM Paketi Aktif Degil";
+        ViewBag.Scope = scope;
         return View(GetCrmEntitlements());
     }
 

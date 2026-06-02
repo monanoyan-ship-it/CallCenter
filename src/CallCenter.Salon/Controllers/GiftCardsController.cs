@@ -5,9 +5,6 @@ public class GiftCardsController : SlnBaseController
 {
     public IActionResult Index()
     {
-        if (MarketingRouteAccess.CanUseConsolidated(HttpContext))
-            return RedirectToAction("Index", "Marketing", new { tab = "giftcards" });
-
-        return View();
+        return MarketingRouteAccess.RedirectToCrm(this, "/SalonCrm/GiftCards");
     }
 }

@@ -96,7 +96,7 @@
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label small"><t key="salon.clients.auto.ad_soyad_required">Ad Soyad *</t></label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.fullName" />
+                            <input type="text" class="form-control form-control-sm" data-bind="textInput: form.fullName" />
                         </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.account.phone">Telefon *</t></label>
@@ -108,7 +108,7 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.account.email">E-posta</t></label>
-                            <input type="email" class="form-control form-control-sm" data-bind="value: form.email" />
+                            <input type="email" class="form-control form-control-sm" data-bind="textInput: form.email" />
                         </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.clients.auto.cinsiyet_2">Cinsiyet</t></label>
@@ -124,11 +124,11 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.clients.auto.sehir">Şehir</t></label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.city" />
+                            <input type="text" class="form-control form-control-sm" data-bind="textInput: form.city" />
                         </div>
                         <div class="col-12">
                             <label class="form-label small"><t key="salon.clients.auto.adres">Adres</t></label>
-                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.address"></textarea>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="textInput: form.address"></textarea>
                         </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.clients.auto.sac_rengi">Saç Rengi</t></label>
@@ -136,7 +136,7 @@
                                 <input type="text" class="form-control form-control-sm"
                                        placeholder="@(Translation.T("salon.clients.auto.placeholder_orn_siyah_kahverengi", "Örn: Siyah, Kahverengi..."))"
                                        autocomplete="off"
-                                       data-bind="value: query, valueUpdate: 'afterkeydown',
+                                       data-bind="textInput: query,
                                                   event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
                                 <div class="dropdown-menu w-100 shadow-sm" data-bind="visible: showDropdown() && filteredItems().length > 0" style="max-height:200px;overflow-y:auto;">
                                     <!-- ko foreach: filteredItems -->
@@ -154,7 +154,7 @@
                                 <input type="text" class="form-control form-control-sm"
                                        placeholder="@(Translation.T("salon.clients.auto.placeholder_orn_kuru_yagli_karma", "Örn: Kuru, Yağlı, Karma..."))"
                                        autocomplete="off"
-                                       data-bind="value: query, valueUpdate: 'afterkeydown',
+                                       data-bind="textInput: query,
                                                   event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
                                 <div class="dropdown-menu w-100 shadow-sm" data-bind="visible: showDropdown() && filteredItems().length > 0" style="max-height:200px;overflow-y:auto;">
                                     <!-- ko foreach: filteredItems -->
@@ -168,7 +168,7 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label small"><t key="salon.appointments.notes">Not</t></label>
-                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.notes"></textarea>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="textInput: form.notes"></textarea>
                         </div>
                     </div>
                 </div>

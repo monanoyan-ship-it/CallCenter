@@ -12,19 +12,19 @@
 <div class="mb-3">
     <h5 class="mb-1"><t key="crm.salon.loyalty.page_title">Salon - Sadakat</t></h5>
     <div class="text-muted small">
-        <t key="crm.salon.loyalty.tabs_hint">Iki ayri sadakat modu: TL bazli puan (Sadakat Puani) ve ziyaret bazli odul ("10 ziyaret 1 bedava" — Sadakat Programi).</t>
+        <t key="crm.salon.loyalty.tabs_hint">Müşteriler harcama yaptıkça puan kazanır; belirlediğiniz hizmetlere geldikçe ödül hakkı oluşur.</t>
     </div>
 </div>
 
 <ul class="nav nav-tabs" role="tablist">
     <li class="nav-item">
         <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#crm-tab-points" type="button">
-            <i class="bi bi-coin me-1"></i><t key="crm.salon.loyalty.tab.points">Sadakat Puani</t>
+            <i class="bi bi-coin me-1"></i><t key="crm.salon.loyalty.tab.points">Sadakat Puanı</t>
         </button>
     </li>
     <li class="nav-item">
         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#crm-tab-program" type="button">
-            <i class="bi bi-stars me-1"></i><t key="crm.salon.loyalty.tab.program">Sadakat Programi</t>
+            <i class="bi bi-stars me-1"></i><t key="crm.salon.loyalty.tab.program">Sadakat Programı</t>
         </button>
     </li>
 </ul>
@@ -35,18 +35,18 @@
             <div class="row g-3">
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm">
-                        <div class="card-header bg-white fw-semibold small"><t key="crm.salon.loyalty.settings">Sadakat Ayarlari</t></div>
+                        <div class="card-header bg-white fw-semibold small"><t key="crm.salon.loyalty.settings">Sadakat Ayarları</t></div>
                         <div class="card-body">
                             <div class="mb-3">
-                                <label class="form-label small"><t key="crm.salon.loyalty.points_per_tl">1 TL karsiligi puan</t></label>
+                                <label class="form-label small"><t key="crm.salon.loyalty.points_per_tl">1 TL karşılığı puan</t></label>
                                 <input type="number" min="0" step="0.01" class="form-control form-control-sm" data-bind="value: config.pointsPerTL" />
                             </div>
                             <div class="mb-3">
-                                <label class="form-label small"><t key="crm.salon.loyalty.point_value">1 puan degeri</t></label>
+                                <label class="form-label small"><t key="crm.salon.loyalty.point_value">1 puan değeri</t></label>
                                 <input type="number" min="0" step="0.01" class="form-control form-control-sm" data-bind="value: config.pointValue" />
                             </div>
                             <div class="mb-3">
-                                <label class="form-label small"><t key="crm.salon.loyalty.min_redeem_points">Minimum kullanim puani</t></label>
+                                <label class="form-label small"><t key="crm.salon.loyalty.min_redeem_points">Minimum kullanım puanı</t></label>
                                 <input type="number" min="0" step="1" class="form-control form-control-sm" data-bind="value: config.minRedeemPoints" />
                             </div>
                             <div class="form-check form-switch mb-3">
@@ -64,7 +64,7 @@
                 <div class="col-lg-8">
                     <div class="card border-0 shadow-sm">
                         <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                            <span class="fw-semibold small"><t key="crm.salon.loyalty.client_points">Musteri Puanlari</t></span>
+                            <span class="fw-semibold small"><t key="crm.salon.loyalty.client_points">Müşteri Puanları</t></span>
                             <button class="btn btn-outline-secondary btn-sm" data-bind="click: loadClients">
                                 <i class="bi bi-arrow-clockwise me-1"></i><t key="crm.common.btn.refresh">Yenile</t>
                             </button>
@@ -74,11 +74,11 @@
                                 <table class="table table-hover table-sm mb-0 align-middle">
                                     <thead class="table-light">
                                         <tr>
-                                            <th><t key="crm.salon.loyalty.client">Musteri</t></th>
-                                            <th><t key="crm.salon.loyalty.earned">Kazanilan</t></th>
+                                            <th><t key="crm.salon.loyalty.client">Müşteri</t></th>
+                                            <th><t key="crm.salon.loyalty.earned">Kazanılan</t></th>
                                             <th><t key="crm.salon.loyalty.spent">Harcanan</t></th>
                                             <th><t key="crm.salon.loyalty.balance">Bakiye</t></th>
-                                            <th><t key="crm.salon.loyalty.balance_value">TL Karsiligi</t></th>
+                                            <th><t key="crm.salon.loyalty.balance_value">TL Karşılığı</t></th>
                                         </tr>
                                     </thead>
                                     <tbody data-bind="foreach: clientLoyalties">
@@ -95,7 +95,7 @@
                             <!-- ko if: clientLoyalties().length === 0 -->
                             <div class="text-center text-muted py-4">
                                 <i class="crm-empty-icon bi bi-star"></i>
-                                <p class="mt-2 small"><t key="crm.salon.loyalty.empty">Sadakat puani olan musteri yok</t></p>
+                                <p class="mt-2 small"><t key="crm.salon.loyalty.empty">Sadakat puanı olan müşteri yok</t></p>
                             </div>
                             <!-- /ko -->
                         </div>
@@ -109,7 +109,7 @@
         <div id="salon-loyalty-program-vm">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="text-muted small">
-                    <t key="crm.salon.loyalty.program.hint">Tanimli ziyaret bazli programlari (10 fon 1 bedava gibi) ve musteri ilerlemelerini gosterir.</t>
+                    <t key="crm.salon.loyalty.program.hint">Belirli hizmetlere düzenli gelen müşterilere otomatik ödül tanımlayın.</t>
                 </div>
                 <button class="btn btn-outline-secondary btn-sm" data-bind="click: loadAll">
                     <i class="bi bi-arrow-clockwise me-1"></i><t key="crm.common.btn.refresh">Yenile</t>
@@ -118,9 +118,9 @@
 
             <div class="row g-2 mb-3">
                 <div class="col-md-3"><div class="border rounded p-2"><div class="small text-muted"><t key="crm.salon.loyalty.program.stat.programs">Program</t></div><div class="fs-5 fw-semibold" data-bind="text: programs().length"></div></div></div>
-                <div class="col-md-3"><div class="border rounded p-2"><div class="small text-muted"><t key="crm.salon.loyalty.program.stat.active">Aktif Sayim</t></div><div class="fs-5 fw-semibold" data-bind="text: progresses().length"></div></div></div>
-                <div class="col-md-3"><div class="border rounded p-2"><div class="small text-muted"><t key="crm.salon.loyalty.program.stat.earned">Toplam Kazanilan</t></div><div class="fs-5 fw-semibold" data-bind="text: totalEarned()"></div></div></div>
-                <div class="col-md-3"><div class="border rounded p-2"><div class="small text-muted"><t key="crm.salon.loyalty.program.stat.available">Kullanilabilir</t></div><div class="fs-5 fw-semibold" data-bind="text: totalAvailable()"></div></div></div>
+                <div class="col-md-3"><div class="border rounded p-2"><div class="small text-muted"><t key="crm.salon.loyalty.program.stat.active">Takipteki Müşteri</t></div><div class="fs-5 fw-semibold" data-bind="text: progresses().length"></div></div></div>
+                <div class="col-md-3"><div class="border rounded p-2"><div class="small text-muted"><t key="crm.salon.loyalty.program.stat.earned">Kazanılan Ödül</t></div><div class="fs-5 fw-semibold" data-bind="text: totalEarned()"></div></div></div>
+                <div class="col-md-3"><div class="border rounded p-2"><div class="small text-muted"><t key="crm.salon.loyalty.program.stat.available">Kullanılabilir Ödül</t></div><div class="fs-5 fw-semibold" data-bind="text: totalAvailable()"></div></div></div>
             </div>
 
             <div class="card border-0 shadow-sm mb-3">
@@ -135,11 +135,11 @@
                         <thead class="table-light">
                             <tr>
                                 <th><t key="crm.salon.loyalty.program.col.name">Ad</t></th>
-                                <th><t key="crm.salon.loyalty.program.col.service">Sayilan Hizmet</t></th>
-                                <th><t key="crm.salon.loyalty.program.col.required">Esik</t></th>
-                                <th><t key="crm.salon.loyalty.program.col.reward">Odul</t></th>
+                                <th><t key="crm.salon.loyalty.program.col.service">Takip Edilen Hizmet</t></th>
+                                <th><t key="crm.salon.loyalty.program.col.required">Gerekli Ziyaret</t></th>
+                                <th><t key="crm.salon.loyalty.program.col.reward">Ödül Hizmeti</t></th>
                                 <th><t key="crm.salon.loyalty.program.col.status">Durum</t></th>
-                                <th class="text-end"><t key="crm.salon.loyalty.program.col.actions">Islemler</t></th>
+                                <th class="text-end"><t key="crm.salon.loyalty.program.col.actions">İşlemler</t></th>
                             </tr>
                         </thead>
                         <tbody data-bind="foreach: programs">
@@ -164,7 +164,7 @@
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" data-bind="text: editingId() ? '@(Translation.T("crm.salon.loyalty.program.modal.edit_title", "Program Duzenle"))' : '@(Translation.T("crm.salon.loyalty.program.modal.new_title", "Yeni Program"))'"></h5>
+                            <h5 class="modal-title" data-bind="text: editingId() ? '@(Translation.T("crm.salon.loyalty.program.modal.edit_title", "Program Düzenle"))' : '@(Translation.T("crm.salon.loyalty.program.modal.new_title", "Yeni Program"))'"></h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <div class="modal-body">
@@ -173,15 +173,15 @@
                                 <input type="text" class="form-control form-control-sm" data-bind="textInput: form.name" />
                             </div>
                             <div class="mb-2">
-                                <label class="form-label small"><t key="crm.salon.loyalty.program.form.service">Sayilan Hizmet</t> *</label>
+                                <label class="form-label small"><t key="crm.salon.loyalty.program.form.service">Takip Edilen Hizmet</t> *</label>
                                 <select class="form-select form-select-sm" data-bind="options: services, optionsText: 'name', optionsValue: 'id', value: form.serviceId, optionsCaption: '—'"></select>
                             </div>
                             <div class="mb-2">
-                                <label class="form-label small"><t key="crm.salon.loyalty.program.form.required">Esik (Kac Ziyaret)</t> *</label>
+                                <label class="form-label small"><t key="crm.salon.loyalty.program.form.required">Kaç Ziyaret Sonra</t> *</label>
                                 <input type="number" min="1" class="form-control form-control-sm" data-bind="textInput: form.requiredVisits" />
                             </div>
                             <div class="mb-2">
-                                <label class="form-label small"><t key="crm.salon.loyalty.program.form.reward">Odul Hizmeti</t> *</label>
+                                <label class="form-label small"><t key="crm.salon.loyalty.program.form.reward">Ödül Hizmeti</t> *</label>
                                 <select class="form-select form-select-sm" data-bind="options: services, optionsText: 'name', optionsValue: 'id', value: form.rewardServiceId, optionsCaption: '—'"></select>
                             </div>
                             <div class="form-check">
@@ -190,7 +190,7 @@
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">Vazgec</t></button>
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">Vazgeç</t></button>
                             <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveProgram"><t key="crm.common.btn.save">Kaydet</t></button>
                         </div>
                     </div>
@@ -198,16 +198,16 @@
             </div>
 
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-white"><strong><t key="crm.salon.loyalty.program.client_progress">Musteri Ilerleme</t></strong></div>
+                <div class="card-header bg-white"><strong><t key="crm.salon.loyalty.program.client_progress">Müşteri Takibi</t></strong></div>
                 <div class="card-body p-0">
                     <table class="table table-hover table-sm mb-0 align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th><t key="crm.salon.loyalty.program.col.client">Musteri</t></th>
+                                <th><t key="crm.salon.loyalty.program.col.client">Müşteri</t></th>
                                 <th><t key="crm.salon.loyalty.program.col.program">Program</t></th>
-                                <th><t key="crm.salon.loyalty.program.col.progress">Ilerleme</t></th>
-                                <th><t key="crm.salon.loyalty.program.col.earned">Kazanildi</t></th>
-                                <th><t key="crm.salon.loyalty.program.col.available">Kalan</t></th>
+                                <th><t key="crm.salon.loyalty.program.col.progress">Ziyaret</t></th>
+                                <th><t key="crm.salon.loyalty.program.col.earned">Kazanılan Ödül</t></th>
+                                <th><t key="crm.salon.loyalty.program.col.available">Kullanılabilir</t></th>
                             </tr>
                         </thead>
                         <tbody data-bind="foreach: progresses">

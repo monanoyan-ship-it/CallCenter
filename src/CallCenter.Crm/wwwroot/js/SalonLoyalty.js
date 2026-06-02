@@ -28,7 +28,7 @@ function SalonLoyaltyViewModel() {
                 self.config.isActive(data.isActive !== false);
             })
             .fail(function (xhr) {
-                toastr.error(readError(xhr, t('crm.salon.loyalty.config_load_failed', 'Sadakat ayarlari yuklenemedi')));
+                toastr.error(readError(xhr, t('crm.salon.loyalty.config_load_failed', 'Sadakat ayarları yüklenemedi')));
             });
     };
 
@@ -47,9 +47,9 @@ function SalonLoyaltyViewModel() {
             contentType: 'application/json',
             data: JSON.stringify(payload)
         }).done(function () {
-            toastr.success(t('crm.salon.loyalty.config_saved', 'Sadakat ayarlari kaydedildi'));
+            toastr.success(t('crm.salon.loyalty.config_saved', 'Sadakat ayarları kaydedildi'));
         }).fail(function (xhr) {
-            toastr.error(readError(xhr, t('crm.salon.loyalty.config_save_failed', 'Sadakat ayarlari kaydedilemedi')));
+            toastr.error(readError(xhr, t('crm.salon.loyalty.config_save_failed', 'Sadakat ayarları kaydedilemedi')));
         }).always(function () {
             self.isSaving(false);
         });
@@ -61,7 +61,7 @@ function SalonLoyaltyViewModel() {
                 self.clientLoyalties(data.items || data || []);
             })
             .fail(function (xhr) {
-                toastr.error(readError(xhr, t('crm.salon.loyalty.clients_load_failed', 'Musteri puanlari yuklenemedi')));
+                toastr.error(readError(xhr, t('crm.salon.loyalty.clients_load_failed', 'Müşteri puanları yüklenemedi')));
             });
     };
 

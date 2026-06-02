@@ -17,6 +17,7 @@ public abstract class SlnBaseController : Controller
     {
         var controllerType = context.Controller.GetType();
         var jwt = HttpContext.GetJwtIdentity();
+        var isCrmRedirectController = IsCrmRedirectController(controllerType);
 
         // Auth — token cookie yoksa Login'e (Account muaf)
         if (!jwt.IsAuthenticated && controllerType != typeof(AccountController))
@@ -35,7 +36,7 @@ public abstract class SlnBaseController : Controller
             var roleId = jwt.CustomerRoleId > 0 ? jwt.CustomerRoleId : 101;
 
             // Rol bazli
-            if (!string.IsNullOrEmpty(controllerName) && !SalonRolePermissions.CanAccess(roleId, controllerName))
+            if (!isCrmRedirectController && !string.IsNullOrEmpty(controllerName) && !SalonRolePermissions.CanAccess(roleId, controllerName))
             {
                 if (TryRefreshCurrentSession(context, jwt.Token))
                     return;
@@ -46,7 +47,7 @@ public abstract class SlnBaseController : Controller
 
             // Modul bazli
             var modulesCsv = jwt.CustomerModules;
-            if (!string.IsNullOrEmpty(modulesCsv) && !string.IsNullOrEmpty(controllerName))
+            if (!isCrmRedirectController && !string.IsNullOrEmpty(modulesCsv) && !string.IsNullOrEmpty(controllerName))
             {
                 var activeModuleIds = modulesCsv.Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(s => int.TryParse(s.Trim(), out var id) ? id : 0)
@@ -71,7 +72,8 @@ public abstract class SlnBaseController : Controller
             // Abonelik + 5 gun tahakkuk gecikmesi: panel kilidi canAccessPanel ile
             if (controllerType != typeof(SubscriptionRequiredController)
                 && controllerType != typeof(AccountController)
-                && controllerType != typeof(ModulesController))
+                && controllerType != typeof(ModulesController)
+                && !isCrmRedirectController)
             {
                 var panelC = HttpContext.Request.Cookies[CookiePanelAccess];
                 var strictC = HttpContext.Request.Cookies[CookieStrictSubscription];
@@ -108,6 +110,15 @@ public abstract class SlnBaseController : Controller
 
         base.OnActionExecuting(context);
     }
+
+    private static bool IsCrmRedirectController(Type controllerType)
+        => controllerType == typeof(MarketingController)
+           || controllerType == typeof(CampaignsController)
+           || controllerType == typeof(EmailCampaignsController)
+           || controllerType == typeof(GiftCardsController)
+           || controllerType == typeof(MembershipsController)
+           || controllerType == typeof(ReviewsController)
+           || controllerType == typeof(WinbackController);
 
     private async Task<(bool CanAccessPanel, bool HasActiveSubscription)> CheckPanelAccessAsync(string token)
     {

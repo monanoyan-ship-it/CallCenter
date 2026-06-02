@@ -152,7 +152,7 @@ function ProductsViewModel() {
 
     function setDefaultBranchTarget(observable) {
         var branches = self.branches();
-        observable(getCurrentBranchId() || (branches.length === 1 ? branches[0].id : ''));
+        observable(getCurrentBranchId() || (branches.length ? branches[0].id : ''));
     }
 
     function resolveBranchTarget(value) {

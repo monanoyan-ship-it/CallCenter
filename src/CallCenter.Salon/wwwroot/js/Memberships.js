@@ -235,8 +235,11 @@ function MembershipsViewModel() {
     };
 
     // Uye islemleri
-    self.openNewMember = function () {
-        self.memberForm.planId(null); self.memberForm.slnClientId(null); self.clientAutocomplete.clear();
+    self.openNewMember = function (plan) {
+        var planId = plan && plan.id ? plan.id : null;
+        self.memberForm.planId(planId);
+        self.memberForm.slnClientId(null);
+        self.clientAutocomplete.clear();
         memberModal.show();
     };
 

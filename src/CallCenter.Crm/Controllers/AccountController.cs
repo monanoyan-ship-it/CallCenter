@@ -7,16 +7,20 @@ namespace CallCenter.Crm.Controllers;
 public class AccountController : CrmBaseController
 {
     [HttpGet]
-    public IActionResult Login()
+    public IActionResult Login(string? returnUrl = null)
     {
         if (!string.IsNullOrEmpty(HttpContext.Session.GetString("Token")))
-            return RedirectToAction("Index", "Home");
+            return RedirectAfterLogin(returnUrl);
+
+        ViewBag.ReturnUrl = returnUrl ?? "";
         return View();
     }
 
     [HttpPost]
-    public async Task<IActionResult> Login(string username, string password)
+    public async Task<IActionResult> Login(string username, string password, string? returnUrl = null)
     {
+        ViewBag.ReturnUrl = returnUrl ?? "";
+
         using var client = CreateApiClient();
         var payload = JsonSerializer.Serialize(new { username, password });
         var response = await client.PostAsync("api/auth/login",
@@ -66,6 +70,14 @@ public class AccountController : CrmBaseController
         catch { /* JWT parse hatasi olursa login akisini engelleme */ }
 
         await RefreshCrmEntitlementsAsync();
+
+        return RedirectAfterLogin(returnUrl);
+    }
+
+    private IActionResult RedirectAfterLogin(string? returnUrl)
+    {
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return Redirect(returnUrl);
 
         return RedirectToAction("Index", "Home");
     }

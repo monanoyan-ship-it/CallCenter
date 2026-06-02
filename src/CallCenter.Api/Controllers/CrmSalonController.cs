@@ -15,6 +15,7 @@ public class CrmSalonController : ControllerBase
     private const string BranchTargetRequiredMessage = "Sube secin veya Tum Subeler secenegini secin";
 
     private readonly ISlnClientFactory _clients;
+    private readonly ISlnBranchFactory _branches;
     private readonly ISlnGiftCardFactory _giftCards;
     private readonly ISlnMembershipFactory _memberships;
     private readonly ISlnLoyaltyFactory _loyalty;
@@ -24,9 +25,11 @@ public class CrmSalonController : ControllerBase
     private readonly ISlnReviewFactory _reviews;
     private readonly ISlnWinbackFactory _winback;
     private readonly ISlnServiceFactory _services;
+    private readonly ISlnWhatsAppFactory _whatsApp;
 
     public CrmSalonController(
         ISlnClientFactory clients,
+        ISlnBranchFactory branches,
         ISlnGiftCardFactory giftCards,
         ISlnMembershipFactory memberships,
         ISlnLoyaltyFactory loyalty,
@@ -35,9 +38,11 @@ public class CrmSalonController : ControllerBase
         ISlnEmailCampaignFactory emailCampaigns,
         ISlnReviewFactory reviews,
         ISlnWinbackFactory winback,
-        ISlnServiceFactory services)
+        ISlnServiceFactory services,
+        ISlnWhatsAppFactory whatsApp)
     {
         _clients = clients;
+        _branches = branches;
         _giftCards = giftCards;
         _memberships = memberships;
         _loyalty = loyalty;
@@ -47,6 +52,7 @@ public class CrmSalonController : ControllerBase
         _reviews = reviews;
         _winback = winback;
         _services = services;
+        _whatsApp = whatsApp;
     }
 
     [HttpGet("clients")]
@@ -67,6 +73,25 @@ public class CrmSalonController : ControllerBase
         if (customerId == 0) return Unauthorized();
 
         return Ok(await _clients.CreateClientAsync(dto, customerId, GetBranchId() ?? branchId));
+    }
+
+    [HttpGet("branches")]
+    [RequireAnyModule(
+        CrmModules.Ids.SalonGiftCards,
+        CrmModules.Ids.SalonMemberships,
+        CrmModules.Ids.SalonLoyalty,
+        CrmModules.Ids.SalonCampaigns,
+        CrmModules.Ids.SalonEmailCampaigns,
+        CrmModules.Ids.SalonReviews,
+        CrmModules.Ids.SalonWinback)]
+    public async Task<ActionResult<List<SlnBranchDto>>> GetBranches()
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var branches = await _branches.GetBranchesAsync(customerId);
+        var branchId = GetBranchId();
+        return Ok(branchId.HasValue ? branches.Where(b => b.Id == branchId.Value).ToList() : branches);
     }
 
     [HttpGet("gift-cards")]
@@ -258,7 +283,11 @@ public class CrmSalonController : ControllerBase
     // ── Sadakat Programi (D — punch card) ─────────────────────────────
 
     [HttpGet("services-lookup")]
-    [RequireAnyModule(SalonPortalModules.Ids.SlnLoyalty, CrmModules.Ids.SalonLoyalty)]
+    [RequireAnyModule(
+        SalonPortalModules.Ids.SlnLoyalty,
+        SalonPortalModules.Ids.SlnMemberships,
+        CrmModules.Ids.SalonLoyalty,
+        CrmModules.Ids.SalonMemberships)]
     public async Task<ActionResult> GetServicesLookup()
     {
         var customerId = GetCustomerId();
@@ -471,6 +500,27 @@ public class CrmSalonController : ControllerBase
 
         var (success, error) = await _marketing.ToggleReminderAsync(id, customerId, GetBranchId() ?? branchId);
         return success ? Ok() : BadRequest(new { error });
+    }
+
+    [HttpGet("whatsapp/messages")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnCampaigns, CrmModules.Ids.SalonCampaigns)]
+    public async Task<ActionResult> GetWhatsAppMessages([FromQuery] int page = 1, [FromQuery] int pageSize = 50, [FromQuery] int? branchId = null)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        return Ok(await _whatsApp.GetMessagesAsync(customerId, page, pageSize, GetBranchId() ?? branchId));
+    }
+
+    [HttpPost("whatsapp/send-message")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnCampaigns, CrmModules.Ids.SalonCampaigns)]
+    public async Task<ActionResult> SendWhatsAppMessage([FromBody] SendTestDto dto, [FromQuery] int? branchId)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var success = await _whatsApp.SendMessageAsync(customerId, dto.Phone, dto.Message, GetBranchId() ?? branchId);
+        return success ? Ok(new { success = true }) : BadRequest(new { error = "Mesaj gonderilemedi" });
     }
 
     [HttpGet("email-campaigns")]

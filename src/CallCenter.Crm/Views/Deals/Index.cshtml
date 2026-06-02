@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "Firsatlar";
+    ViewData["Title"] = "Fırsatlar";
 }
 
 <div id="deals-vm">
@@ -8,20 +8,20 @@
         <div class="d-flex gap-2">
             <div class="input-group" style="max-width: 280px;">
                 <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control" placeholder="Firsat ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+                <input type="text" class="form-control" placeholder="Fırsat ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
             </div>
             <select class="form-select form-select-sm" style="width: 140px;" data-bind="value: stageFilter">
-                <option value="">Tum Asamalar</option>
-                <option value="1">Lead</option>
+                <option value="">Tüm Aşamalar</option>
+                <option value="1">Yeni</option>
                 <option value="2">Nitelikli</option>
                 <option value="3">Teklif</option>
-                <option value="4">Muzakere</option>
-                <option value="5">Kazanildi</option>
+                <option value="4">Görüşme</option>
+                <option value="5">Kazanıldı</option>
                 <option value="6">Kaybedildi</option>
             </select>
         </div>
         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
-            <i class="bi bi-plus-lg me-1"></i>Yeni Firsat
+            <i class="bi bi-plus-lg me-1"></i>Yeni Fırsat
         </button>
     </div>
 
@@ -30,7 +30,7 @@
         <div class="col-2">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .65rem;">Lead</div>
+                    <div class="text-muted" style="font-size: .65rem;">Yeni</div>
                     <div class="fw-bold small text-secondary" data-bind="text: stageCounts().lead">0</div>
                 </div>
             </div>
@@ -54,7 +54,7 @@
         <div class="col-2">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .65rem;">Muzakere</div>
+                    <div class="text-muted" style="font-size: .65rem;">Görüşme</div>
                     <div class="fw-bold small text-warning" data-bind="text: stageCounts().negotiation">0</div>
                 </div>
             </div>
@@ -62,7 +62,7 @@
         <div class="col-2">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .65rem;">Kazanildi</div>
+                    <div class="text-muted" style="font-size: .65rem;">Kazanıldı</div>
                     <div class="fw-bold small text-success" data-bind="text: stageCounts().won">0</div>
                 </div>
             </div>
@@ -84,11 +84,11 @@
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Firsat Adi</th>
-                            <th>Kisi / Firma</th>
-                            <th>Deger</th>
-                            <th>Asama</th>
-                            <th>Olasilik</th>
+                            <th>Fırsat Adı</th>
+                            <th>Kişi / Firma</th>
+                            <th>Değer</th>
+                            <th>Aşama</th>
+                            <th>Olasılık</th>
                             <th>Kapanma</th>
                             <th style="width: 80px;"></th>
                         </tr>
@@ -105,7 +105,7 @@
                             <td class="small text-muted" data-bind="text: expectedCloseDate ? new Date(expectedCloseDate).toLocaleDateString('tr-TR') : '-'"></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-secondary" title="Duzenle" data-bind="click: $parent.openEdit">
+                                    <button class="btn btn-outline-secondary" title="Düzenle" data-bind="click: $parent.openEdit">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <button class="btn btn-outline-danger" title="Sil" data-bind="click: $parent.remove">
@@ -120,7 +120,7 @@
             <!-- ko if: filteredDeals().length === 0 -->
             <div class="text-center text-muted py-4">
                 <i class="bi bi-kanban" style="font-size: 2rem;"></i>
-                <p class="mt-2 small">Henuz firsat yok</p>
+                <p class="mt-2 small">Henüz fırsat yok</p>
             </div>
             <!-- /ko -->
         </div>
@@ -128,7 +128,7 @@
 
     <!-- Total Pipeline -->
     <div class="text-end mt-2">
-        <span class="text-muted small">Toplam Pipeline: </span>
+        <span class="text-muted small">Fırsat Toplamı: </span>
         <span class="fw-bold text-success" data-bind="text: totalPipeline"></span>
     </div>
 
@@ -137,40 +137,40 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Firsat Duzenle' : 'Yeni Firsat'"></h6>
+                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Fırsatı Düzenle' : 'Yeni Fırsat'"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Firsat Adi *</label>
+                            <label class="form-label small">Fırsat Adı *</label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.title" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Kisi</label>
-                            <select class="form-select form-select-sm" data-bind="options: contactsList, optionsText: 'fullName', optionsValue: 'id', value: form.contactId, optionsCaption: 'Secin'"></select>
+                            <label class="form-label small">Kişi</label>
+                            <select class="form-select form-select-sm" data-bind="options: contactsList, optionsText: 'fullName', optionsValue: 'id', value: form.contactId, optionsCaption: 'Seçin'"></select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Deger (TL)</label>
+                            <label class="form-label small">Değer (TL)</label>
                             <input type="number" class="form-control form-control-sm" data-bind="value: form.value" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Asama</label>
+                            <label class="form-label small">Aşama</label>
                             <select class="form-select form-select-sm" data-bind="value: form.stageId">
-                                <option value="1">Lead</option>
+                                <option value="1">Yeni</option>
                                 <option value="2">Nitelikli</option>
                                 <option value="3">Teklif</option>
-                                <option value="4">Muzakere</option>
-                                <option value="5">Kazanildi</option>
+                                <option value="4">Görüşme</option>
+                                <option value="5">Kazanıldı</option>
                                 <option value="6">Kaybedildi</option>
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Olasilik (%)</label>
+                            <label class="form-label small">Olasılık (%)</label>
                             <input type="number" min="0" max="100" class="form-control form-control-sm" data-bind="value: form.probability" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Beklenen Kapanma</label>
+                            <label class="form-label small">Beklenen Sonuç Tarihi</label>
                             <input type="date" class="form-control form-control-sm" data-bind="value: form.expectedCloseDate" />
                         </div>
                         <div class="col-12">
@@ -180,7 +180,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet

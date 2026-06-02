@@ -1,6 +1,6 @@
 @model CallCenter.Shared.DTOs.CrmEntitlementsDto
 @{
-    ViewData["Title"] = "CRM Kapsamlari";
+    ViewData["Title"] = "CRM Uygulamaları";
     var scopes = Model?.Scopes ?? new List<CallCenter.Shared.DTOs.CrmScopeDto>();
 }
 
@@ -15,7 +15,7 @@
                     </span>
                     <div>
                         <div class="fw-semibold">@scope.Label</div>
-                        <div class="small text-muted">Dashboard</div>
+                        <div class="small text-muted">Ana sayfa</div>
                     </div>
                 </div>
             </a>

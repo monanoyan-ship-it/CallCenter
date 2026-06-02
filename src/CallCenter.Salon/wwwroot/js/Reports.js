@@ -4,6 +4,11 @@ function ReportsViewModel() {
     function reportT(key, fallback) {
         return (window.salonT || function (k, f) { return f || k; })(key, fallback);
     }
+    function crmUrl(path) {
+        var data = document.getElementById('salon-layout-data');
+        var base = data ? (data.getAttribute('data-crm-base') || '') : '';
+        return base.replace(/\/$/, '') + path;
+    }
 
     // Tarih araligi
     var today = new Date();
@@ -108,7 +113,7 @@ function ReportsViewModel() {
                     reportT('salon.reports.actions.low_occupancy.title', 'Doluluk düşük'),
                     reportT('salon.reports.actions.low_occupancy.desc', 'Doluluk {percent}. Boş saatler için kısa bir kampanya veya hatırlatma gönderebilirsiniz.')
                         .replace('{percent}', self.formatPercent(overview.occupancyPercent)),
-                    '/Marketing',
+                    crmUrl('/SalonCrm/Campaigns'),
                     reportT('salon.sidebar.marketing', 'Müşteri İlişkileri'));
             }
             if (asNumber(overview.activeClientCount) > 0 && asNumber(overview.repeatVisitRatePercent) < 25) {
@@ -116,7 +121,7 @@ function ReportsViewModel() {
                     reportT('salon.reports.actions.low_repeat.title', 'Müşteriler yeterince sık dönmüyor'),
                     reportT('salon.reports.actions.low_repeat.desc', 'Tekrar ziyaret {percent}. Sadakat, hatırlatma veya geri çağırma kampanyası deneyin.')
                         .replace('{percent}', self.formatPercent(overview.repeatVisitRatePercent)),
-                    '/Marketing',
+                    crmUrl('/SalonCrm/Loyalty'),
                     reportT('salon.sidebar.marketing', 'Müşteri İlişkileri'));
             }
         }
@@ -202,7 +207,7 @@ function ReportsViewModel() {
                 add('medium', 'bi-person-plus',
                     reportT('salon.reports.actions.no_new_clients.title', 'Yeni müşteri gelmemiş'),
                     reportT('salon.reports.actions.no_new_clients.desc', 'Bu dönemde yeni müşteri yok; profil ve randevu linklerini yeniden paylaşmayı deneyin.'),
-                    '/Marketing',
+                    crmUrl('/SalonCrm/Campaigns'),
                     reportT('salon.sidebar.marketing', 'Müşteri İlişkileri'));
             }
             if (asNumber(clients.totalClients) > 0 && asNumber(clients.averageVisitFrequency) < 1.2) {
@@ -210,7 +215,7 @@ function ReportsViewModel() {
                     reportT('salon.reports.actions.low_visit_frequency.title', 'Ziyaret sıklığı düşük'),
                     reportT('salon.reports.actions.low_visit_frequency.desc', 'Ortalama ziyaret {count}. Tekrar randevu hatırlatması gönderebilirsiniz.')
                         .replace('{count}', self.formatNumber(clients.averageVisitFrequency, 1)),
-                    '/Marketing',
+                    crmUrl('/SalonCrm/Winback'),
                     reportT('salon.sidebar.marketing', 'Müşteri İlişkileri'));
             }
         }

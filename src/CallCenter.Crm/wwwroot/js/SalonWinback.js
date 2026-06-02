@@ -38,7 +38,7 @@ function SalonWinbackViewModel() {
     self.loadData = function () {
         $.get('/proxy/crm/salon/winback')
             .done(function (data) { self.rules(items(data)); })
-            .fail(function (xhr) { toastr.error(readError(xhr, t('crm.salon.winback.load_failed', 'Geri kazanim kurallari yuklenemedi'))); });
+            .fail(function (xhr) { toastr.error(readError(xhr, t('crm.salon.winback.load_failed', 'Geri kazanım planları yüklenemedi'))); });
     };
 
     self.openNew = function () {
@@ -93,29 +93,29 @@ function SalonWinbackViewModel() {
             .done(function () {
                 formModal.hide();
                 self.loadData();
-                toastr.success(t('crm.salon.winback.saved', 'Geri kazanim kurali kaydedildi'));
+                toastr.success(t('crm.salon.winback.saved', 'Geri kazanım planı kaydedildi'));
             })
-            .fail(function (xhr) { toastr.error(readError(xhr, t('crm.salon.winback.save_failed', 'Geri kazanim kurali kaydedilemedi'))); })
+            .fail(function (xhr) { toastr.error(readError(xhr, t('crm.salon.winback.save_failed', 'Geri kazanım planı kaydedilemedi'))); })
             .always(function () { self.isSaving(false); });
     };
 
     self.previewRule = function (rule) {
         $.get('/proxy/crm/salon/winback/' + rule.id + '/preview')
             .done(function (data) {
-                var msg = t('crm.salon.winback.preview_text', 'Uygun musteri: {eligible}, SMS: {sms}, e-posta: {email}')
+                var msg = t('crm.salon.winback.preview_text', 'Uygun müşteri: {eligible}, SMS: {sms}, e-posta: {email}')
                     .replace('{eligible}', data.eligibleClients || 0)
                     .replace('{sms}', data.smsReachableClients || 0)
                     .replace('{email}', data.emailReachableClients || 0);
-                toastr.info(msg, rule.name || t('crm.salon.winback.preview_title', 'Onizleme'));
+                toastr.info(msg, rule.name || t('crm.salon.winback.preview_title', 'Önizleme'));
             })
-            .fail(function (xhr) { toastr.error(readError(xhr, t('crm.salon.winback.preview_failed', 'Onizleme alinamadi'))); });
+            .fail(function (xhr) { toastr.error(readError(xhr, t('crm.salon.winback.preview_failed', 'Önizleme alınamadı'))); });
     };
 
     self.createCampaign = function (rule) {
-        confirmModal(t('crm.common.confirm', 'Onayla'), t('crm.salon.winback.create_campaign_confirm', "'{name}' kuralindan kampanya olusturulsun mu?").replace('{name}', rule.name || ''), function () {
+        confirmModal(t('crm.common.confirm', 'Onayla'), t('crm.salon.winback.create_campaign_confirm', "'{name}' planından kampanya oluşturulsun mu?").replace('{name}', rule.name || ''), function () {
             $.ajax({ url: '/proxy/crm/salon/winback/' + rule.id + '/create-campaign', method: 'POST' })
-                .done(function () { toastr.success(t('crm.salon.winback.campaign_created', 'Geri kazanim kampanyasi olusturuldu')); })
-                .fail(function (xhr) { toastr.error(readError(xhr, t('crm.salon.winback.campaign_create_failed', 'Kampanya olusturulamadi'))); });
+                .done(function () { toastr.success(t('crm.salon.winback.campaign_created', 'Geri kazanım kampanyası oluşturuldu')); })
+                .fail(function (xhr) { toastr.error(readError(xhr, t('crm.salon.winback.campaign_create_failed', 'Kampanya oluşturulamadı'))); });
         });
     };
 
@@ -123,17 +123,17 @@ function SalonWinbackViewModel() {
         $.ajax({ url: '/proxy/crm/salon/winback/' + rule.id + '/toggle', method: 'POST' })
             .done(function () {
                 self.loadData();
-                toastr.success(t('crm.common.status_changed', 'Durum degistirildi'));
+                toastr.success(t('crm.common.status_changed', 'Durum değiştirildi'));
             })
-            .fail(function (xhr) { toastr.error(readError(xhr, t('crm.common.status_change_failed', 'Durum degistirilemedi'))); });
+            .fail(function (xhr) { toastr.error(readError(xhr, t('crm.common.status_change_failed', 'Durum değiştirilemedi'))); });
     };
 
     self.remove = function (rule) {
-        confirmModal(t('crm.common.confirm', 'Onayla'), t('crm.salon.winback.delete_confirm', 'Bu geri kazanim kuralini silmek istediginize emin misiniz?'), function () {
+        confirmModal(t('crm.common.confirm', 'Onayla'), t('crm.salon.winback.delete_confirm', 'Bu geri kazanım planını silmek istediğinize emin misiniz?'), function () {
             $.ajax({ url: '/proxy/crm/salon/winback/' + rule.id, method: 'DELETE' })
                 .done(function () {
                     self.loadData();
-                    toastr.success(t('crm.salon.winback.deleted', 'Geri kazanim kurali silindi'));
+                    toastr.success(t('crm.salon.winback.deleted', 'Geri kazanım planı silindi'));
                 })
                 .fail(function (xhr) { toastr.error(readError(xhr, t('crm.common.delete_failed', 'Silinemedi'))); });
         });

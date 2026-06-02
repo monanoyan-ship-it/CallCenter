@@ -43,7 +43,7 @@ function SalonGiftCardsViewModel() {
                 self.cards(data.items || data || []);
             })
             .fail(function (xhr) {
-                toastr.error(readError(xhr, t('crm.salon.giftcards.load_failed', 'Hediye kartlari yuklenemedi')));
+                toastr.error(readError(xhr, t('crm.salon.giftcards.load_failed', 'Hediye kartları yüklenemedi')));
             });
     };
 
@@ -83,9 +83,9 @@ function SalonGiftCardsViewModel() {
         }).done(function (card) {
             formModal.hide();
             self.loadData();
-            toastr.success(t('crm.salon.giftcards.created', 'Hediye karti olusturuldu: ') + (card.code || ''));
+            toastr.success(t('crm.salon.giftcards.created', 'Hediye kartı oluşturuldu: ') + (card.code || ''));
         }).fail(function (xhr) {
-            toastr.error(readError(xhr, t('crm.salon.giftcards.create_failed', 'Hediye karti olusturulamadi')));
+            toastr.error(readError(xhr, t('crm.salon.giftcards.create_failed', 'Hediye kartı oluşturulamadı')));
         }).always(function () {
             self.isSaving(false);
         });
@@ -93,17 +93,17 @@ function SalonGiftCardsViewModel() {
 
     self.deactivate = function (card) {
         confirmModal(
-            t('crm.salon.giftcards.close_title', 'Hediye Kartini Kapat'),
-            t('crm.salon.giftcards.close_confirm', "'{code}' kartini kapatmak istediginize emin misiniz?").replace('{code}', card.code || ''),
+            t('crm.salon.giftcards.close_title', 'Hediye Kartını Kapat'),
+            t('crm.salon.giftcards.close_confirm', "'{code}' kartını kapatmak istediğinize emin misiniz?").replace('{code}', card.code || ''),
             function () {
             $.ajax({
                 url: '/proxy/crm/salon/gift-cards/' + card.id + '/deactivate',
                 method: 'PUT'
             }).done(function () {
                 self.loadData();
-                toastr.success(t('crm.salon.giftcards.closed', 'Hediye karti kapatildi'));
+                toastr.success(t('crm.salon.giftcards.closed', 'Hediye kartı kapatıldı'));
             }).fail(function (xhr) {
-                toastr.error(readError(xhr, t('crm.salon.giftcards.close_failed', 'Hediye karti kapatilamadi')));
+                toastr.error(readError(xhr, t('crm.salon.giftcards.close_failed', 'Hediye kartı kapatılamadı')));
             });
         });
     };

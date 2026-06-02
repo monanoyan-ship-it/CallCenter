@@ -80,7 +80,7 @@
 
         <nav class="sidebar d-print-none">
             <div class="brand">
-                <div class="app-switcher" aria-label="Uygulama gecisi">
+                <div class="app-switcher" aria-label="Uygulama geçişi">
                     @if (showCallCenter)
                     {
                         <a class="app-link" href="@callCenterBaseUrl" title="CallCenter" aria-label="CallCenter">
@@ -115,12 +115,12 @@
             @if (multipleScopes)
             {
                 <button class="nav-group-toggle mt-2" type="button" data-nav-group-toggle="1">
-                    <span><t key="crm.sidebar.scopes">Kapsamlar</t></span>
+                    <span><t key="crm.sidebar.scopes">Uygulamalar</t></span>
                     <i class="bi bi-chevron-down chevron @(scopeOpen ? "open" : "")"></i>
                 </button>
                 <div class="nav-group-items @(scopeOpen ? "show" : "")">
                     <a class="nav-link @(scopeOpen ? "active" : "")" href="/Home/Overview">
-                        <i class="bi bi-grid-1x2-fill me-2"></i><t key="crm.sidebar.overview">Genel Bakis</t>
+                        <i class="bi bi-grid-1x2-fill me-2"></i><t key="crm.sidebar.overview">Genel Bakış</t>
                     </a>
                     @foreach (var scope in entitlements!.Scopes)
                     {
@@ -132,7 +132,7 @@
             }
 
             <a class="nav-link @(paymentsOpen ? "active" : "")" href="/Payments">
-                <i class="bi bi-credit-card-2-front-fill me-2"></i>Odemeler
+                <i class="bi bi-credit-card-2-front-fill me-2"></i>Ödemeler
             </a>
 
             @if (showCore)
@@ -143,25 +143,25 @@
                 </button>
                 <div class="nav-group-items @(crmOpen ? "show" : "")">
                     <a class="nav-link @(ctrl == "Home" && action == "Core" ? "active" : "")" href="/Home/Core">
-                        <i class="bi bi-speedometer2 me-2"></i><t key="crm.sidebar.dashboard">Dashboard</t>
+                        <i class="bi bi-speedometer2 me-2"></i><t key="crm.sidebar.dashboard">Ana Sayfa</t>
                     </a>
                     <a class="nav-link @(ctrl == "Contacts" ? "active" : "")" href="/Contacts">
-                        <i class="bi bi-people-fill me-2"></i><t key="crm.sidebar.contacts">Kisiler</t>
+                        <i class="bi bi-people-fill me-2"></i><t key="crm.sidebar.contacts">Kişiler</t>
                     </a>
                     <a class="nav-link @(ctrl == "Tickets" ? "active" : "")" href="/Tickets">
                         <i class="bi bi-ticket-detailed-fill me-2"></i><t key="crm.sidebar.tickets">Talepler</t>
                     </a>
                     <a class="nav-link @(ctrl == "Deals" ? "active" : "")" href="/Deals">
-                        <i class="bi bi-kanban-fill me-2"></i><t key="crm.sidebar.deals">Firsatlar</t>
+                        <i class="bi bi-kanban-fill me-2"></i><t key="crm.sidebar.deals">Fırsatlar</t>
                     </a>
                     <a class="nav-link @(ctrl == "CrmTasks" ? "active" : "")" href="/CrmTasks">
-                        <i class="bi bi-check2-square me-2"></i><t key="crm.sidebar.tasks">Gorevler</t>
+                        <i class="bi bi-check2-square me-2"></i><t key="crm.sidebar.tasks">Görevler</t>
                     </a>
                     <a class="nav-link @(ctrl == "Surveys" ? "active" : "")" href="/Surveys">
                         <i class="bi bi-clipboard2-data me-2"></i><t key="crm.sidebar.surveys">Anketler</t>
                     </a>
                     <a class="nav-link @(ctrl == "Modules" ? "active" : "")" href="/Modules">
-                        <i class="bi bi-grid-3x3-gap-fill me-2"></i><t key="crm.sidebar.service_scope">Hizmet Kapsami</t>
+                        <i class="bi bi-grid-3x3-gap-fill me-2"></i><t key="crm.sidebar.service_scope">Hizmetlerim</t>
                     </a>
                 </div>
             }
@@ -174,28 +174,28 @@
                 </button>
                 <div class="nav-group-items @(salonOpen ? "show" : "")">
                     <a class="nav-link @(ctrl == "Home" && action == "Salon" ? "active" : "")" href="/Home/Salon">
-                        <i class="bi bi-speedometer2 me-2"></i><t key="crm.sidebar.dashboard">Dashboard</t>
+                        <i class="bi bi-speedometer2 me-2"></i><t key="crm.sidebar.dashboard">Ana Sayfa</t>
                     </a>
                     <a class="nav-link @(ctrl == "SalonCrm" && action == "Loyalty" ? "active" : "")" href="/SalonCrm/Loyalty">
                         <i class="bi bi-star-fill me-2"></i><t key="crm.sidebar.salon.loyalty">Sadakat</t>
                     </a>
                     <a class="nav-link @(ctrl == "SalonCrm" && action == "Memberships" ? "active" : "")" href="/SalonCrm/Memberships">
-                        <i class="bi bi-award-fill me-2"></i><t key="crm.sidebar.salon.memberships">Uyelikler</t>
+                        <i class="bi bi-award-fill me-2"></i><t key="crm.sidebar.salon.memberships">Üyelikler</t>
                     </a>
                     <a class="nav-link @(ctrl == "SalonCrm" && action == "GiftCards" ? "active" : "")" href="/SalonCrm/GiftCards">
-                        <i class="bi bi-gift-fill me-2"></i><t key="crm.sidebar.salon.giftcards">Hediye Kartlari</t>
+                        <i class="bi bi-gift-fill me-2"></i><t key="crm.sidebar.salon.giftcards">Hediye Kartları</t>
                     </a>
                     <a class="nav-link @(ctrl == "SalonCrm" && action == "Campaigns" ? "active" : "")" href="/SalonCrm/Campaigns">
                         <i class="bi bi-megaphone-fill me-2"></i><t key="crm.sidebar.salon.campaigns">Pazarlama ve SMS</t>
                     </a>
                     <a class="nav-link @(ctrl == "SalonCrm" && action == "EmailCampaigns" ? "active" : "")" href="/SalonCrm/EmailCampaigns">
-                        <i class="bi bi-envelope-fill me-2"></i><t key="crm.sidebar.salon.emailcampaigns">E-posta Kampanyalari</t>
+                        <i class="bi bi-envelope-fill me-2"></i><t key="crm.sidebar.salon.emailcampaigns">E-posta Kampanyaları</t>
                     </a>
                     <a class="nav-link @(ctrl == "SalonCrm" && action == "Reviews" ? "active" : "")" href="/SalonCrm/Reviews">
-                        <i class="bi bi-chat-square-text-fill me-2"></i><t key="crm.sidebar.salon.reviews">Yorum Yonetimi</t>
+                        <i class="bi bi-chat-square-text-fill me-2"></i><t key="crm.sidebar.salon.reviews">Yorum Yönetimi</t>
                     </a>
                     <a class="nav-link @(ctrl == "SalonCrm" && action == "Winback" ? "active" : "")" href="/SalonCrm/Winback">
-                        <i class="bi bi-arrow-repeat me-2"></i><t key="crm.sidebar.salon.winback">Kayip Musteri</t>
+                        <i class="bi bi-arrow-repeat me-2"></i><t key="crm.sidebar.salon.winback">Kayıp Müşteri</t>
                     </a>
                 </div>
             }
@@ -208,16 +208,16 @@
                 </button>
                 <div class="nav-group-items @(callCenterOpen ? "show" : "")">
                     <a class="nav-link @(ctrl == "Home" && action == "CallCenter" ? "active" : "")" href="/Home/CallCenter">
-                        <i class="bi bi-speedometer2 me-2"></i><t key="crm.sidebar.dashboard">Dashboard</t>
+                        <i class="bi bi-speedometer2 me-2"></i><t key="crm.sidebar.dashboard">Ana Sayfa</t>
                     </a>
                     <a class="nav-link @(ctrl == "Calls" ? "active" : "")" href="/Calls">
-                        <i class="bi bi-telephone-fill me-2"></i><t key="crm.sidebar.callhistory">Arama Gecmisi</t>
+                        <i class="bi bi-telephone-fill me-2"></i><t key="crm.sidebar.callhistory">Arama Geçmişi</t>
                     </a>
                     <a class="nav-link @(ctrl == "Activities" ? "active" : "")" href="/Activities">
-                        <i class="bi bi-clock-history me-2"></i><t key="crm.sidebar.activities">Etkilesimler</t>
+                        <i class="bi bi-clock-history me-2"></i><t key="crm.sidebar.activities">Etkileşimler</t>
                     </a>
                     <a class="nav-link @(ctrl == "Tasks" ? "active" : "")" href="/Tasks">
-                        <i class="bi bi-list-task me-2"></i><t key="crm.sidebar.trackingtasks">Gorevler</t>
+                        <i class="bi bi-list-task me-2"></i><t key="crm.sidebar.trackingtasks">Görevler</t>
                     </a>
                     <a class="nav-link @(ctrl == "Campaigns" ? "active" : "")" href="/Campaigns">
                         <i class="bi bi-megaphone-fill me-2"></i><t key="crm.sidebar.campaigns">Kampanyalar</t>
@@ -233,7 +233,7 @@
                 </button>
                 <div class="nav-group-items @(integrationOpen ? "show" : "")">
                     <a class="nav-link @(ctrl == "Integrations" && action == "Index" ? "active" : "")" href="/Integrations">
-                        <i class="bi bi-plug-fill me-2"></i><t key="crm.sidebar.integrations">Baglantilar</t>
+                        <i class="bi bi-plug-fill me-2"></i><t key="crm.sidebar.integrations">Bağlantılar</t>
                     </a>
                     <a class="nav-link @(ctrl == "Integrations" && action == "Webhooks" ? "active" : "")" href="/Integrations/Webhooks">
                         <i class="bi bi-broadcast me-2"></i><t key="crm.sidebar.webhooks">Webhooklar</t>
@@ -254,10 +254,10 @@
             <div class="position-absolute bottom-0 w-100 p-3 border-top" style="border-color: rgba(255,255,255,.1) !important;">
                 <div class="d-flex align-items-center justify-content-between">
                     <small class="text-white-50">@Context.Session.GetString("UserName")</small>
-                    <a href="/Account/Logout" class="text-white-50" title="@Translation.T("crm.logout", "Cikis")"><i class="bi bi-box-arrow-right"></i></a>
+                    <a href="/Account/Logout" class="text-white-50" title="@Translation.T("crm.logout", "Çıkış")"><i class="bi bi-box-arrow-right"></i></a>
                 </div>
                 <div class="text-center mt-2" style="opacity:.4; font-size:.65rem;">
-                    <t key="crm.footer.rights">Tum haklari saklidir.</t>
+                    <t key="crm.footer.rights">Tüm hakları saklıdır.</t>
                 </div>
             </div>
         </nav>

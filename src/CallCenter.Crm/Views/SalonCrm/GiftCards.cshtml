@@ -1,6 +1,6 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = Translation.T("crm.salon.giftcards.page_title", "Salon - Hediye Kartlari");
+    ViewData["Title"] = Translation.T("crm.salon.giftcards.page_title", "Salon - Hediye Kartları");
 }
 
 @section Styles {
@@ -15,10 +15,10 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="input-group crm-search-wide">
             <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-            <input type="text" class="form-control" placeholder="@Translation.T("crm.salon.giftcards.search_placeholder", "Kart, alici veya gonderen ara...")" data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+            <input type="text" class="form-control" placeholder="@Translation.T("crm.salon.giftcards.search_placeholder", "Kart, alıcı veya gönderen ara...")" data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
         </div>
         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
-            <i class="bi bi-plus-lg me-1"></i><t key="crm.salon.giftcards.new">Yeni Hediye Karti</t>
+            <i class="bi bi-plus-lg me-1"></i><t key="crm.salon.giftcards.new">Yeni Hediye Kartı</t>
         </button>
     </div>
 
@@ -29,11 +29,11 @@
                     <thead class="table-light">
                         <tr>
                             <th><t key="crm.salon.giftcards.code">Kod</t></th>
-                            <th><t key="crm.salon.giftcards.recipient">Alici</t></th>
-                            <th><t key="crm.salon.giftcards.sender">Gonderen</t></th>
+                            <th><t key="crm.salon.giftcards.recipient">Alıcı</t></th>
+                            <th><t key="crm.salon.giftcards.sender">Gönderen</t></th>
                             <th><t key="crm.salon.giftcards.amount">Tutar</t></th>
                             <th><t key="crm.salon.giftcards.remaining">Kalan</t></th>
-                            <th><t key="crm.salon.giftcards.branch">Sube</t></th>
+                            <th><t key="crm.salon.giftcards.branch">Şube</t></th>
                             <th><t key="crm.common.status">Durum</t></th>
                             <th class="crm-actions-narrow"></th>
                         </tr>
@@ -48,9 +48,9 @@
                             <td class="small" data-bind="text: senderName || '-'"></td>
                             <td class="small" data-bind="text: $parent.money(originalAmount)"></td>
                             <td class="small fw-semibold" data-bind="text: $parent.money(remainingBalance)"></td>
-                            <td class="small" data-bind="text: branchName || window.crmT('crm.common.all_branches', 'Tum subeler')"></td>
+                            <td class="small" data-bind="text: branchName || window.crmT('crm.common.all_branches', 'Tüm şubeler')"></td>
                             <td class="small">
-                                <span class="badge" data-bind="css: isActive ? 'bg-success' : 'bg-secondary', text: isActive ? window.crmT('crm.common.active', 'Aktif') : window.crmT('crm.common.closed', 'Kapali')"></span>
+                                <span class="badge" data-bind="css: isActive ? 'bg-success' : 'bg-secondary', text: isActive ? window.crmT('crm.common.active', 'Aktif') : window.crmT('crm.common.closed', 'Kapalı')"></span>
                             </td>
                             <td>
                                 <!-- ko if: isActive -->
@@ -66,7 +66,7 @@
             <!-- ko if: filteredCards().length === 0 -->
             <div class="text-center text-muted py-4">
                 <i class="crm-empty-icon bi bi-gift"></i>
-                <p class="mt-2 small"><t key="crm.salon.giftcards.empty">Hediye karti bulunamadi</t></p>
+                <p class="mt-2 small"><t key="crm.salon.giftcards.empty">Hediye kartı bulunamadı</t></p>
             </div>
             <!-- /ko -->
         </div>
@@ -76,7 +76,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title"><t key="crm.salon.giftcards.new">Yeni Hediye Karti</t></h6>
+                    <h6 class="modal-title"><t key="crm.salon.giftcards.new">Yeni Hediye Kartı</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -86,7 +86,7 @@
                             <input type="number" min="1" step="1" class="form-control form-control-sm" data-bind="value: form.amount" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small"><t key="crm.salon.giftcards.payment">Odeme</t></label>
+                            <label class="form-label small"><t key="crm.salon.giftcards.payment">Ödeme</t></label>
                             <select class="form-select form-select-sm" data-bind="value: form.paymentMethodId">
                                 <option value="1"><t key="crm.payment.cash">Nakit</t></option>
                                 <option value="2"><t key="crm.payment.card">Kart</t></option>
@@ -94,19 +94,19 @@
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small"><t key="crm.salon.giftcards.recipient">Alici</t></label>
+                            <label class="form-label small"><t key="crm.salon.giftcards.recipient">Alıcı</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.recipientName" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small"><t key="crm.salon.giftcards.recipient_phone">Alici Telefon</t></label>
+                            <label class="form-label small"><t key="crm.salon.giftcards.recipient_phone">Alıcı Telefon</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.recipientPhone" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small"><t key="crm.salon.giftcards.sender">Gonderen</t></label>
+                            <label class="form-label small"><t key="crm.salon.giftcards.sender">Gönderen</t></label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.senderName" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small"><t key="crm.salon.giftcards.expires_at">Son Kullanim</t></label>
+                            <label class="form-label small"><t key="crm.salon.giftcards.expires_at">Son Kullanım</t></label>
                             <input type="date" class="form-control form-control-sm" data-bind="value: form.expiresAt" />
                         </div>
                         <div class="col-12">
@@ -116,7 +116,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">Iptal</t></button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">İptal</t></button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i><t key="crm.common.btn.save">Kaydet</t>

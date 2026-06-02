@@ -1,18 +1,18 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = Translation.T("crm.salon.emailcampaigns.page_title", "Salon - E-posta Kampanyalari");
+    ViewData["Title"] = Translation.T("crm.salon.emailcampaigns.page_title", "Salon - E-posta Kampanyaları");
 }
 
 <div id="salon-emailcampaigns-vm">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="mb-0"><t key="crm.salon.emailcampaigns.title">E-posta Kampanyalari</t></h6>
+        <h6 class="mb-0"><t key="crm.salon.emailcampaigns.title">E-posta Kampanyaları</t></h6>
         <button class="btn btn-primary btn-sm" data-bind="click: openNew"><i class="bi bi-plus-lg me-1"></i><t key="crm.common.new">Yeni</t></button>
     </div>
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover table-sm mb-0 align-middle">
-                    <thead class="table-light"><tr><th><t key="crm.common.subject">Konu</t></th><th><t key="crm.common.status">Durum</t></th><th><t key="crm.salon.campaigns.recipients">Alici</t></th><th><t key="crm.salon.campaigns.sent">Gonderilen</t></th><th>Acilma</th><th>Tiklama</th><th class="text-end"></th></tr></thead>
+                    <thead class="table-light"><tr><th><t key="crm.common.subject">Konu</t></th><th><t key="crm.common.status">Durum</t></th><th><t key="crm.salon.campaigns.recipients">Alıcı</t></th><th><t key="crm.salon.campaigns.sent">Gönderilen</t></th><th>Açılma</th><th>Tıklama</th><th class="text-end"></th></tr></thead>
                     <tbody data-bind="foreach: campaigns">
                         <tr>
                             <td class="fw-semibold small" data-bind="text: subject"></td>
@@ -26,23 +26,45 @@
                     </tbody>
                 </table>
             </div>
-            <div class="text-center text-muted py-4" data-bind="visible: campaigns().length === 0"><t key="crm.salon.emailcampaigns.empty">E-posta kampanyasi yok.</t></div>
+            <div class="text-center text-muted py-4" data-bind="visible: campaigns().length === 0"><t key="crm.salon.emailcampaigns.empty">E-posta kampanyası yok.</t></div>
         </div>
     </div>
 
     <div class="modal fade" id="salonEmailCampaignModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header"><h6 class="modal-title"><t key="crm.salon.emailcampaigns.form_title">E-posta Kampanyasi</t></h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-header"><h6 class="modal-title"><t key="crm.salon.emailcampaigns.form_title">E-posta Kampanyası</t></h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
                     <label class="form-label small"><t key="crm.common.subject">Konu</t></label>
                     <input class="form-control form-control-sm mb-2" data-bind="value: form.subject" />
-                    <label class="form-label small"><t key="crm.common.content">Icerik</t></label>
+                    <label class="form-label small"><t key="crm.salon.common.branch_target">Şube hedefi *</t></label>
+                    <select class="form-select form-select-sm mb-2"
+                            data-bind="options: branchTargetOptions,
+                                       optionsText: 'name',
+                                       optionsValue: 'id',
+                                       value: form.branchTarget"></select>
+                    <label class="form-label small"><t key="crm.common.content">İçerik</t></label>
                     <textarea class="form-control form-control-sm mb-2" rows="8" data-bind="value: form.htmlBody"></textarea>
+                    <label class="form-label small"><t key="crm.salon.emailcampaigns.segment_filter">Gelişmiş müşteri filtresi</t></label>
+                    <input type="text" class="form-control form-control-sm mb-2" placeholder="Hazır gruplardan seçim yapabilirsiniz" data-bind="value: form.segmentFilter" />
+                    <label class="form-label small"><t key="crm.salon.emailcampaigns.segment_presets">Hazır Müşteri Grupları</t></label>
+                    <div class="d-flex flex-wrap gap-2 mb-2" data-bind="foreach: segmentPresets">
+                        <button type="button" class="btn btn-outline-secondary btn-sm text-start" data-bind="click: $parent.applySegmentPreset, attr: { title: description }">
+                            <span data-bind="text: name"></span>
+                            <span class="badge bg-light text-dark ms-1" data-bind="text: emailReachableClients + '/' + matchingClients"></span>
+                        </button>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 small text-muted mb-2">
+                        <span>Hedef: <strong data-bind="text: segmentPreviewCount"></strong></span>
+                        <span>E-posta: <strong data-bind="text: segmentEmailReachableCount"></strong></span>
+                        <span>Eksik: <strong data-bind="text: segmentMissingEmailCount"></strong></span>
+                        <span>Gönderim dışı: <strong data-bind="text: segmentExcludedCount"></strong></span>
+                        <button type="button" class="btn btn-outline-info btn-sm py-0" data-bind="click: previewSegment"><i class="bi bi-eye me-1"></i>Önizle</button>
+                    </div>
                     <label class="form-label small"><t key="crm.common.schedule">Zamanlama</t></label>
                     <input type="datetime-local" class="form-control form-control-sm" data-bind="value: form.scheduledAt" />
                 </div>
-                <div class="modal-footer"><button class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">Iptal</t></button><button class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving"><t key="crm.common.btn.save">Kaydet</t></button></div>
+                <div class="modal-footer"><button class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">İptal</t></button><button class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving"><t key="crm.common.btn.save">Kaydet</t></button></div>
             </div>
         </div>
     </div>

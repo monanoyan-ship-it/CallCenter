@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "Odemeler";
+    ViewData["Title"] = "Ödemeler";
 }
 
 <div id="crmPaymentsPage" class="row g-3">
@@ -7,29 +7,29 @@
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white d-flex align-items-center justify-content-between">
                 <div>
-                    <h6 class="mb-0">Acik Tahakkuklar</h6>
-                    <div class="small text-muted">CRM, Salon ve CallCenter tahakkuklari tek odeme havuzundan kapanir.</div>
+                    <h6 class="mb-0">Bekleyen Ödemeler</h6>
+                    <div class="small text-muted">Salon, CRM ve CallCenter hizmet ödemelerinizi tek seferde kapatabilirsiniz.</div>
                 </div>
                 <button type="button" class="btn btn-success btn-sm" data-bind="click: openConfirm, disable: loading() || !hasPayableLines()">
-                    <i class="bi bi-credit-card me-1"></i>Ode
+                    <i class="bi bi-credit-card me-1"></i>Ödemeye Geç
                 </button>
             </div>
             <div class="card-body">
                 <div class="text-center py-4" data-bind="visible: loading">
                     <div class="spinner-border text-primary"></div>
-                    <div class="small text-muted mt-2">Tahakkuklar yukleniyor...</div>
+                    <div class="small text-muted mt-2">Ödemeler hazırlanıyor...</div>
                 </div>
 
                 <div class="alert alert-info mb-0" data-bind="visible: !loading() && !hasPayableLines()">
-                    Odenecek acik tahakkuk bulunmuyor.
+                    Bekleyen ödeme bulunmuyor.
                 </div>
 
                 <div class="table-responsive" data-bind="visible: !loading() && hasPayableLines()">
                     <table class="table table-sm align-middle mb-0">
                         <thead>
                             <tr>
-                                <th>Kalem</th>
-                                <th>Donem</th>
+                                <th>Hizmet</th>
+                                <th>Dönem</th>
                                 <th class="text-end">Tutar</th>
                             </tr>
                         </thead>
@@ -55,17 +55,17 @@
         </div>
     </div>
 
-    <div class="modal fade" id="paymentConfirmModal" tabindex="-1">
+    <div class="modal fade" id="paymentConfirmModal" tabindex="-1" data-bs-focus="false">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title"><i class="bi bi-credit-card me-1"></i>Odeme Onayi</h6>
+                    <h6 class="modal-title"><i class="bi bi-credit-card me-1"></i>Ödeme Onayı</h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div data-bind="visible: step() === 'confirm'">
                         <div class="alert alert-info py-2 small">
-                            Odeme baslamadan once kapatilacak tahakkuk kalemlerini kontrol edin.
+                            Ödemeye geçmeden önce kapatılacak hizmetleri kontrol edin.
                         </div>
                         <div class="table-responsive mb-3">
                             <table class="table table-sm align-middle mb-0">
@@ -87,18 +87,18 @@
                             </table>
                         </div>
                         <button type="button" class="btn btn-success w-100 mb-2" data-bind="click: startCheckout, disable: loading">
-                            <i class="bi bi-credit-card me-1"></i>Onayliyorum, odemeye gec
+                            <i class="bi bi-credit-card me-1"></i>Onaylıyorum, ödemeye geç
                         </button>
                         <a class="btn btn-outline-secondary w-100" data-bind="attr: { href: supportHref }">
-                            <i class="bi bi-envelope me-1"></i>Kalemleri kontrol etmek istiyorum
+                            <i class="bi bi-envelope me-1"></i>Detayları kontrol etmek istiyorum
                         </a>
-                        <div class="small text-muted text-center mt-2">info@corplynk.com adresine yazabilirsiniz; 24 saat icinde donus yapilir.</div>
+                        <div class="small text-muted text-center mt-2">info@corplynk.com adresine yazabilirsiniz; 24 saat içinde dönüş yapılır.</div>
                     </div>
 
                     <div data-bind="visible: step() === 'checkout'">
                         <div class="text-center py-3" data-bind="visible: loading">
                             <div class="spinner-border text-primary"></div>
-                            <div class="small text-muted mt-2">Odeme formu hazirlaniyor...</div>
+                            <div class="small text-muted mt-2">Ödeme formu hazırlanıyor...</div>
                         </div>
                         <div id="crm-iyzico-checkout"></div>
                     </div>

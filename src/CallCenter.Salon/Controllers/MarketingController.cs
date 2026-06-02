@@ -6,30 +6,24 @@ namespace CallCenter.Salon.Controllers;
 
 public class MarketingController : SlnBaseController
 {
-    private static readonly IReadOnlyDictionary<string, string> TabControllers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    private static readonly IReadOnlyDictionary<string, string> TabRoutes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
-        ["campaigns"] = "Campaigns",
-        ["email"] = "EmailCampaigns",
-        ["winback"] = "Winback",
-        ["memberships"] = "Memberships",
-        ["giftcards"] = "GiftCards",
-        ["reviews"] = "Reviews"
+        ["campaigns"] = "/SalonCrm/Campaigns",
+        ["email"] = "/SalonCrm/EmailCampaigns",
+        ["winback"] = "/SalonCrm/Winback",
+        ["memberships"] = "/SalonCrm/Memberships",
+        ["giftcards"] = "/SalonCrm/GiftCards",
+        ["reviews"] = "/SalonCrm/Reviews",
+        ["loyalty"] = "/SalonCrm/Loyalty"
     };
 
     public IActionResult Index(string? tab = null)
     {
-        var availableTabs = MarketingRouteAccess.GetAccessibleTabs(HttpContext, TabControllers);
-        if (availableTabs.Count == 0)
-            return RedirectToAction("Index", "Home");
+        var route = TabRoutes.TryGetValue(tab ?? string.Empty, out var path)
+            ? path
+            : "/SalonCrm/Campaigns";
 
-        var activeTab = availableTabs.Contains(tab ?? string.Empty, StringComparer.OrdinalIgnoreCase)
-            ? tab
-            : availableTabs[0];
-
-        ViewData["Title"] = "Salon CRM";
-        ViewData["MarketingTab"] = activeTab;
-        ViewData["MarketingTabs"] = availableTabs;
-        return View();
+        return MarketingRouteAccess.RedirectToCrm(this, route);
     }
 }
 
@@ -44,6 +38,16 @@ internal static class MarketingRouteAccess
             .Where(tab => CanAccessPage(httpContext, tab.Value))
             .Select(tab => tab.Key)
             .ToList();
+    }
+
+    public static RedirectResult RedirectToCrm(Controller controller, string path)
+        => controller.Redirect(BuildCrmUrl(controller.HttpContext, path));
+
+    public static string BuildCrmUrl(HttpContext httpContext, string path)
+    {
+        var config = httpContext.RequestServices.GetRequiredService<IConfiguration>();
+        var baseUrl = (config["CrmBaseUrl"] ?? "https://crm.corplynk.com").TrimEnd('/');
+        return $"{baseUrl}{path}";
     }
 
     private static bool CanAccessPage(HttpContext httpContext, string controllerName)

@@ -8,19 +8,19 @@ function ReportsViewModel() {
     self.pipelineText = ko.observable('0 TL');
 
     var statusMap = {
-        1: { name: 'Acik', css: 'bg-danger' },
+        1: { name: 'Açık', css: 'bg-danger' },
         2: { name: 'Devam Ediyor', css: 'bg-info' },
         3: { name: 'Beklemede', css: 'bg-warning' },
-        4: { name: 'Cozuldu', css: 'bg-success' },
-        5: { name: 'Kapali', css: 'bg-secondary' }
+        4: { name: 'Çözüldü', css: 'bg-success' },
+        5: { name: 'Kapalı', css: 'bg-secondary' }
     };
 
     var stageMap = {
         1: { name: 'Lead', css: 'bg-secondary' },
         2: { name: 'Nitelikli', css: 'bg-info' },
         3: { name: 'Teklif', css: 'bg-primary' },
-        4: { name: 'Muzakere', css: 'bg-warning' },
-        5: { name: 'Kazanildi', css: 'bg-success' },
+        4: { name: 'Görüşme', css: 'bg-warning' },
+        5: { name: 'Kazanıldı', css: 'bg-success' },
         6: { name: 'Kaybedildi', css: 'bg-danger' }
     };
 
@@ -34,7 +34,7 @@ function ReportsViewModel() {
             self.recentActivities(data.recentActivities || []);
             self.upcomingTasks(data.upcomingTasks || []);
         }).fail(function() {
-            toastr.error('Dashboard verisi yuklenemedi');
+            toastr.error('Rapor verisi yüklenemedi');
         });
     };
 

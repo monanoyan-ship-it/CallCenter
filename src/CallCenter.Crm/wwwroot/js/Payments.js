@@ -35,21 +35,21 @@ function CrmPaymentsViewModel() {
         var p = self.preview();
         var email = (p && p.supportEmail) || 'info@corplynk.com';
         return 'mailto:' + encodeURIComponent(email)
-            + '?subject=' + encodeURIComponent('Odeme kalemleri hakkinda')
-            + '&body=' + encodeURIComponent('Merhaba, odeme oncesi tahakkuk kalemlerimi kontrol etmek istiyorum.');
+            + '?subject=' + encodeURIComponent('Ödeme detayları hakkında')
+            + '&body=' + encodeURIComponent('Merhaba, ödeme öncesi hizmetlerimi kontrol etmek istiyorum.');
     });
 
     self.resultTitle = ko.computed(function () {
         var r = self.result();
-        return r && r.success ? 'Odeme basarili' : 'Odeme basarisiz';
+        return r && r.success ? 'Ödeme başarılı' : 'Ödeme başarısız';
     });
 
     self.resultMessage = ko.computed(function () {
         var r = self.result();
         if (!r) return '';
         return r.success
-            ? (r.message || 'Tahakkuk odemeniz basarili. Kalemler kapatildi.')
-            : (r.error || 'Odeme basarisiz oldu.');
+            ? (r.message || 'Ödemeniz başarılı. Hizmetleriniz güncellendi.')
+            : (r.error || 'Ödeme başarısız oldu.');
     });
 
     function parseAjaxBody(text, xhr) {
@@ -67,7 +67,7 @@ function CrmPaymentsViewModel() {
     }
 
     function showPaymentModal() {
-        new bootstrap.Modal(document.getElementById('paymentConfirmModal')).show();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('paymentConfirmModal'), { focus: false }).show();
     }
 
     self.load = function () {
@@ -83,7 +83,7 @@ function CrmPaymentsViewModel() {
         }).fail(function (xhr) {
             self.preview(null);
             var status = xhr && xhr.status;
-            if (status !== 400) toastr.error(ajaxErrorMessage(xhr, 'Tahakkuklar alinamadi.'));
+            if (status !== 400) toastr.error(ajaxErrorMessage(xhr, 'Ödemeler alınamadı.'));
         }).always(function () {
             self.loading(false);
         });
@@ -91,7 +91,7 @@ function CrmPaymentsViewModel() {
 
     self.openConfirm = function () {
         if (!self.hasPayableLines()) {
-            toastr.info('Odenecek acik tahakkuk bulunmuyor.');
+            toastr.info('Bekleyen ödeme bulunmuyor.');
             return;
         }
         self.step('confirm');
@@ -128,11 +128,11 @@ function CrmPaymentsViewModel() {
                     target.innerHTML = raw;
                 }
             } else {
-                toastr.error((data && data.error) || 'Odeme formu olusturulamadi.');
+                toastr.error((data && data.error) || 'Ödeme formu oluşturulamadı.');
                 self.step('confirm');
             }
         }).fail(function (xhr) {
-            toastr.error(ajaxErrorMessage(xhr, 'Odeme baslatilamadi.'));
+            toastr.error(ajaxErrorMessage(xhr, 'Ödeme başlatılamadı.'));
             self.step('confirm');
         }).always(function () {
             self.loading(false);
@@ -149,12 +149,12 @@ function CrmPaymentsViewModel() {
             data: JSON.stringify({ token: token })
         }).done(function (text, st, xhr) {
             var data = parseAjaxBody(text, xhr);
-            self.result(data && typeof data === 'object' ? data : { success: false, error: 'Gecersiz yanit' });
+            self.result(data && typeof data === 'object' ? data : { success: false, error: 'Geçersiz yanıt' });
             self.step('result');
             showPaymentModal();
             if (data && data.success) self.load();
         }).fail(function (xhr) {
-            self.result({ success: false, error: ajaxErrorMessage(xhr, 'Odeme sonucu alinamadi.') });
+            self.result({ success: false, error: ajaxErrorMessage(xhr, 'Ödeme sonucu alınamadı.') });
             self.step('result');
             showPaymentModal();
         }).always(function () {
@@ -168,7 +168,7 @@ function CrmPaymentsViewModel() {
             self.step('result');
             self.load();
         } else if (e.data === 'payment-failed' || (e.data && e.data.type === 'payment-failed')) {
-            self.result({ success: false, error: e.data.error || 'Odeme basarisiz oldu.' });
+            self.result({ success: false, error: e.data.error || 'Ödeme başarısız oldu.' });
             self.step('result');
         }
     });

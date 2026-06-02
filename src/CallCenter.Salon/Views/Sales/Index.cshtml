@@ -146,7 +146,7 @@
                         <span class="input-group-text"><i class="bi bi-person"></i></span>
                         <input type="text" class="form-control" placeholder="@(Translation.T("salon.sales.auto.musteri_opsiyonel", "Müşteri (opsiyonel)"))"
                                autocomplete="off"
-                               data-bind="value: query, valueUpdate: 'afterkeydown',
+                               data-bind="textInput: query,
                                           event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
                         <!-- ko if: selectedName() -->
                         <button class="btn btn-outline-secondary" data-bind="click: clear"><i class="bi bi-x"></i></button>

@@ -244,7 +244,7 @@ public class SlnMarketingFactory : ISlnMarketingFactory
             }
             catch (JsonException)
             {
-                // Gecersiz JSON filtresi - tum musterileri say
+                // Geçersiz JSON filtresi - tüm müşterileri say
             }
         }
 
@@ -279,13 +279,13 @@ public class SlnMarketingFactory : ISlnMarketingFactory
     {
         var definitions = new[]
         {
-            new SegmentPresetDefinition("all", "Tum aktif musteriler", "Aktif durumdaki tum musteri kayitlari.", null),
-            new SegmentPresetDefinition("birthday-30", "Dogum gunu yaklasanlar", "Onumuzdeki 30 gun icinde dogum gunu olan musteriler.", new SegmentFilterModel { BirthdayInDays = 30 }),
-            new SegmentPresetDefinition("inactive-60", "60 gundur gelmeyenler", "Son 60 gunde adisyonu olmayan aktif musteriler.", new SegmentFilterModel { InactiveDays = 60 }),
-            new SegmentPresetDefinition("high-spend", "Yuksek harcama", "Toplam harcamasi 3.000 TL ve uzeri olan musteriler.", new SegmentFilterModel { MinSpent = 3000 }),
-            new SegmentPresetDefinition("active-membership", "Aktif uyeligi olanlar", "Aktif salon uyeligi devam eden musteriler.", new SegmentFilterModel { HasActiveMembership = true }),
-            new SegmentPresetDefinition("active-package", "Aktif paketi olanlar", "Kalan seansi olan aktif paket sahibi musteriler.", new SegmentFilterModel { HasActivePackage = true }),
-            new SegmentPresetDefinition("no-membership-package", "Uyelik veya paketi olmayanlar", "Aktif uyeligi ve aktif paketi bulunmayan musteriler.", new SegmentFilterModel { HasActiveMembership = false, HasActivePackage = false })
+            new SegmentPresetDefinition("all", "Tüm aktif müşteriler", "Aktif durumdaki tüm müşteri kayıtları.", null),
+            new SegmentPresetDefinition("birthday-30", "Doğum günü yaklaşanlar", "Önümüzdeki 30 gün içinde doğum günü olan müşteriler.", new SegmentFilterModel { BirthdayInDays = 30 }),
+            new SegmentPresetDefinition("inactive-60", "60 gündür gelmeyenler", "Son 60 günde adisyonu olmayan aktif müşteriler.", new SegmentFilterModel { InactiveDays = 60 }),
+            new SegmentPresetDefinition("high-spend", "Yüksek harcama", "Toplam harcaması 3.000 TL ve üzeri olan müşteriler.", new SegmentFilterModel { MinSpent = 3000 }),
+            new SegmentPresetDefinition("active-membership", "Aktif üyeliği olanlar", "Aktif salon üyeliği devam eden müşteriler.", new SegmentFilterModel { HasActiveMembership = true }),
+            new SegmentPresetDefinition("active-package", "Aktif paketi olanlar", "Kalan seansı olan aktif paket sahibi müşteriler.", new SegmentFilterModel { HasActivePackage = true }),
+            new SegmentPresetDefinition("no-membership-package", "Üyelik veya paketi olmayanlar", "Aktif üyeliği ve aktif paketi bulunmayan müşteriler.", new SegmentFilterModel { HasActiveMembership = false, HasActivePackage = false })
         };
 
         var result = new List<SlnSegmentPresetDto>();
