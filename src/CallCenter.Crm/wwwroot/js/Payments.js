@@ -1,16 +1,31 @@
 function injectIyzicoCheckoutHtml(container, html) {
     if (!container) return;
     try {
-        container.innerHTML = html || '';
-        var scripts = Array.prototype.slice.call(container.querySelectorAll('script'));
-        scripts.forEach(function (old) {
-            var s = document.createElement('script');
-            for (var i = 0; i < old.attributes.length; i++) {
-                var a = old.attributes[i];
-                s.setAttribute(a.name, a.value);
+        container.innerHTML = '';
+        if (!html) return;
+
+        // innerHTML ile basilan <script> tag'leri tarayicida execute edilmez ve
+        // replaceChild ile swap edilseler bile bazi Chromium surumlerinde
+        // 'already-started' flag'i nedeniyle calismadigi gozlemlendi.
+        // Cozum: HTML'i ayri bir node'da parse et, child'lari container'a tasi,
+        // script tag'lerini DEGISTIRMEK YERINE document.createElement ile yeniden
+        // olusturup appendChild yap. Boylece script ilk kez insert edilmis sayilir
+        // ve execute olur (iyziInit objesi global'e dusturup bundle'i head'e ekler).
+        var temp = document.createElement('div');
+        temp.innerHTML = html;
+        var children = Array.prototype.slice.call(temp.childNodes);
+        children.forEach(function (node) {
+            if (node.nodeType === 1 && node.tagName === 'SCRIPT') {
+                var s = document.createElement('script');
+                for (var i = 0; i < node.attributes.length; i++) {
+                    var a = node.attributes[i];
+                    s.setAttribute(a.name, a.value);
+                }
+                if (!node.src && node.textContent) s.text = node.textContent;
+                container.appendChild(s);
+            } else {
+                container.appendChild(node);
             }
-            if (!old.src && old.textContent) s.textContent = old.textContent;
-            if (old.parentNode) old.parentNode.replaceChild(s, old);
         });
     } catch (e) {
         console.error('iyzico form inject', e);
