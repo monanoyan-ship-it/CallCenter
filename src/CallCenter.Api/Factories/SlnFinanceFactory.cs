@@ -677,6 +677,18 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             }
         }
 
+        // Sadakat Puani (C) kazanim: puan indirimi sonrasi kalan NetAmount uzerinden hesaplanir.
+        // Config yoksa EarnPointsAsync no-op.
+        if (dto.SlnClientId.HasValue && invoice.NetAmount > 0)
+        {
+            await _loyaltyPoints.EarnPointsAsync(
+                dto.SlnClientId.Value,
+                invoice.NetAmount,
+                invoice.Id,
+                customerId,
+                branchId);
+        }
+
         // Kasaya gelir hareketi yaz; sube adisyonu merkezin ya da baska subenin kasasina dusmemeli.
         if (invoice.NetAmount > 0 && invoice.PaymentMethodId != GiftCardPaymentMethodId)
         {
