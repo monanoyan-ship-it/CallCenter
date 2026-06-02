@@ -23,7 +23,7 @@ public static class SecurityHeadersExtensions
                     "img-src 'self' data: blob: https:; " +
                     "font-src 'self' data:; " +
                     "style-src 'self' 'unsafe-inline' https://unpkg.com; " +
-                    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://maps.googleapis.com https://static.cloudflareinsights.com https://unpkg.com; " +
+                    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://maps.googleapis.com https://static.cloudflareinsights.com https://unpkg.com https://*.iyzipay.com https://*.iyzico.com; " +
                     "connect-src 'self' http://localhost:* https://localhost:* ws://localhost:* wss://localhost:* https://*.corplynk.com https://maps.googleapis.com; " +
                     "frame-src 'self' https://*.iyzipay.com https://*.iyzico.com; " +
                     "form-action 'self' https://*.iyzipay.com https://*.iyzico.com");

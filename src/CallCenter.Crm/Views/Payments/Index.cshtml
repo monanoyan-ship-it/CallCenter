@@ -100,7 +100,7 @@
                             <div class="spinner-border text-primary"></div>
                             <div class="small text-muted mt-2">Odeme formu hazirlaniyor...</div>
                         </div>
-                        <div id="crm-iyzico-checkout" data-bind="iyzicoCheckoutHtml: checkoutHtml"></div>
+                        <div id="crm-iyzico-checkout"></div>
                     </div>
 
                     <div class="text-center py-4" data-bind="visible: step() === 'result'">
@@ -115,5 +115,6 @@
 </div>
 
 @section Scripts {
+    <script src="~/js/iyzico-checkout.js" asp-append-version="true"></script>
     <script src="~/js/Payments.js" asp-append-version="true"></script>
 }

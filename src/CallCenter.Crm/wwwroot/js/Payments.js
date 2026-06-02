@@ -1,48 +1,9 @@
-function injectIyzicoCheckoutHtml(container, html) {
-    if (!container) return;
-    try {
-        container.innerHTML = '';
-        if (!html) return;
-
-        // innerHTML ile basilan <script> tag'leri tarayicida execute edilmez ve
-        // replaceChild ile swap edilseler bile bazi Chromium surumlerinde
-        // 'already-started' flag'i nedeniyle calismadigi gozlemlendi.
-        // Cozum: HTML'i ayri bir node'da parse et, child'lari container'a tasi,
-        // script tag'lerini DEGISTIRMEK YERINE document.createElement ile yeniden
-        // olusturup appendChild yap. Boylece script ilk kez insert edilmis sayilir
-        // ve execute olur (iyziInit objesi global'e dusturup bundle'i head'e ekler).
-        var temp = document.createElement('div');
-        temp.innerHTML = html;
-        var children = Array.prototype.slice.call(temp.childNodes);
-        children.forEach(function (node) {
-            if (node.nodeType === 1 && node.tagName === 'SCRIPT') {
-                var s = document.createElement('script');
-                for (var i = 0; i < node.attributes.length; i++) {
-                    var a = node.attributes[i];
-                    s.setAttribute(a.name, a.value);
-                }
-                if (!node.src && node.textContent) s.text = node.textContent;
-                container.appendChild(s);
-            } else {
-                container.appendChild(node);
-            }
-        });
-    } catch (e) {
-        console.error('iyzico form inject', e);
-        container.innerHTML = '<p class="text-danger small mb-0">Odeme formu yuklenirken hata olustu. Sayfayi yenileyip tekrar deneyin.</p>';
-    }
-}
-
-ko.bindingHandlers.iyzicoCheckoutHtml = {
-    update: function (element, valueAccessor) {
-        var html = ko.unwrap(valueAccessor());
-        if (!html) {
-            element.innerHTML = '';
-            return;
-        }
-        injectIyzicoCheckoutHtml(element, html);
-    }
-};
+// Iyzico checkout form'unu DOM'a basmak icin Salon'da kullanilan ayni helper:
+// /js/iyzico-checkout.js -> window.renderIyzicoCheckoutHtml(container, html)
+// KO binding kullanmiyoruz cunku KO 'visible' / observable update sirasi inline
+// <script> tag'in execute timing'iyle yarisiyor; Salon public profile akisi
+// dogrudan getElementById + render cagrisi yapip stabil calisiyor (bkz.
+// PublicProfile.js:509). Burada da ayni patterni kullaniyoruz.
 
 function CrmPaymentsViewModel() {
     var self = this;
@@ -51,7 +12,6 @@ function CrmPaymentsViewModel() {
     self.loading = ko.observable(false);
     self.preview = ko.observable(null);
     self.step = ko.observable('confirm');
-    self.checkoutHtml = ko.observable('');
     self.result = ko.observable(null);
 
     self.hasPayableLines = ko.computed(function () {
@@ -136,14 +96,16 @@ function CrmPaymentsViewModel() {
         }
         self.step('confirm');
         self.result(null);
-        self.checkoutHtml('');
+        var container = document.getElementById('crm-iyzico-checkout');
+        if (container) container.innerHTML = '';
         showPaymentModal();
     };
 
     self.startCheckout = function () {
         self.step('checkout');
         self.loading(true);
-        self.checkoutHtml('');
+        var container = document.getElementById('crm-iyzico-checkout');
+        if (container) container.innerHTML = '';
         var preview = self.preview();
         var billingPeriodIds = preview && Array.isArray(preview.lines)
             ? preview.lines.map(function (line) { return line.billingPeriodId; }).filter(function (id) { return id > 0; })
@@ -158,7 +120,13 @@ function CrmPaymentsViewModel() {
             var data = parseAjaxBody(text, xhr);
             var raw = data && (data.htmlContent || data.checkoutFormHtml || data.HtmlContent || data.CheckoutFormHtml);
             if (data && data.success && raw) {
-                self.checkoutHtml(raw);
+                // Salon ile ayni pattern: direkt DOM'a getElementById + helper.
+                var target = document.getElementById('crm-iyzico-checkout');
+                if (target && typeof window.renderIyzicoCheckoutHtml === 'function') {
+                    window.renderIyzicoCheckoutHtml(target, raw);
+                } else if (target) {
+                    target.innerHTML = raw;
+                }
             } else {
                 toastr.error((data && data.error) || 'Odeme formu olusturulamadi.');
                 self.step('confirm');
