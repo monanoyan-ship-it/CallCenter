@@ -124,7 +124,12 @@
             </div>
 
             <div class="card border-0 shadow-sm mb-3">
-                <div class="card-header bg-white"><strong><t key="crm.salon.loyalty.program.programs">Programlar</t></strong></div>
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <strong><t key="crm.salon.loyalty.program.programs">Programlar</t></strong>
+                    <button class="btn btn-primary btn-sm" data-bind="click: openCreate">
+                        <i class="bi bi-plus-circle me-1"></i><t key="crm.salon.loyalty.program.btn.new">Yeni Program</t>
+                    </button>
+                </div>
                 <div class="card-body p-0">
                     <table class="table table-hover table-sm mb-0 align-middle">
                         <thead class="table-light">
@@ -134,6 +139,7 @@
                                 <th><t key="crm.salon.loyalty.program.col.required">Esik</t></th>
                                 <th><t key="crm.salon.loyalty.program.col.reward">Odul</t></th>
                                 <th><t key="crm.salon.loyalty.program.col.status">Durum</t></th>
+                                <th class="text-end"><t key="crm.salon.loyalty.program.col.actions">Islemler</t></th>
                             </tr>
                         </thead>
                         <tbody data-bind="foreach: programs">
@@ -143,9 +149,51 @@
                                 <td class="small" data-bind="text: $data.requiredVisits"></td>
                                 <td class="small" data-bind="text: $data.rewardServiceName"></td>
                                 <td><span class="badge" data-bind="css: $data.isActive ? 'bg-success' : 'bg-secondary', text: $data.isActive ? 'Aktif' : 'Pasif'"></span></td>
+                                <td class="text-end">
+                                    <button class="btn btn-outline-secondary btn-sm me-1" data-bind="click: $parent.openEdit"><i class="bi bi-pencil"></i></button>
+                                    <button class="btn btn-outline-danger btn-sm" data-bind="click: $parent.removeProgram"><i class="bi bi-trash"></i></button>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Program Form Modal -->
+            <div class="modal fade" id="loyaltyProgramModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" data-bind="text: editingId() ? '@(Translation.T("crm.salon.loyalty.program.modal.edit_title", "Program Duzenle"))' : '@(Translation.T("crm.salon.loyalty.program.modal.new_title", "Yeni Program"))'"></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-2">
+                                <label class="form-label small"><t key="crm.salon.loyalty.program.form.name">Ad</t> *</label>
+                                <input type="text" class="form-control form-control-sm" data-bind="textInput: form.name" />
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small"><t key="crm.salon.loyalty.program.form.service">Sayilan Hizmet</t> *</label>
+                                <select class="form-select form-select-sm" data-bind="options: services, optionsText: 'name', optionsValue: 'id', value: form.serviceId, optionsCaption: '—'"></select>
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small"><t key="crm.salon.loyalty.program.form.required">Esik (Kac Ziyaret)</t> *</label>
+                                <input type="number" min="1" class="form-control form-control-sm" data-bind="textInput: form.requiredVisits" />
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small"><t key="crm.salon.loyalty.program.form.reward">Odul Hizmeti</t> *</label>
+                                <select class="form-select form-select-sm" data-bind="options: services, optionsText: 'name', optionsValue: 'id', value: form.rewardServiceId, optionsCaption: '—'"></select>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="loyaltyProgramActive" data-bind="checked: form.isActive" />
+                                <label class="form-check-label small" for="loyaltyProgramActive"><t key="crm.salon.loyalty.program.form.active">Aktif</t></label>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">Vazgec</t></button>
+                            <button type="button" class="btn btn-primary btn-sm" data-bind="click: saveProgram"><t key="crm.common.btn.save">Kaydet</t></button>
+                        </div>
+                    </div>
                 </div>
             </div>
 

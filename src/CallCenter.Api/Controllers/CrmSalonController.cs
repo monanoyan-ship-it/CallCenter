@@ -23,6 +23,7 @@ public class CrmSalonController : ControllerBase
     private readonly ISlnEmailCampaignFactory _emailCampaigns;
     private readonly ISlnReviewFactory _reviews;
     private readonly ISlnWinbackFactory _winback;
+    private readonly ISlnServiceFactory _services;
 
     public CrmSalonController(
         ISlnClientFactory clients,
@@ -33,7 +34,8 @@ public class CrmSalonController : ControllerBase
         ISlnMarketingFactory marketing,
         ISlnEmailCampaignFactory emailCampaigns,
         ISlnReviewFactory reviews,
-        ISlnWinbackFactory winback)
+        ISlnWinbackFactory winback,
+        ISlnServiceFactory services)
     {
         _clients = clients;
         _giftCards = giftCards;
@@ -44,6 +46,7 @@ public class CrmSalonController : ControllerBase
         _emailCampaigns = emailCampaigns;
         _reviews = reviews;
         _winback = winback;
+        _services = services;
     }
 
     [HttpGet("clients")]
@@ -253,6 +256,16 @@ public class CrmSalonController : ControllerBase
     }
 
     // ── Sadakat Programi (D — punch card) ─────────────────────────────
+
+    [HttpGet("services-lookup")]
+    [RequireAnyModule(SalonPortalModules.Ids.SlnLoyalty, CrmModules.Ids.SalonLoyalty)]
+    public async Task<ActionResult> GetServicesLookup()
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+        var list = await _services.GetServicesAsync(customerId);
+        return Ok(list.Select(s => new { id = s.Id, name = s.Name }));
+    }
 
     [HttpGet("loyalty-programs/programs")]
     [RequireAnyModule(SalonPortalModules.Ids.SlnLoyalty, CrmModules.Ids.SalonLoyalty)]
