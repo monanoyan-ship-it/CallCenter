@@ -105,6 +105,7 @@ public class SlnLoyaltyProgramFactory : ISlnLoyaltyProgramFactory
 
     public async Task<List<SlnClientLoyaltyProgressDto>> GetClientProgressAsync(int customerId, int? clientId = null, int? branchId = null)
     {
+        var now = DateTime.UtcNow;
         var query = _progressEs.GetAllQueryable()
             .Where(p => p.CustomerId == customerId);
 
@@ -132,7 +133,8 @@ public class SlnLoyaltyProgramFactory : ISlnLoyaltyProgramFactory
                 VisitCount = p.VisitCount,
                 RewardsEarned = p.RewardsEarned,
                 RewardsUsed = p.RewardsUsed,
-                AvailableRewards = p.RewardsEarned - p.RewardsUsed,
+                // Kullanilabilir = unused + suresi gecmemis (expired olanlar gosterilmemeli)
+                AvailableRewards = p.Rewards.Count(r => !r.UsedAt.HasValue && (!r.ExpiresAt.HasValue || r.ExpiresAt.Value >= now)),
                 VisitsToNextReward = p.Program != null && p.Program.RequiredVisits > 0
                     ? (p.Program.RequiredVisits - (p.VisitCount % p.Program.RequiredVisits))
                     : 0,
