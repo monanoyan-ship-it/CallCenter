@@ -19,7 +19,7 @@ public class SlnDashboardController : ControllerBase
     {
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
-        return Ok(await _factory.GetDashboardAsync(customerId, GetBranchId()));
+        return Ok(await _factory.GetDashboardAsync(customerId, GetBranchId(), GetRoleId(), GetPersonnelId()));
     }
 
     private int GetCustomerId()
@@ -30,4 +30,10 @@ public class SlnDashboardController : ControllerBase
         var claim = User.FindFirst("BranchId")?.Value;
         return claim != null && int.TryParse(claim, out var id) ? id : null;
     }
+
+    private int GetRoleId()
+        => int.TryParse(User.FindFirst("CustomerRoleId")?.Value, out var id) ? id : 0;
+
+    private int GetPersonnelId()
+        => int.TryParse(User.FindFirst("CustomerPersonnelId")?.Value, out var id) ? id : 0;
 }

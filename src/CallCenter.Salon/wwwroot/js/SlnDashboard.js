@@ -168,13 +168,66 @@
         }).join('');
     }
 
+    // Hizmet veren personel (Kuafor/Uzman): kisisel kapsam. Salon geneli musteri/finans/
+    // operasyon kartlarini gizle, randevu listesini kendi randevularina daralt.
+    function applyPersonalScope(personal) {
+        if (!personal) return;
+
+        // Yonetim/finans stat kartlarini gizle (kendi randevu sayisi kalir)
+        ['totalClients', 'todayRevenue', 'activeStaff'].forEach(function (id) {
+            var el = document.getElementById(id);
+            var col = el && el.closest('.col-md-3');
+            if (col) col.style.display = 'none';
+        });
+
+        // "Bugün neye bakmalıyım?" aksiyon merkezi (operasyon linkleri icerir) gizle
+        var ac = document.querySelector('.dashboard-action-center');
+        var acRow = ac && ac.closest('.row');
+        if (acRow) acRow.style.display = 'none';
+
+        // Kritik stok + dogum gunu hatirlatmalari sutunu gizle
+        var ls = document.getElementById('lowStockList');
+        var sideCol = ls && ls.closest('.col-md-4');
+        if (sideCol) sideCol.style.display = 'none';
+
+        // Randevu kartini tam genislige al + basligi "Randevularım" yap
+        var apptList = document.getElementById('todayApptList');
+        var apptCol = apptList && apptList.closest('.col-md-8');
+        if (apptCol) {
+            apptCol.classList.remove('col-md-8');
+            apptCol.classList.add('col-12');
+            var header = apptCol.querySelector('.card-header');
+            if (header) {
+                header.innerHTML = '<i class="bi bi-calendar-check me-2"></i>' +
+                    escapeHtml(dashT('salon.dashboard.my_appointments', 'Randevularım'));
+            }
+        }
+
+        // Bilgilendirme bandi (yalnizca bir kez)
+        if (!document.getElementById('personalScopeNote')) {
+            var anchor = document.querySelector('.row.g-3.mb-4');
+            if (anchor) {
+                anchor.insertAdjacentHTML('beforebegin',
+                    '<div id="personalScopeNote" class="alert alert-info d-flex align-items-center gap-2 py-2 mb-3">' +
+                    '<i class="bi bi-info-circle"></i><span>' +
+                    escapeHtml(dashT('salon.dashboard.personal_scope_note', 'Yalnızca kendi randevularınızı görüyorsunuz.')) +
+                    '</span></div>');
+            }
+        }
+    }
+
     function loadDashboard() {
         $.get('/proxy/sln-dashboard', function (d) {
-            document.getElementById('totalClients').textContent = fmt(d.totalClients);
+            var personal = !!d.personalScope;
+            applyPersonalScope(personal);
+
             document.getElementById('todayAppointments').textContent = fmt(d.todayAppointmentsCount);
-            document.getElementById('todayRevenue').textContent = fmt(d.todayRevenue) + ' ₺';
-            document.getElementById('activeStaff').textContent = fmt(d.activeStaff);
-            renderActionCenter(d);
+            if (!personal) {
+                document.getElementById('totalClients').textContent = fmt(d.totalClients);
+                document.getElementById('todayRevenue').textContent = fmt(d.todayRevenue) + ' ₺';
+                document.getElementById('activeStaff').textContent = fmt(d.activeStaff);
+                renderActionCenter(d);
+            }
 
             // Kritik stok uyarilari
             var lowStockBadge = document.getElementById('lowStockCount');

@@ -9,8 +9,8 @@ namespace CallCenter.Shared.Enums;
 /// ROLLER:
 ///   101 = Salon Sahibi  (her seye erisir)
 ///   102 = Mudur          (yonetim sayfalari haric her sey)
-///   103 = Kuafor         (kendi isleri + satis)
-///   104 = Guzellik Uzmani (kendi isleri + satis)
+///   103 = Kuafor         (SADECE gosterge paneli - kendi randevulari; finans=kendi hakedisi ileride)
+///   104 = Guzellik Uzmani (SADECE gosterge paneli - kendi randevulari; finans=kendi hakedisi ileride)
 ///   105 = Kasiyer        (satis + finans + musteri)
 ///   106 = Resepsiyonist  (randevu + musteri)
 /// </summary>
@@ -22,8 +22,10 @@ public static class SalonRolePermissions
     private static readonly string[] EveryonePages = new[]
     {
         "Home",         // Dashboard
-        "Sales",        // Hizli Satis POS
         "ModuleRequired",
+        // NOT: "Sales" (Hizli Satis POS) artik herkese acik degil; bir operasyondur.
+        // Satis yapan rollere (Resepsiyonist/Kasiyer/Mudur/Sube Muduru/Sahip) ayrica verilir.
+        // Hizmet veren personel (103/104) satis ekranini gormez.
     };
 
     // ═══════════════════════════════════════════════════════════════
@@ -37,6 +39,7 @@ public static class SalonRolePermissions
         "Clients",          // Musteri listesi
         "Appointments",     // Randevu takvimi
         "Waitlist",         // Bekleme listesi
+        "Sales",            // Hizli Satis POS (Resepsiyonist/Kasiyer/Mudur/Sahip bu uzerinden alir)
     };
 
     /// <summary>105 - Kasiyer: Satis ve finans islemleri</summary>
@@ -89,6 +92,7 @@ public static class SalonRolePermissions
         "LoyaltyPackages",
         "BeforeAfter",
         "Reports",
+        "Sales",            // Hizli Satis POS
     };
 
     /// <summary>101 - Salon Sahibi: Sadece sahibine ozel sayfalar</summary>
@@ -108,6 +112,14 @@ public static class SalonRolePermissions
     // ═══════════════════════════════════════════════════════════════
     //  ANA METOD - Rol ID'sine gore erisim kontrolu
     // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Hizmet veren personel (Kuafor 103 / Guzellik Uzmani 104): yalnizca kisisel
+    /// gosterge panelini gorur (kendi randevulari). Salon geneli musteri/finans/operasyon
+    /// verisi gormez. Dashboard bu rollerde kisisel kapsama daraltilir.
+    /// </summary>
+    public static bool IsServiceStaffOnly(int roleId)
+        => roleId == SalonRoles.Ids.Hairdresser || roleId == SalonRoles.Ids.Beautician;
 
     /// <summary>
     /// Belirtilen rolun belirtilen sayfaya erisip erisemeyecegini dondurur.
@@ -164,9 +176,11 @@ public static class SalonRolePermissions
 
             case SalonRoles.Ids.Hairdresser: // 103
             case SalonRoles.Ids.Beautician:  // 104
-                pages.UnionWith(TechnicianPages);
-                pages.UnionWith(ReceptionistPages); // Randevularini gorsun
-                pages.UnionWith(CashierPages);      // POS/adisyon yapabilsin
+                // Hizmet veren personel SADECE gosterge panelini gorur (kendi randevulari).
+                // Musteri listesi, bekleme listesi ve tum operasyon/finans sayfalari (POS, adisyon,
+                // kasa, receteler, once/sonra dahil) menuden ve erisimden kaldirildi.
+                // Finans tarafinda ileride yalnizca kendi hakedisini gorecek (henuz yapilmadi).
+                // => Sadece EveryonePages (Home + ModuleRequired). Ek sayfa yok.
                 break;
         }
 

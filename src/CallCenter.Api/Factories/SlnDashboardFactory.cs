@@ -46,16 +46,17 @@ public class SlnDashboardFactory : ISlnDashboardFactory
         _stockBalances = stockBalances;
     }
 
-    public async Task<object> GetDashboardAsync(int customerId, int? branchId = null)
+    public async Task<object> GetDashboardAsync(int customerId, int? branchId = null, int roleId = 0, int personnelId = 0)
     {
         var todayStart = DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc);
         var todayEnd = todayStart.AddDays(1);
 
-        // Toplam musteri (firma bazli)
-        var totalClients = await _clients.GetAllQueryable()
-            .CountAsync(c => c.CustomerId == customerId && !c.IsBlacklisted);
+        // Hizmet veren personel (Kuafor/Uzman): kisisel kapsam.
+        // Yalnizca KENDI randevularini gorur; salon geneli musteri/ciro/personel/stok/
+        // dogum gunu/abonelik verisi gizlenir. (Finans=kendi hakedisi ileride eklenecek.)
+        var personalScope = personnelId > 0 && SalonRolePermissions.IsServiceStaffOnly(roleId);
 
-        // Bugunun randevulari (sube filtresi)
+        // Bugunun randevulari (sube filtresi; kisisel kapsamda kendi personel filtresi)
         var apptQuery = _appointments.GetAllQueryable()
             .Where(a => a.CustomerId == customerId
                      && a.StartTime >= todayStart
@@ -64,6 +65,9 @@ public class SlnDashboardFactory : ISlnDashboardFactory
 
         if (branchId.HasValue)
             apptQuery = apptQuery.Where(a => a.BranchId == branchId.Value);
+
+        if (personalScope)
+            apptQuery = apptQuery.Where(a => a.PersonnelId == personnelId);
 
         var todayAppointments = await apptQuery
             .Include(a => a.SlnClient)
@@ -81,6 +85,29 @@ public class SlnDashboardFactory : ISlnDashboardFactory
             .ToListAsync();
 
         var todayAppointmentsCount = await apptQuery.CountAsync();
+
+        // Kisisel kapsam: yalnizca kendi randevulari + sayisi doner. Salon geneli
+        // musteri/ciro/personel/stok/dogum gunu/abonelik kartlari gizlenir.
+        if (personalScope)
+        {
+            return new
+            {
+                personalScope = true,
+                totalClients = (int?)null,
+                todayAppointmentsCount,
+                todayRevenue = (decimal?)null,
+                activeStaff = (int?)null,
+                lowStockCount = 0,
+                lowStockAlerts = Array.Empty<object>(),
+                todayAppointments,
+                reminders = Array.Empty<object>(),
+                subscription = (object?)null
+            };
+        }
+
+        // Toplam musteri (firma bazli)
+        var totalClients = await _clients.GetAllQueryable()
+            .CountAsync(c => c.CustomerId == customerId && !c.IsBlacklisted);
 
         // Bugunun cirosu — odenmis (StatusId=2) adisyonlar
         var revQuery = _invoices.GetAllQueryable()
@@ -254,6 +281,7 @@ public class SlnDashboardFactory : ISlnDashboardFactory
 
         return new
         {
+            personalScope = false,
             totalClients,
             todayAppointmentsCount,
             todayRevenue,
