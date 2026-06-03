@@ -11,6 +11,7 @@ public interface ISlnMarketingFactory
     Task<(bool Success, string? Error)> UpdateCampaignAsync(int campaignId, SlnCampaignUpdateDto dto, int customerId, int? branchId = null);
     Task<(bool Success, string? Error)> DeleteCampaignAsync(int campaignId, int customerId, int? branchId = null);
     Task<SlnSegmentPreviewDto> GetSegmentPreviewAsync(string? segmentFilter, int customerId, int? branchId = null);
+    Task<List<SlnSegmentRecipientDto>> GetSegmentRecipientsAsync(string? segmentFilter, int customerId, int? branchId = null);
     Task<List<SlnSegmentPresetDto>> GetSegmentPresetsAsync(int customerId, int? branchId = null);
     Task<(bool Success, string? Error)> SendCampaignAsync(int campaignId, int customerId, int? branchId = null);
 

@@ -1,6 +1,7 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
+using CallCenter.Api.Services.Email;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -11,15 +12,18 @@ public class SlnEmailCampaignFactory : ISlnEmailCampaignFactory
 {
     private readonly ISlnEmailCampaignEntityService _emailCampaignEs;
     private readonly ISlnMarketingFactory _marketingFactory;
+    private readonly IEmailSendService _emailSend;
     private readonly IUnitOfWork _uow;
 
     public SlnEmailCampaignFactory(
         ISlnEmailCampaignEntityService emailCampaignEs,
         ISlnMarketingFactory marketingFactory,
+        IEmailSendService emailSend,
         IUnitOfWork uow)
     {
         _emailCampaignEs = emailCampaignEs;
         _marketingFactory = marketingFactory;
+        _emailSend = emailSend;
         _uow = uow;
     }
 
@@ -117,16 +121,66 @@ public class SlnEmailCampaignFactory : ISlnEmailCampaignFactory
         if (campaign == null) return (false, "Kampanya bulunamadi");
         if (campaign.StatusId >= 3) return (false, "Kampanya zaten gonderilmis");
 
-        var preview = await _marketingFactory.GetSegmentPreviewAsync(campaign.SegmentFilter, customerId, branchId);
+        var recipients = await _marketingFactory.GetSegmentRecipientsAsync(campaign.SegmentFilter, customerId, branchId);
+        if (recipients.Count == 0)
+            return (false, "E-posta adresi olan uygun müşteri bulunamadı.");
 
-        // Gercek e-posta provider teslimat takibi sonraki asamada; burada gonderim simule edilir.
-        campaign.StatusId = 4;
-        campaign.SentAt = DateTime.UtcNow;
-        campaign.TotalRecipients = preview.EmailReachableClients;
-        campaign.SentCount = preview.EmailReachableClients;
+        var sentCount = 0;
+        var firstError = string.Empty;
+        foreach (var recipient in recipients)
+        {
+            var result = await _emailSend.SendAsync(new EmailSendRequest
+            {
+                CustomerId = customerId,
+                ToAddress = recipient.Email!,
+                ToName = recipient.FullName,
+                Subject = ReplaceClientPlaceholders(campaign.Subject, recipient),
+                HtmlBody = ReplaceClientPlaceholders(campaign.HtmlBody, recipient)
+            });
+
+            if (result.Success)
+            {
+                sentCount++;
+            }
+            else if (string.IsNullOrWhiteSpace(firstError))
+            {
+                firstError = result.Error ?? "Gönderim başarısız.";
+            }
+        }
+
+        if (sentCount > 0)
+        {
+            campaign.StatusId = 4;
+            campaign.SentAt = DateTime.UtcNow;
+        }
+        campaign.TotalRecipients = recipients.Count;
+        campaign.SentCount = sentCount;
 
         await _uow.SaveChangesAsync();
-        return (true, null);
+        if (sentCount == recipients.Count)
+            return (true, null);
+
+        return (false, $"{sentCount}/{recipients.Count} e-posta gönderildi. İlk hata: {firstError}");
+    }
+
+    private static string ReplaceClientPlaceholders(string text, SlnSegmentRecipientDto recipient)
+    {
+        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["MusteriAdi"] = recipient.FullName,
+            ["MüşteriAdı"] = recipient.FullName,
+            ["ClientName"] = recipient.FullName,
+            ["ClientFullName"] = recipient.FullName,
+            ["FullName"] = recipient.FullName,
+            ["Email"] = recipient.Email ?? string.Empty,
+            ["Phone"] = recipient.Phone ?? string.Empty,
+            ["Telefon"] = recipient.Phone ?? string.Empty
+        };
+
+        foreach (var (key, value) in values)
+            text = text.Replace($"{{{{{key}}}}}", value);
+
+        return text;
     }
 
     private static SlnEmailCampaignDto MapToDto(SlnEmailCampaign c) => new()

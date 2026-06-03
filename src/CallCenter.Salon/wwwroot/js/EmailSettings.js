@@ -40,6 +40,18 @@ function EmailSettingsViewModel() {
 
     var gmailSmtpModal, yandexModal, smtpModal, testModal;
 
+    function normalizeAppPassword(value) {
+        return (value || '').replace(/\s+/g, '');
+    }
+
+    function ajaxErrorMessage(xhr, fallback) {
+        if (xhr && xhr.responseJSON) {
+            if (typeof xhr.responseJSON === 'string') return xhr.responseJSON;
+            return xhr.responseJSON.message || xhr.responseJSON.error || xhr.responseJSON.title || fallback;
+        }
+        return (xhr && xhr.responseText) || fallback;
+    }
+
     // ═══ Veri Yukleme ═══
     self.loadData = function () {
         self.isLoading(true);
@@ -77,7 +89,7 @@ function EmailSettingsViewModel() {
 
     self.saveGmailSmtp = function () {
         var email = self.gmailSmtpForm.email();
-        var pass = self.gmailSmtpForm.appPassword();
+        var pass = normalizeAppPassword(self.gmailSmtpForm.appPassword());
         if (!email || !pass) { toastr.warning(slnJsT('salon.emailsettings.js.gmail_e_posta_ve_uygulama_sifresi_zorunludur', 'Gmail adresi ve uygulama şifresi zorunludur.')); return; }
 
         self.isSaving(true);
@@ -104,7 +116,7 @@ function EmailSettingsViewModel() {
             toastr.success(slnJsT('salon.emailsettings.js.gmail_hesabi_eklendi', 'Gmail hesabı eklendi.'));
             self.loadData();
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON || slnJsT('salon.common.error.generic', 'Hata oluştu.'));
+            toastr.error(ajaxErrorMessage(xhr, slnJsT('salon.common.error.generic', 'Hata oluştu.')));
         }).always(function () { self.isSaving(false); });
     };
 

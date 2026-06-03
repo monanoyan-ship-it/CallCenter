@@ -15,4 +15,5 @@ public interface IPlatformEmailTemplateFactory
     Task<PlatformEmailTemplateDto> AddTemplateAsync(int eventId, PlatformEmailTemplateCreateDto dto);
     Task<(bool Success, string? Error)> UpdateTemplateAsync(int templateId, PlatformEmailTemplateUpdateDto dto);
     Task<(bool Success, string? Error)> DeleteTemplateAsync(int templateId);
+    Task<EmailSendResult> SendTestTemplateAsync(int templateId, PlatformEmailTemplateTestSendDto dto);
 }
