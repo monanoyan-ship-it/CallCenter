@@ -25,7 +25,7 @@
             '</div>' +
             '</div>' +
             '<div class="modal-footer py-2">' +
-            '<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>' +
+            '<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>' +
             '<button type="button" class="btn btn-primary btn-sm" id="confirmModalConfirmBtn">Tamam</button>' +
             '</div>' +
             '</div></div>';

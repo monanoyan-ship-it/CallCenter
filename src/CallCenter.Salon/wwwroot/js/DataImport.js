@@ -83,7 +83,7 @@ function DataImportViewModel() {
 
     self.rowCountText = ko.pureComputed(function () {
         return self.rows().length
-            ? dataImportT('salon.dataimport.js.row_count', '{count} satir').replace('{count}', self.rows().length)
+            ? dataImportT('salon.dataimport.js.row_count', '{count} satır').replace('{count}', self.rows().length)
             : '';
     });
 
@@ -96,12 +96,12 @@ function DataImportViewModel() {
 
     self.statusText = function (status) {
         var map = {
-            ready: dataImportT('salon.dataimport.status.ready', 'Hazir'),
-            imported: dataImportT('salon.dataimport.status.imported', 'Aktarildi'),
+            ready: dataImportT('salon.dataimport.status.ready', 'Hazır'),
+            imported: dataImportT('salon.dataimport.status.imported', 'Aktarıldı'),
             duplicate: dataImportT('salon.dataimport.status.duplicate', 'Tekrar'),
             error: dataImportT('salon.dataimport.status.error', 'Hata'),
-            skipped: dataImportT('salon.dataimport.status.skipped', 'Atlandi'),
-            warning: dataImportT('salon.dataimport.status.warning', 'Uyari')
+            skipped: dataImportT('salon.dataimport.status.skipped', 'Atlandı'),
+            warning: dataImportT('salon.dataimport.status.warning', 'Uyarı')
         };
         return map[status] || status || '-';
     };
@@ -149,7 +149,7 @@ function DataImportViewModel() {
     self.loadLookups = function () {
         $.get('/proxy/sln-data-import/templates')
             .done(function (data) { self.templates((data || []).map(normalizeTemplate)); })
-            .fail(function (xhr) { showRequestError(xhr, dataImportT('salon.dataimport.js.templates_failed', 'Import sablonlari yuklenemedi')); });
+            .fail(function (xhr) { showRequestError(xhr, dataImportT('salon.dataimport.js.templates_failed', 'İçe aktarım şablonları yüklenemedi')); });
 
         $.get('/proxy/sln-branches')
             .done(function (data) { self.branches((data || []).map(normalizeBranch)); })
@@ -158,7 +158,7 @@ function DataImportViewModel() {
 
     self.downloadTemplate = function () {
         if (!self.importType()) {
-            toastr.warning(dataImportT('salon.dataimport.js.select_type', 'Once veri tipi secin'));
+            toastr.warning(dataImportT('salon.dataimport.js.select_type', 'Önce veri tipi seçin'));
             return;
         }
         window.location.href = '/proxy/sln-data-import/template/' + encodeURIComponent(self.importType());
@@ -166,7 +166,7 @@ function DataImportViewModel() {
 
     self.preview = function () {
         if (!self.canPreview()) {
-            toastr.warning(dataImportT('salon.dataimport.js.select_file', 'Dosya ve veri tipi secin'));
+            toastr.warning(dataImportT('salon.dataimport.js.select_file', 'Dosya ve veri tipi seçin'));
             return;
         }
 
@@ -179,9 +179,9 @@ function DataImportViewModel() {
             contentType: false
         }).done(function (result) {
             applyResult(result);
-            toastr.success(dataImportT('salon.dataimport.js.preview_success', 'Onizleme hazir'));
+            toastr.success(dataImportT('salon.dataimport.js.preview_success', 'Önizleme hazır'));
         }).fail(function (xhr) {
-            showRequestError(xhr, dataImportT('salon.dataimport.js.preview_failed', 'Onizleme yapilamadi'));
+            showRequestError(xhr, dataImportT('salon.dataimport.js.preview_failed', 'Önizleme yapılamadı'));
         }).always(function () {
             self.isBusy(false);
         });
@@ -191,9 +191,9 @@ function DataImportViewModel() {
         if (!self.canCommit()) return;
 
         var ready = self.summaryValue('readyRows');
-        var message = dataImportT('salon.dataimport.js.confirm_import', '{count} hazir satir aktarilsin mi?').replace('{count}', ready);
+        var message = dataImportT('salon.dataimport.js.confirm_import', '{count} hazır satır aktarılsın mı?').replace('{count}', ready);
         confirmModal(
-            dataImportT('salon.dataimport.js.confirm_title', 'Importu onayla'),
+            dataImportT('salon.dataimport.js.confirm_title', 'İçe aktarımı onayla'),
             message,
             function () {
                 self.isBusy(true);
@@ -205,9 +205,9 @@ function DataImportViewModel() {
                     contentType: false
                 }).done(function (result) {
                     applyResult(result);
-                    toastr.success(dataImportT('salon.dataimport.js.import_success', 'Veriler aktarildi'));
+                    toastr.success(dataImportT('salon.dataimport.js.import_success', 'Veriler aktarıldı'));
                 }).fail(function (xhr) {
-                    showRequestError(xhr, dataImportT('salon.dataimport.js.import_failed', 'Veriler aktarilamadi'));
+                    showRequestError(xhr, dataImportT('salon.dataimport.js.import_failed', 'Veriler aktarılamadı'));
                 }).always(function () {
                     self.isBusy(false);
                 });

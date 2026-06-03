@@ -14,6 +14,12 @@ function formatDate(dateStr) {
     return day + '.' + month + '.' + d.getFullYear();
 }
 
+function toDateStr(d) {
+    var month = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return d.getFullYear() + '-' + month + '-' + day;
+}
+
 function CampaignsViewModel() {
     var self = this;
     self.campaigns = ko.observableArray([]);
@@ -62,7 +68,7 @@ function CampaignsViewModel() {
     self.openNew = function () {
         self.form.name('');
         self.form.description('');
-        self.form.scheduledDate(new Date().toISOString().slice(0, 10));
+        self.form.scheduledDate(toDateStr(new Date()));
         formModal.show();
     };
 

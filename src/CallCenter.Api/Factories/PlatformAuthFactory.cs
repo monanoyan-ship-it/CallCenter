@@ -109,7 +109,7 @@ public class PlatformAuthFactory : IPlatformAuthFactory
     {
         var normalizedPhone = CallCenter.Shared.Helpers.PhoneHelper.Normalize(dto.Phone) ?? "";
         if (string.IsNullOrEmpty(normalizedPhone))
-            return (null, "Telefon veya ÅŸifre hatalÄ±.");
+            return (null, "Telefon veya şifre hatalı.");
 
         if (TryGetLoginLockout(normalizedPhone, out var lockoutError))
             return (null, lockoutError);

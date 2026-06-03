@@ -186,7 +186,7 @@ function PackagesViewModel() {
         $.ajax({ url: '/proxy/sln-loyalty-packages/redemptions?purchaseId=' + pkg.id, method: 'GET' }).done(function (data) {
             self.usageHistory(normalizeList(data));
         }).fail(function (xhr) {
-            toastr.error(readError(xhr, slnJsT('salon.packages.js.usage_history_failed', 'Kullanim gecmisi alinamadi')));
+            toastr.error(readError(xhr, slnJsT('salon.packages.js.usage_history_failed', 'Kullanım geçmişi alınamadı')));
         }).always(function () {
             self.isLoadingUsage(false);
         });
@@ -237,11 +237,11 @@ function PackagesViewModel() {
         };
 
         if (!data.name || !data.serviceId) {
-            toastr.warning(slnJsT('salon.session_plans.js.definition_and_service_required', 'Seans tanimi ve hizmet zorunludur'));
+            toastr.warning(slnJsT('salon.loyalty_packages.js.offer_and_service_required', 'Paket adı ve hizmet zorunludur'));
             return;
         }
         if (data.totalSessions <= 0) {
-            toastr.warning(slnJsT('salon.services.package_sessions_required', 'Seans sayisi 0dan buyuk olmalidir'));
+            toastr.warning(slnJsT('salon.services.package_sessions_required', "Seans sayısı 0'dan büyük olmalıdır"));
             return;
         }
 
@@ -256,21 +256,21 @@ function PackagesViewModel() {
         $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(data) }).done(function () {
             defModal.hide();
             self.loadData();
-            toastr.success(slnJsT('salon.session_plans.js.definition_saved', 'Seans tanimi kaydedildi'));
+            toastr.success(slnJsT('salon.loyalty_packages.js.offer_saved', 'Paket teklifi kaydedildi'));
         }).fail(function (xhr) {
-            toastr.error(readError(xhr, slnJsT('salon.session_plans.js.definition_save_failed', 'Seans tanimi kaydedilemedi')));
+            toastr.error(readError(xhr, slnJsT('salon.loyalty_packages.js.offer_save_failed', 'Paket teklifi kaydedilemedi')));
         }).always(function () {
             self.isSaving(false);
         });
     };
 
     self.removeDef = function (def) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.session_plans.js.delete_def_confirm', "'{name}' seans tanimini silmek istediginize emin misiniz?").replace('{name}', def.name || ''), function () {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.loyalty_packages.js.delete_offer_confirm', "'{name}' paket teklifini silmek istediğinize emin misiniz?").replace('{name}', def.name || ''), function () {
             $.ajax({ url: '/proxy/sln-loyalty-packages/offers/' + def.id, method: 'DELETE' }).done(function () {
                 self.loadData();
-                toastr.success(slnJsT('salon.session_plans.js.definition_deleted', 'Seans tanimi silindi'));
+                toastr.success(slnJsT('salon.loyalty_packages.js.offer_deleted', 'Paket teklifi silindi'));
             }).fail(function (xhr) {
-                toastr.error(readError(xhr, slnJsT('salon.session_plans.js.definition_delete_failed', 'Seans tanimi silinemedi')));
+                toastr.error(readError(xhr, slnJsT('salon.loyalty_packages.js.offer_delete_failed', 'Paket teklifi silinemedi')));
             });
         });
     };
@@ -298,16 +298,16 @@ function PackagesViewModel() {
             contentType: 'application/json',
             data: JSON.stringify({
                 purchaseId: target.id,
-                notes: (self.manualUseNotes() || slnJsT('salon.session_plans.manual_use_note', 'Manuel seans kullanimi')).trim()
+                notes: (self.manualUseNotes() || slnJsT('salon.session_plans.manual_use_note', 'Manuel seans kullanımı')).trim()
             })
         }).done(function () {
             useSessionModal.hide();
             self.manualUseNotes('');
             self.usingPackage(null);
             self.loadData(target.id);
-            toastr.success(slnJsT('salon.packages.js.session_used', '1 seans kullanildi'));
+            toastr.success(slnJsT('salon.packages.js.session_used', '1 seans kullanıldı'));
         }).fail(function (xhr) {
-            toastr.error(readError(xhr, slnJsT('salon.packages.js.session_use_failed', 'Seans kullanimi kaydedilemedi')));
+            toastr.error(readError(xhr, slnJsT('salon.packages.js.session_use_failed', 'Seans kullanımı kaydedilemedi')));
         }).always(function () {
             self.isSaving(false);
         });

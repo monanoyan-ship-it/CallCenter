@@ -145,9 +145,9 @@ public class ManagementFactory : IManagementFactory
         static string StatusLabel(int status) => status switch
         {
             1 => "Beklemede",
-            2 => "Onaylandi",
+            2 => "Onaylandı",
             3 => "Reddedildi",
-            _ => "Baslamadi"
+            _ => "Başlamadı"
         };
 
         return rows.Select(x => new AdminSubMerchantDto

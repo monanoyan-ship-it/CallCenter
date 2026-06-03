@@ -1,11 +1,11 @@
 @{
-    ViewData["Title"] = "Sub-Merchants (iyzico Pazaryeri)";
+    ViewData["Title"] = "Pazaryeri Üye İşyerleri";
 }
 
 <div id="submerchants-vm">
     <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
         <div>
-            <span class="text-muted small">Tum salonlarin iyzico Pazaryeri sub-merchant onboarding durumu (PS.12).</span>
+            <span class="text-muted small">Salonların iyzico Pazaryeri üye işyeri başvuru durumunu takip edin.</span>
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <input type="text" class="form-control form-control-sm" placeholder="Salon, slug, key ara..."
@@ -13,9 +13,9 @@
             <select class="form-select form-select-sm" style="width:160px"
                     data-bind="value: statusFilter, event: { change: load }">
                 <option value="">Hepsi</option>
-                <option value="0">Baslamadi</option>
+                <option value="0">Başlamadı</option>
                 <option value="1">Beklemede</option>
-                <option value="2">Onaylandi</option>
+                <option value="2">Onaylandı</option>
                 <option value="3">Reddedildi</option>
             </select>
             <button class="btn btn-outline-secondary btn-sm" data-bind="click: load">
@@ -24,12 +24,12 @@
         </div>
     </div>
 
-    <!-- Status sayilari -->
+    <!-- Durum sayıları -->
     <div class="row g-2 mb-3">
         <div class="col-6 col-md-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2">
-                    <div class="text-muted small">Onaylandi</div>
+                    <div class="text-muted small">Onaylandı</div>
                     <div class="fw-bold text-success" data-bind="text: countActive"></div>
                 </div>
             </div>
@@ -53,7 +53,7 @@
         <div class="col-6 col-md-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2">
-                    <div class="text-muted small">Baslamadi</div>
+                    <div class="text-muted small">Başlamadı</div>
                     <div class="fw-bold text-secondary" data-bind="text: countNotStarted"></div>
                 </div>
             </div>
@@ -68,7 +68,7 @@
             <div class="text-center text-muted py-5"
                  data-bind="visible: !isLoading() && filtered().length === 0">
                 <i class="bi bi-building fs-1 d-block mb-2 opacity-25"></i>
-                Sonuc yok.
+                Sonuç yok.
             </div>
             <div class="table-responsive" data-bind="visible: !isLoading() && filtered().length > 0">
                 <table class="table table-sm table-hover mb-0">
@@ -77,7 +77,7 @@
                             <th>Salon</th>
                             <th>Tip</th>
                             <th>IBAN</th>
-                            <th>Iletisim</th>
+                            <th>İletişim</th>
                             <th>Durum</th>
                             <th>Onboard tarihi</th>
                             <th>Komisyon</th>
@@ -102,7 +102,7 @@
                             </td>
                             <td>
                                 <span class="badge"
-                                      data-bind="text: onboardingStatus,
+                                      data-bind="text: $parent.statusLabel(onboardingStatusId, onboardingStatus),
                                                  css: $parent.statusBadge(onboardingStatusId)"></span>
                                 <div class="small text-danger mt-1"
                                      data-bind="visible: onboardingError, text: onboardingError"></div>
@@ -114,8 +114,8 @@
                             <td>
                                 <span class="small"
                                       data-bind="text: commissionPercentOverride !== null && commissionPercentOverride !== undefined
-                                          ? '%' + commissionPercentOverride + ' (override)'
-                                          : '%5 (default)'"></span>
+                                          ? '%' + commissionPercentOverride + ' (özel)'
+                                          : '%5 (varsayılan)'"></span>
                             </td>
                         </tr>
                     </tbody>

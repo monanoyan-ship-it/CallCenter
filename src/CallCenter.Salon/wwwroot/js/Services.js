@@ -8,8 +8,6 @@ function ServicesViewModel() {
     self.services = ko.observableArray([]);
     self.resources = ko.observableArray([]);
     self.combos = ko.observableArray([]);
-    self.packageDefinitions = ko.observableArray([]);
-    self.packageFeatureAvailable = ko.observable(true);
     self.searchQuery = ko.observable('');
     self.isSaving = ko.observable(false);
 
@@ -37,6 +35,7 @@ function ServicesViewModel() {
         requiresConsultation: ko.observable(false),
         requiresPatchTest: ko.observable(false),
         prerequisiteNotes: ko.observable(''),
+        sessionCount: ko.observable(1),
         isActive: ko.observable('true')
     };
     self.serviceResourceSelections = ko.observableArray([]);
@@ -57,17 +56,6 @@ function ServicesViewModel() {
         price: ko.observable(0),
         serviceIds: ko.observableArray([]),
         isActive: ko.observable('true')
-    };
-
-    self.selectedPackageService = ko.observable(null);
-    self.isEditingPackageDef = ko.observable(false);
-    self.editingPackageDefId = ko.observable(null);
-    self.packageForm = {
-        name: ko.observable(''),
-        description: ko.observable(''),
-        totalSessions: ko.observable(10),
-        price: ko.observable(0),
-        validDays: ko.observable(365)
     };
 
     // â•â•â• Autocomplete â•â•â•
@@ -103,10 +91,6 @@ function ServicesViewModel() {
         }
 
         return raw;
-    }
-
-    function sameId(a, b) {
-        return parseInt(a) === parseInt(b);
     }
 
     function formatMoney(value) {
@@ -150,10 +134,10 @@ function ServicesViewModel() {
         return {
             totalServices: services.length,
             activeServices: services.filter(function (svc) { return !!svc.isActive; }).length,
+            sessionServices: services.filter(function (svc) { return (parseInt(svc && svc.sessionCount, 10) || 1) > 1; }).length,
             categories: self.categories().length,
             combos: self.combos().length,
-            resources: self.resources().length,
-            packageDefinitions: self.packageDefinitions().length
+            resources: self.resources().length
         };
     });
 
@@ -172,32 +156,14 @@ function ServicesViewModel() {
         }).join(', ');
     };
 
-    self.packageStats = function (serviceId) {
-        var definitions = self.packageDefinitions().filter(function (d) {
-            return sameId(d.serviceId, serviceId);
-        });
-        return {
-            definitionCount: definitions.length,
-            activeDefinitionCount: definitions.filter(function (d) { return d.isActive; }).length
-        };
+    self.serviceSessionSummary = function (svc) {
+        var count = Math.max(1, parseInt(svc && svc.sessionCount, 10) || 1);
+        if (count <= 1) return slnJsT('salon.services.single_session', 'Tek seans');
+        return count + ' ' + slnJsT('salon.services.session_tracking_short', 'seans takip');
     };
 
-    self.packageSummary = function (svc) {
-        if (!self.packageFeatureAvailable()) {
-            return slnJsT('salon.services.package_unavailable', 'Seans takip modulu kapali');
-        }
-
-        var stats = self.packageStats(svc.id);
-        if (!stats.definitionCount) {
-            return slnJsT('salon.session_plans.empty', 'Seans takibi yok');
-        }
-
-        var parts = [];
-        if (stats.definitionCount) {
-            parts.push(stats.definitionCount + ' ' + slnJsT('salon.services.package_def_short', 'tanım'));
-        }
-
-        return parts.join(' · ') || slnJsT('salon.session_plans.empty', 'Seans takibi yok');
+    self.isMultiSessionService = function (svc) {
+        return (parseInt(svc && svc.sessionCount, 10) || 1) > 1;
     };
 
     self.comboSummary = function (combo) {
@@ -220,21 +186,7 @@ function ServicesViewModel() {
         }));
     }
 
-    self.packageDefinitionsForSelected = ko.computed(function () {
-        var svc = self.selectedPackageService();
-        if (!svc) return [];
-        return self.packageDefinitions().filter(function (d) { return sameId(d.serviceId, svc.id); });
-    });
-
-    self.selectedPackageStats = ko.computed(function () {
-        var svc = self.selectedPackageService();
-        if (!svc) {
-            return { definitionCount: 0, activeDefinitionCount: 0 };
-        }
-        return self.packageStats(svc.id);
-    });
-
-    var categoryModal, serviceModal, resourceModal, comboModal, packageModal;
+    var categoryModal, serviceModal, resourceModal, comboModal;
 
     self.loadData = function () {
         $.ajax({ url: '/proxy/sln-services/categories', method: 'GET' }).done(function (data) {
@@ -249,15 +201,6 @@ function ServicesViewModel() {
         });
         $.ajax({ url: '/proxy/sln-services/combos', method: 'GET' }).done(function (data) {
             self.combos(normalizeList(data));
-        });
-        $.ajax({ url: '/proxy/sln-loyalty-packages/offers', method: 'GET' }).done(function (data) {
-            self.packageFeatureAvailable(true);
-            self.packageDefinitions(normalizeList(data));
-        }).fail(function (xhr) {
-            if (xhr && xhr.status === 403) {
-                self.packageFeatureAvailable(false);
-                self.packageDefinitions([]);
-            }
         });
     };
 
@@ -328,6 +271,7 @@ function ServicesViewModel() {
         self.serviceForm.requiresConsultation(false);
         self.serviceForm.requiresPatchTest(false);
         self.serviceForm.prerequisiteNotes('');
+        self.serviceForm.sessionCount(1);
         self.serviceForm.isActive('true');
         rebuildResourceSelections([]);
         self.categoryAutocomplete.clear();
@@ -349,6 +293,7 @@ function ServicesViewModel() {
         self.serviceForm.requiresConsultation(!!svc.requiresConsultation);
         self.serviceForm.requiresPatchTest(!!svc.requiresPatchTest);
         self.serviceForm.prerequisiteNotes(svc.prerequisiteNotes || '');
+        self.serviceForm.sessionCount(parseInt(svc.sessionCount, 10) || 1);
         self.serviceForm.isActive(svc.isActive ? 'true' : 'false');
         rebuildResourceSelections(svc.resourceRequirements || []);
         // Autocomplete'e mevcut degeri set et
@@ -370,6 +315,7 @@ function ServicesViewModel() {
             requiresConsultation: !!self.serviceForm.requiresConsultation(),
             requiresPatchTest: !!self.serviceForm.requiresPatchTest(),
             prerequisiteNotes: self.serviceForm.prerequisiteNotes(),
+            sessionCount: Math.max(1, parseInt(self.serviceForm.sessionCount(), 10) || 1),
             resourceRequirements: self.serviceResourceSelections()
                 .map(function (r) {
                     return { resourceId: r.resourceId, quantityRequired: parseInt(r.quantityRequired()) || 0 };
@@ -460,116 +406,6 @@ function ServicesViewModel() {
         });
     };
 
-    function resetPackageForm(service) {
-        var sessionLabel = slnJsT('salon.services.package_default_sessions_suffix', '10 Seans');
-        self.isEditingPackageDef(false);
-        self.editingPackageDefId(null);
-        self.packageForm.name(service ? ((service.name || '') + ' - ' + sessionLabel) : '');
-        self.packageForm.description('');
-        self.packageForm.totalSessions(10);
-        self.packageForm.price(service ? ((parseFloat(service.price) || 0) * 10) : 0);
-        self.packageForm.validDays(365);
-    }
-
-    function findPackageDefinitionForService(serviceId) {
-        var id = parseInt(serviceId) || 0;
-        return self.packageDefinitions()
-            .filter(function (d) { return sameId(d.serviceId, id); })
-            .sort(function (a, b) {
-                if (!!a.isActive !== !!b.isActive) return a.isActive ? -1 : 1;
-                return (parseInt(b.id) || 0) - (parseInt(a.id) || 0);
-            })[0] || null;
-    }
-
-    function loadPackageDefinitionForm(def) {
-        self.isEditingPackageDef(true);
-        self.editingPackageDefId(def.id);
-        self.packageForm.name(def.name || '');
-        self.packageForm.description(def.description || '');
-        self.packageForm.totalSessions(def.totalSessions || 10);
-        self.packageForm.price(def.price || 0);
-        self.packageForm.validDays(def.validDays || 365);
-    }
-
-    self.openPackageManager = function (service) {
-        if (!self.packageFeatureAvailable()) {
-            toastr.info(slnJsT('salon.services.package_unavailable', 'Seans takip modulu kapali'));
-            return;
-        }
-        self.selectedPackageService(service);
-        var existingDefinition = findPackageDefinitionForService(service && service.id);
-        if (existingDefinition) {
-            loadPackageDefinitionForm(existingDefinition);
-        } else {
-            resetPackageForm(service);
-        }
-        packageModal.show();
-    };
-
-    self.newPackageDef = function () {
-        resetPackageForm(self.selectedPackageService());
-    };
-
-    self.editPackageDef = function (def) {
-        loadPackageDefinitionForm(def);
-    };
-
-    self.savePackageDef = function () {
-        var service = self.selectedPackageService();
-        if (!service) return;
-
-        var data = {
-            name: (self.packageForm.name() || '').trim(),
-            description: self.packageForm.description(),
-            serviceId: parseInt(service.id) || 0,
-            totalSessions: parseInt(self.packageForm.totalSessions()) || 0,
-            price: parseFloat(self.packageForm.price()) || 0,
-            validDays: parseInt(self.packageForm.validDays()) || 365,
-            isActive: true
-        };
-        if (!data.name) { toastr.warning(slnJsT('salon.session_plans.js.definition_and_service_required', 'Seans tanimi ve hizmet zorunludur')); return; }
-        if (data.totalSessions <= 0) { toastr.warning(slnJsT('salon.services.package_sessions_required', "Seans sayısı 0'dan büyük olmalıdır")); return; }
-
-        self.isSaving(true);
-        var url = '/proxy/sln-loyalty-packages/offers';
-        var method = 'POST';
-        if (self.isEditingPackageDef()) {
-            url += '/' + self.editingPackageDefId();
-            method = 'PUT';
-        }
-
-        $.ajax({ url: url, method: method, contentType: 'application/json', data: JSON.stringify(data) }).done(function (saved) {
-            $.ajax({ url: '/proxy/sln-loyalty-packages/offers', method: 'GET' }).done(function (items) {
-                self.packageDefinitions(normalizeList(items));
-                var savedId = saved && saved.id ? saved.id : self.editingPackageDefId();
-                var current = self.packageDefinitions().filter(function (d) {
-                    return savedId && sameId(d.id, savedId);
-                })[0] || findPackageDefinitionForService(service.id);
-                if (current) {
-                    loadPackageDefinitionForm(current);
-                } else {
-                    resetPackageForm(service);
-                }
-            });
-            toastr.success(slnJsT('salon.session_plans.js.definition_saved', 'Seans tanimi kaydedildi'));
-            self.isSaving(false);
-        }).fail(function (xhr) {
-            toastr.error(ajaxErrorMessage(xhr, slnJsT('salon.session_plans.js.definition_save_failed', 'Seans tanimi kaydedilemedi')));
-            self.isSaving(false);
-        });
-    };
-
-    self.removePackageDef = function (def) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.session_plans.js.delete_def_confirm', "'{name}' seans tanimini silmek istediginize emin misiniz?").replace('{name}', def.name || ''), function () {
-            $.ajax({ url: '/proxy/sln-loyalty-packages/offers/' + def.id, method: 'DELETE' }).done(function () {
-                self.loadData();
-                toastr.success(slnJsT('salon.session_plans.js.definition_deleted', 'Seans tanimi silindi'));
-            }).fail(function (xhr) {
-                toastr.error(ajaxErrorMessage(xhr, slnJsT('salon.session_plans.js.definition_delete_failed', 'Seans tanimi silinemedi')));
-            });
-        });
-    };
-
     self.openComboManager = function () {
         self.comboForm.id(null);
         self.comboForm.name('');
@@ -655,7 +491,6 @@ function ServicesViewModel() {
         serviceModal = new bootstrap.Modal(document.getElementById('serviceModal'));
         resourceModal = new bootstrap.Modal(document.getElementById('resourceModal'));
         comboModal = new bootstrap.Modal(document.getElementById('comboModal'));
-        packageModal = new bootstrap.Modal(document.getElementById('packageModal'));
         self.loadData();
     });
 }

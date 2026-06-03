@@ -3,7 +3,7 @@
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body py-2">
             <div class="row g-2 align-items-center">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
                         <input type="text" class="form-control" placeholder="Ara..."
@@ -25,6 +25,11 @@
                 <div class="col-md-1">
                     <button class="btn btn-outline-secondary btn-sm w-100" data-bind="click: function() { currentPage(1); loadData(); }">
                         <i class="bi bi-funnel"></i>
+                    </button>
+                </div>
+                <div class="col-md-1">
+                    <button class="btn btn-outline-success btn-sm w-100" title="CSV Disa Aktar" data-bind="click: exportCsv">
+                        <i class="bi bi-download"></i>
                     </button>
                 </div>
             </div>

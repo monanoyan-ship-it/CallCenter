@@ -19,7 +19,7 @@
         .sidebar {
             width: var(--sidebar-width); height: 100vh; position: fixed; top: 0; left: 0;
             background: linear-gradient(180deg, #1a2332 0%, #0f1923 100%);
-            color: #fff; overflow-y: auto; z-index: 1000;
+            color: #fff; overflow-y: auto; z-index: 1000; box-sizing: border-box;
         }
         .sidebar .brand { padding: 1rem; font-size: 1.1rem; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,.1); }
         .sidebar .brand span { color: #64b5f6; }
@@ -29,7 +29,7 @@
         .sidebar .nav-group-toggle {
             display: flex; align-items: center; width: 100%; padding: .6rem 1rem;
             color: rgba(255,255,255,.5); background: none; border: none;
-            font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; cursor: pointer;
+            font-size: .7rem; letter-spacing: .05em; cursor: pointer;
         }
         .sidebar .nav-group-toggle:hover { color: rgba(255,255,255,.7); }
         .sidebar .nav-group-toggle span { flex: 1; text-align: left; }
@@ -37,6 +37,11 @@
         .sidebar .nav-group-toggle .chevron.open { transform: rotate(180deg); }
         .sidebar .nav-group-items { max-height: 0; overflow: hidden; transition: max-height .25s ease; }
         .sidebar .nav-group-items.show { max-height: 500px; }
+        .sidebar-footer {
+            width: 100%; margin-top: 1rem;
+            border-top: 1px solid rgba(255,255,255,.1); padding: .8rem 1rem;
+            background: #0f1923;
+        }
         .content-area { margin-left: var(--sidebar-width); padding: 1.5rem; min-height: 100vh; }
         .topbar {
             background: #fff; border-bottom: 1px solid #e0e0e0; padding: .6rem 1.5rem;
@@ -56,7 +61,7 @@
         var act = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
         var custOpen = ctrl is "Customers" or "Users" or "Organizations" or "Personnel";
         var modOpen = ctrl is "Modules";
-        // SIP & Cagri Yonetimi kaldirildi — musteri tarafinda yonetiliyor
+        // SIP & Çağrı Yönetimi kaldırıldı — müşteri tarafında yönetiliyor
         var sysOpen = ctrl is "Settings" or "Translations" or "AuditLogs" or "StorageConfig" or "EmailTemplates" or "PaymentConfig" or "SubMerchants";
         var finOpen = ctrl is "BillingReport";
         var kvkkOpen = ctrl is "Kvkk";
@@ -72,20 +77,20 @@
                 <i class="bi bi-speedometer2 me-2"></i>Dashboard
             </a>
 
-            <!-- Musteri Yonetimi -->
+            <!-- Müşteri Yönetimi -->
             <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
-                <span>Musteri Yonetimi</span><i class="bi bi-chevron-down chevron @(custOpen ? "open" : "")"></i>
+                <span>Müşteri Yönetimi</span><i class="bi bi-chevron-down chevron @(custOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(custOpen ? "show" : "")">
-                <a class="nav-link @(ctrl == "Customers" ? "active" : "")" href="/Customers"><i class="bi bi-building me-2"></i>Musteriler</a>
-                <a class="nav-link @(ctrl == "Users" ? "active" : "")" href="/Users"><i class="bi bi-people me-2"></i>Kullanicilar</a>
+                <a class="nav-link @(ctrl == "Customers" ? "active" : "")" href="/Customers"><i class="bi bi-building me-2"></i>Müşteriler</a>
+                <a class="nav-link @(ctrl == "Users" ? "active" : "")" href="/Users"><i class="bi bi-people me-2"></i>Kullanıcılar</a>
                 <a class="nav-link @(ctrl == "Organizations" ? "active" : "")" href="/Organizations"><i class="bi bi-diagram-3 me-2"></i>Organizasyonlar</a>
                 <a class="nav-link @(ctrl == "Personnel" ? "active" : "")" href="/Personnel"><i class="bi bi-person-badge me-2"></i>Personel</a>
             </div>
 
-            <!-- Odeme Takibi -->
+            <!-- Ödeme Takibi -->
             <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
-                <span>Odeme Takibi</span><i class="bi bi-chevron-down chevron @(modOpen ? "open" : "")"></i>
+                <span>Ödeme Takibi</span><i class="bi bi-chevron-down chevron @(modOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(modOpen ? "show" : "")">
                 <a class="nav-link @(ctrl == "Modules" && act == "CallCenter" ? "active" : "")" href="/Modules/CallCenter"><i class="bi bi-telephone me-2"></i>Call Center</a>
@@ -94,7 +99,7 @@
                 <a class="nav-link @(ctrl == "Modules" && act == "PricingPeriods" ? "active" : "")" href="/Modules/PricingPeriods"><i class="bi bi-calendar-range me-2"></i>Fiyat Dönemleri</a>
                 <a class="nav-link @(ctrl == "Modules" && act == "Requests" ? "active" : "")" href="/Modules/Requests"><i class="bi bi-inbox me-2"></i>Hizmet Talepleri</a>
                 <a class="nav-link @(ctrl == "Modules" && act == "Inventory" ? "active" : "")" href="/Modules/Inventory"><i class="bi bi-clipboard-check me-2"></i>Hizmet Envanteri</a>
-                <a class="nav-link @(ctrl == "Modules" && act == "Roles" ? "active" : "")" href="/Modules/Roles"><i class="bi bi-shield-lock me-2"></i>Rol Yonetimi</a>
+                <a class="nav-link @(ctrl == "Modules" && act == "Roles" ? "active" : "")" href="/Modules/Roles"><i class="bi bi-shield-lock me-2"></i>Rol Yönetimi</a>
                 <a class="nav-link @(ctrl == "Modules" && act == "Subscriptions" ? "active" : "")" href="/Modules/Subscriptions"><i class="bi bi-credit-card me-2"></i>Abonelikler</a>
             </div>
 
@@ -104,12 +109,12 @@
             </button>
             <div class="nav-group-items @(sysOpen ? "show" : "")">
                 <a class="nav-link @(ctrl == "Settings" ? "active" : "")" href="/Settings"><i class="bi bi-gear me-2"></i>Ayarlar</a>
-                <a class="nav-link @(ctrl == "Translations" ? "active" : "")" href="/Translations"><i class="bi bi-translate me-2"></i>Dil Yonetimi</a>
-                <a class="nav-link @(ctrl == "AuditLogs" ? "active" : "")" href="/AuditLogs"><i class="bi bi-journal-text me-2"></i>Denetim Kayitlari</a>
+                <a class="nav-link @(ctrl == "Translations" ? "active" : "")" href="/Translations"><i class="bi bi-translate me-2"></i>Dil Yönetimi</a>
+                <a class="nav-link @(ctrl == "AuditLogs" ? "active" : "")" href="/AuditLogs"><i class="bi bi-journal-text me-2"></i>Denetim Kayıtları</a>
                 <a class="nav-link @(ctrl == "StorageConfig" ? "active" : "")" href="/StorageConfig"><i class="bi bi-cloud me-2"></i>Depolama</a>
-                <a class="nav-link @(ctrl == "PaymentConfig" ? "active" : "")" href="/PaymentConfig"><i class="bi bi-credit-card me-2"></i>Odeme Ayarlari</a>
-                <a class="nav-link @(ctrl == "SubMerchants" ? "active" : "")" href="/SubMerchants"><i class="bi bi-bank me-2"></i>Sub-Merchants</a>
-                <a class="nav-link @(ctrl == "EmailTemplates" ? "active" : "")" href="/EmailTemplates"><i class="bi bi-envelope-paper me-2"></i>Email Taslaklari</a>
+                <a class="nav-link @(ctrl == "PaymentConfig" ? "active" : "")" href="/PaymentConfig"><i class="bi bi-credit-card me-2"></i>Ödeme Ayarları</a>
+                <a class="nav-link @(ctrl == "SubMerchants" ? "active" : "")" href="/SubMerchants"><i class="bi bi-bank me-2"></i>Pazaryeri Üye İşyerleri</a>
+                <a class="nav-link @(ctrl == "EmailTemplates" ? "active" : "")" href="/EmailTemplates"><i class="bi bi-envelope-paper me-2"></i>E-posta Taslakları</a>
             </div>
 
             <!-- Finans -->
@@ -126,18 +131,18 @@
             </button>
             <div class="nav-group-items @(kvkkOpen ? "show" : "")">
                 <a class="nav-link @(ctrl == "Kvkk" && act == "Index" ? "active" : "")" href="/Kvkk"><i class="bi bi-shield me-2"></i>Dashboard</a>
-                <a class="nav-link @(act == "PrivacyNotices" ? "active" : "")" href="/Kvkk/PrivacyNotices"><i class="bi bi-file-text me-2"></i>Aydinlatma</a>
-                <a class="nav-link @(act == "Consents" ? "active" : "")" href="/Kvkk/Consents"><i class="bi bi-check-circle me-2"></i>Rizalar</a>
-                <a class="nav-link @(act == "Requests" ? "active" : "")" href="/Kvkk/Requests"><i class="bi bi-envelope me-2"></i>Basvurular</a>
-                <a class="nav-link @(act == "Breaches" ? "active" : "")" href="/Kvkk/Breaches"><i class="bi bi-exclamation-triangle me-2"></i>Ihlaller</a>
-                <a class="nav-link @(act == "Transfers" ? "active" : "")" href="/Kvkk/Transfers"><i class="bi bi-globe me-2"></i>Aktarimlar</a>
+                <a class="nav-link @(act == "PrivacyNotices" ? "active" : "")" href="/Kvkk/PrivacyNotices"><i class="bi bi-file-text me-2"></i>Aydınlatma</a>
+                <a class="nav-link @(act == "Consents" ? "active" : "")" href="/Kvkk/Consents"><i class="bi bi-check-circle me-2"></i>Rızalar</a>
+                <a class="nav-link @(act == "Requests" ? "active" : "")" href="/Kvkk/Requests"><i class="bi bi-envelope me-2"></i>Başvurular</a>
+                <a class="nav-link @(act == "Breaches" ? "active" : "")" href="/Kvkk/Breaches"><i class="bi bi-exclamation-triangle me-2"></i>İhlaller</a>
+                <a class="nav-link @(act == "Transfers" ? "active" : "")" href="/Kvkk/Transfers"><i class="bi bi-globe me-2"></i>Aktarımlar</a>
                 <a class="nav-link @(act == "Inventory" ? "active" : "")" href="/Kvkk/Inventory"><i class="bi bi-archive me-2"></i>Envanter</a>
-                <a class="nav-link @(act == "KvkkSettings" ? "active" : "")" href="/Kvkk/KvkkSettings"><i class="bi bi-sliders me-2"></i>KVKK Ayarlari</a>
+                <a class="nav-link @(act == "KvkkSettings" ? "active" : "")" href="/Kvkk/KvkkSettings"><i class="bi bi-sliders me-2"></i>KVKK Ayarları</a>
             </div>
 
-            <!-- Gelismis -->
+            <!-- Gelişmiş -->
             <button class="nav-group-toggle mt-1" type="button" data-nav-group-toggle="1">
-                <span>Gelismis</span><i class="bi bi-chevron-down chevron @(advOpen ? "open" : "")"></i>
+                <span>Gelişmiş</span><i class="bi bi-chevron-down chevron @(advOpen ? "open" : "")"></i>
             </button>
             <div class="nav-group-items @(advOpen ? "show" : "")">
                 <a class="nav-link @(ctrl == "Licensing" ? "active" : "")" href="/Licensing"><i class="bi bi-key me-2"></i>Lisanslama</a>
@@ -145,12 +150,12 @@
             </div>
 
             <!-- Alt bar -->
-            <div style="position:absolute;bottom:0;width:100%;border-top:1px solid rgba(255,255,255,.1);padding:.8rem 1rem;">
+            <div class="sidebar-footer">
                 <div class="d-flex align-items-center justify-content-between">
                     <small class="text-white-50">
                         <i class="bi bi-shield-lock me-1"></i>@__jwt.FullName
                     </small>
-                    <a href="/Account/Logout" class="text-white-50" title="Cikis"><i class="bi bi-box-arrow-right"></i></a>
+                    <a href="/Account/Logout" class="text-white-50" title="Çıkış"><i class="bi bi-box-arrow-right"></i></a>
                 </div>
             </div>
         </nav>

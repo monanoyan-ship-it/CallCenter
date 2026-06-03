@@ -132,7 +132,11 @@ function AppointmentsViewModel() {
     var statusCss = { 1: 'bg-warning text-dark', 2: 'bg-info', 3: 'bg-success', 4: 'bg-danger', 5: 'bg-secondary', 6: 'bg-warning text-dark' };
 
     // ═══ Tarih Yardimcilari ═══
-    function toDateStr(d) { return d.toISOString().substring(0, 10); }
+    function toDateStr(d) {
+        var month = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        return d.getFullYear() + '-' + month + '-' + day;
+    }
     function addDays(d, n) { var r = new Date(d); r.setDate(r.getDate() + n); return r; }
 
     function getMonday(d) {
@@ -419,7 +423,7 @@ function AppointmentsViewModel() {
             return;
         }
         if (startTimeVal.length <= 5) {
-            startTimeVal = new Date().toISOString().substring(0, 10) + 'T' + startTimeVal + ':00';
+            startTimeVal = toDateStr(new Date()) + 'T' + startTimeVal + ':00';
         }
         if (startTimeVal && !startTimeVal.endsWith('Z')) startTimeVal += 'Z';
 

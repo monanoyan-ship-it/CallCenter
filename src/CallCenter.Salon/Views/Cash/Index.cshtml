@@ -26,7 +26,7 @@
                             <th><t key="salon.cash.auto.tur">Tür</t></th>
                             <th><t key="salon.common.branch">Şube</t></th>
                             <th><t key="salon.common.status">Durum</t></th>
-                            <th class="text-end" style="min-width: 320px;"><t key="salon.common.actions">İşlemler</t></th>
+                            <th class="text-end" style="min-width: 320px;"><t key="salon.cash.auto.actions_label">İşlemler</t></th>
                         </tr>
                     </thead>
                     <tbody data-bind="foreach: cashRegisters">
@@ -163,7 +163,7 @@
         </div>
     </div>
 
-    <!-- Gun Sonu Kapama Gecmisi -->
+    <!-- Gün Sonu Kapama Geçmişi -->
     <div class="card border-0 shadow-sm mt-3" data-bind="visible: closings().length > 0">
         <div class="card-header bg-white fw-semibold py-2">
             <i class="bi bi-lock me-2"></i><t key="salon.cash.auto.gun_sonu_kapama_gecmisi">Gün Sonu Kapama Geçmişi</t>
@@ -189,12 +189,12 @@
         </div>
     </div>
 
-    <!-- Gun Sonu Kapama Modal -->
+    <!-- Gün Sonu Kapama Modal -->
     <div class="modal fade" id="closingModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-warning bg-opacity-10">
-                    <h6 class="modal-title"><i class="bi bi-lock me-2"></i><t key="salon.cash.auto.gun_sonu_kasa_kapama">Gun Sonu Kasa Kapama</t></h6>
+                    <h6 class="modal-title"><i class="bi bi-lock me-2"></i><t key="salon.cash.auto.gun_sonu_kasa_kapama">Gün Sonu Kasa Kapama</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -217,7 +217,7 @@
                     <!-- /ko -->
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small"><t key="salon.cash.auto.sayilan_tutar_tl">Sayilan Tutar (TL) *</t></label>
+                            <label class="form-label small"><t key="salon.cash.auto.sayilan_tutar_tl">Sayılan Tutar (TL) *</t></label>
                             <input type="number" class="form-control" step="0.01" data-bind="value: closingForm.countedTotal" />
                         </div>
                         <div class="col-12">
@@ -242,7 +242,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-info bg-opacity-10">
-                    <h6 class="modal-title"><i class="bi bi-unlock me-2"></i><t key="salon.cash.auto.kasa_ac_gun_basi">Kasa Ac (Gun Basi)</t></h6>
+                    <h6 class="modal-title"><i class="bi bi-unlock me-2"></i><t key="salon.cash.auto.kasa_ac_gun_basi">Kasa Aç (Gün Başı)</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -380,7 +380,7 @@
                             <input type="number" class="form-control form-control-sm" step="0.01" data-bind="value: transactionForm.amount" />
                         </div>
                         <div class="col-6">
-                            <label class="form-label small"><t key="salon.cash.auto.odeme_yontemi">Ödeme Yontemi</t></label>
+                            <label class="form-label small"><t key="salon.cash.auto.odeme_yontemi">Ödeme Yöntemi</t></label>
                             <select class="form-select form-select-sm" data-bind="value: transactionForm.paymentMethodId">
                                 <option value="1"><t key="salon.cash.auto.nakit">Nakit</t></option>
                                 <option value="2"><t key="salon.cash.auto.kredi_karti">Kredi Kartı</t></option>

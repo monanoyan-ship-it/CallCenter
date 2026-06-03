@@ -214,6 +214,7 @@ public class SlnServiceController : ControllerBase
             SortOrder = req.SortOrder,
             ParentServiceId = req.ParentServiceId,
             IsAddOn = req.IsAddOn,
+            SessionCount = req.SessionCount,
             RequiresConsultation = req.RequiresConsultation,
             RequiresPatchTest = req.RequiresPatchTest,
             PrerequisiteNotes = req.PrerequisiteNotes,
@@ -301,6 +302,7 @@ public class SlnServiceUpdateRequest
     public int? SortOrder { get; set; }
     public int? ParentServiceId { get; set; }
     public bool IsAddOn { get; set; }
+    public int SessionCount { get; set; } = 1;
     public bool RequiresConsultation { get; set; }
     public bool RequiresPatchTest { get; set; }
     public string? PrerequisiteNotes { get; set; }

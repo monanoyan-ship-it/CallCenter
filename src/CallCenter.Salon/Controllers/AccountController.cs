@@ -35,6 +35,7 @@ public class AccountController : SlnBaseController
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(string username, string password, bool rememberMe = false)
     {
         using var client = CreateApiClient();
@@ -122,8 +123,16 @@ public class AccountController : SlnBaseController
     }
 
     [HttpGet]
-    [HttpPost]
     public IActionResult Logout()
+        => LogoutCore();
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [ActionName(nameof(Logout))]
+    public IActionResult LogoutPost()
+        => LogoutCore();
+
+    private IActionResult LogoutCore()
     {
         HttpContext.ClearAuthCookie();
         var opt = new CookieOptions { Path = "/" };
@@ -157,6 +166,7 @@ public class AccountController : SlnBaseController
     public IActionResult ResendVerification() => View();
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ResendVerification(string username)
     {
         using var client = CreateApiClient();
@@ -177,6 +187,7 @@ public class AccountController : SlnBaseController
     public IActionResult ForgotPassword() => View();
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ForgotPassword(string username)
     {
         using var client = CreateApiClient();
@@ -200,6 +211,7 @@ public class AccountController : SlnBaseController
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ResetPassword(string token, string newPassword, string confirmPassword)
     {
         ViewBag.Token = token;

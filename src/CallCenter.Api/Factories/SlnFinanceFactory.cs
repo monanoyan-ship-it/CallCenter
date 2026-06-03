@@ -767,7 +767,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
         var products = await _products.GetAllQueryable()
             .Where(p => p.CustomerId == customerId
                      && productIds.Contains(p.Id)
-                     && (p.BranchId == null || p.BranchId == branchId))
+                     && p.IsActive)
             .ToDictionaryAsync(p => p.Id);
 
         foreach (var material in validMaterials)
@@ -831,7 +831,7 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             if (branch == null)
                 return null;
 
-            registerName = $"{branch.Name} Kasasi";
+            registerName = $"{branch.Name} Kasası";
         }
         else
         {
@@ -972,12 +972,12 @@ public class SlnFinanceFactory : ISlnFinanceFactory
             string typeName;
             if (r.Branch == null) typeName = "Firma geneli";
             else if (r.Branch.IsHeadquarter) typeName = "Merkez";
-            else typeName = "Sube";
+            else typeName = "Şube";
 
             result.Add(new
             {
                 r.Id,
-                r.Name,
+                Name = NormalizeCashRegisterName(r.Name),
                 r.IsActive,
                 balance,
                 r.BranchId,
@@ -989,6 +989,11 @@ public class SlnFinanceFactory : ISlnFinanceFactory
 
         return result;
     }
+
+    private static string NormalizeCashRegisterName(string? name)
+        => string.IsNullOrWhiteSpace(name)
+            ? name ?? ""
+            : name.Replace(" Kasasi", " Kasası", StringComparison.OrdinalIgnoreCase);
 
     public async Task<(bool Success, string? Error)> UpdateCashRegisterAsync(int registerId, string name, int? branchId, bool isActive, int customerId, int? branchScopeId = null)
     {

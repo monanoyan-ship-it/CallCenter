@@ -161,7 +161,7 @@ public class SlnServiceFactory : ISlnServiceFactory
         {
             CustomerId = customerId,
             CategoryId = dto.CategoryId,
-            Name = dto.Name,
+            Name = dto.Name.Trim(),
             DurationMinutes = dto.DurationMinutes,
             BufferBeforeMinutes = Math.Max(0, dto.BufferBeforeMinutes),
             BufferAfterMinutes = Math.Max(0, dto.BufferAfterMinutes),
@@ -173,7 +173,8 @@ public class SlnServiceFactory : ISlnServiceFactory
             IsAddOn = dto.IsAddOn,
             RequiresConsultation = dto.RequiresConsultation,
             RequiresPatchTest = dto.RequiresPatchTest,
-            PrerequisiteNotes = dto.PrerequisiteNotes
+            PrerequisiteNotes = dto.PrerequisiteNotes,
+            SessionCount = Math.Max(1, dto.SessionCount)
         };
 
         _services.Add(service);
@@ -203,7 +204,7 @@ public class SlnServiceFactory : ISlnServiceFactory
             return (false, validationError);
 
         service.CategoryId = dto.CategoryId;
-        service.Name = dto.Name;
+        service.Name = dto.Name.Trim();
         service.DurationMinutes = dto.DurationMinutes;
         service.BufferBeforeMinutes = Math.Max(0, dto.BufferBeforeMinutes);
         service.BufferAfterMinutes = Math.Max(0, dto.BufferAfterMinutes);
@@ -218,6 +219,7 @@ public class SlnServiceFactory : ISlnServiceFactory
         service.RequiresConsultation = dto.RequiresConsultation;
         service.RequiresPatchTest = dto.RequiresPatchTest;
         service.PrerequisiteNotes = dto.PrerequisiteNotes;
+        service.SessionCount = Math.Max(1, dto.SessionCount);
         if (isActive.HasValue)
             service.IsActive = isActive.Value;
 
@@ -471,6 +473,15 @@ public class SlnServiceFactory : ISlnServiceFactory
         int? currentServiceId = null,
         bool validateResourceRequirements = true)
     {
+        if (string.IsNullOrWhiteSpace(dto.Name)) return "Hizmet adi zorunlu";
+        if (dto.Name.Trim().Length > 255) return "Hizmet adi en fazla 255 karakter olmali";
+        if (dto.DurationMinutes <= 0) return "Sure 0'dan buyuk olmali";
+        if (dto.DurationMinutes > 1440) return "Sure en fazla 1440 dakika olmali";
+        if (dto.Price < 0) return "Fiyat 0 veya daha buyuk olmali";
+        if (dto.BufferBeforeMinutes < 0 || dto.BufferAfterMinutes < 0 || dto.ProcessingMinutes < 0)
+            return "Hazirlik, islem ve bitis sureleri negatif olamaz";
+        if (dto.SessionCount < 1) return "Seans sayisi en az 1 olmali";
+        if (dto.SessionCount > 100) return "Seans sayisi en fazla 100 olmali";
         if (dto.TaxRate.HasValue && (dto.TaxRate.Value < 0 || dto.TaxRate.Value > 100)) return "KDV oranı 0 ile 100 arasında olmalı";
         if (dto.SortOrder.HasValue && dto.SortOrder.Value < 0) return "Sıra 0 veya daha büyük olmalı";
 
@@ -496,6 +507,9 @@ public class SlnServiceFactory : ISlnServiceFactory
     private async Task<string?> ValidateResourceRequirementsAsync(List<SlnServiceResourceRequirementCreateDto>? incoming, int customerId)
     {
         var requirements = incoming ?? [];
+        if (requirements.Any(r => r.QuantityRequired <= 0))
+            return "Kaynak miktari 0'dan buyuk olmali";
+
         var resourceIds = requirements
             .Select(i => i.ResourceId)
             .Distinct()
@@ -596,6 +610,7 @@ public class SlnServiceFactory : ISlnServiceFactory
         RequiresPatchTest = s.RequiresPatchTest,
         PrerequisiteNotes = s.PrerequisiteNotes,
         IsActive = s.IsActive,
+        SessionCount = Math.Max(1, s.SessionCount),
         ResourceRequirements = s.ResourceRequirements.OrderBy(r => r.Resource?.Name).Select(r => new SlnServiceResourceRequirementDto
         {
             Id = r.Id,

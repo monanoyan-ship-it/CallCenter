@@ -110,7 +110,7 @@
                 <div class="modal-header"><h6 class="modal-title"><t key="crm.salon.campaigns.form_title">SMS Kampanyası</t></h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
                     <label class="form-label small"><t key="crm.common.name">Ad</t></label>
-                    <input class="form-control form-control-sm mb-2" data-bind="value: campaignForm.name" />
+                    <input class="form-control form-control-sm mb-2" data-bind="textInput: campaignForm.name" />
                     <label class="form-label small"><t key="crm.salon.common.branch_target">Şube hedefi *</t></label>
                     <select class="form-select form-select-sm mb-2"
                             data-bind="options: branchTargetOptions,
@@ -118,7 +118,7 @@
                                        optionsValue: 'id',
                                        value: campaignForm.branchTarget"></select>
                     <label class="form-label small"><t key="crm.common.message">Mesaj</t></label>
-                    <textarea class="form-control form-control-sm mb-2" rows="4" data-bind="value: campaignForm.messageTemplate"></textarea>
+                    <textarea class="form-control form-control-sm mb-2" rows="4" data-bind="textInput: campaignForm.messageTemplate"></textarea>
                     <label class="form-label small"><t key="crm.salon.campaigns.segment_presets">Hazır Müşteri Grupları</t></label>
                     <div class="d-flex flex-wrap gap-2 mb-2" data-bind="foreach: segmentPresets">
                         <button type="button" class="btn btn-outline-secondary btn-sm text-start" data-bind="click: $parent.applySegmentPreset, attr: { title: description }">
@@ -155,10 +155,10 @@
                                        optionsValue: 'id',
                                        value: reminderForm.branchTarget"></select>
                     <label class="form-label small"><t key="crm.common.message">Mesaj</t></label>
-                    <textarea class="form-control form-control-sm mb-2" rows="4" data-bind="value: reminderForm.messageTemplate"></textarea>
+                    <textarea class="form-control form-control-sm mb-2" rows="4" data-bind="textInput: reminderForm.messageTemplate"></textarea>
                     <div class="row g-2">
-                        <div class="col-6"><label class="form-label small">Gün öncesi</label><input type="number" class="form-control form-control-sm" data-bind="value: reminderForm.daysBefore" /></div>
-                        <div class="col-6"><label class="form-label small">Kaç gün gelmeyince</label><input type="number" class="form-control form-control-sm" data-bind="value: reminderForm.inactiveDaysThreshold" /></div>
+                        <div class="col-6"><label class="form-label small">Gün öncesi</label><input type="number" class="form-control form-control-sm" data-bind="textInput: reminderForm.daysBefore" /></div>
+                        <div class="col-6"><label class="form-label small">Kaç gün gelmeyince</label><input type="number" class="form-control form-control-sm" data-bind="textInput: reminderForm.inactiveDaysThreshold" /></div>
                     </div>
                 </div>
                 <div class="modal-footer"><button class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">İptal</t></button><button class="btn btn-primary btn-sm" data-bind="click: saveReminder, disable: isSaving"><t key="crm.common.btn.save">Kaydet</t></button></div>
@@ -172,9 +172,9 @@
                 <div class="modal-header"><h6 class="modal-title"><t key="crm.salon.campaigns.reply">Mesaj Yanıtı</t></h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
                     <label class="form-label small"><t key="crm.salon.campaigns.phone">Telefon</t></label>
-                    <input type="text" class="form-control form-control-sm mb-2" data-bind="value: replyForm.phone" />
+                    <input type="text" class="form-control form-control-sm mb-2" data-bind="textInput: replyForm.phone" />
                     <label class="form-label small"><t key="crm.common.message">Mesaj</t></label>
-                    <textarea class="form-control form-control-sm" rows="4" data-bind="value: replyForm.message"></textarea>
+                    <textarea class="form-control form-control-sm" rows="4" data-bind="textInput: replyForm.message"></textarea>
                 </div>
                 <div class="modal-footer"><button class="btn btn-secondary btn-sm" data-bs-dismiss="modal"><t key="crm.common.btn.cancel">İptal</t></button><button class="btn btn-primary btn-sm" data-bind="click: sendReply, disable: isSaving"><i class="bi bi-send me-1"></i>Gönder</button></div>
             </div>

@@ -4,17 +4,17 @@
         <div></div>
         <div class="d-flex gap-2">
             <button class="btn btn-outline-info btn-sm" data-bind="click: reloadCache">
-                <i class="bi bi-arrow-repeat me-1"></i>Cache Yenile
+                <i class="bi bi-arrow-repeat me-1"></i>Önbelleği Yenile
             </button>
             <button class="btn btn-outline-success btn-sm" data-bind="click: exportXml">
-                <i class="bi bi-file-earmark-code me-1"></i>XML Export
+                <i class="bi bi-file-earmark-code me-1"></i>XML Dışa Aktar
             </button>
             <input type="file" id="xmlImportFile" accept=".xml" style="display:none" />
             <button class="btn btn-outline-warning btn-sm" data-bind="click: importXml">
-                <i class="bi bi-upload me-1"></i>XML Import
+                <i class="bi bi-upload me-1"></i>XML İçe Aktar
             </button>
             <button class="btn btn-primary btn-sm" data-bind="click: openCreate">
-                <i class="bi bi-plus-lg me-1"></i>Yeni Ceviri
+                <i class="bi bi-plus-lg me-1"></i>Yeni Çeviri
             </button>
         </div>
     </div>
@@ -26,25 +26,25 @@
                 <div class="col-md-5">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" class="form-control" placeholder="Key veya deger ara..."
-                               data-bind="value: searchText, valueUpdate: 'afterkeydown', event: { keyup: onSearchKeyUp }" />
+                        <input type="text" class="form-control" placeholder="Key veya değer ara..."
+                               data-bind="textInput: searchText, event: { keyup: onSearchKeyUp }" />
                     </div>
                 </div>
                 <div class="col-md-2">
-                    <select class="form-select form-select-sm" data-bind="value: platformFilter, options: platforms, optionsText: 'displayName', optionsValue: 'id', optionsCaption: 'Tum Platformlar'"></select>
+                    <select class="form-select form-select-sm" data-bind="value: platformFilter, options: platforms, optionsText: 'displayName', optionsValue: 'id', optionsCaption: 'Tüm Platformlar'"></select>
                 </div>
                 <div class="col-md-2">
                     <select class="form-select form-select-sm" data-bind="value: moduleFilter">
-                        <option value="">Tum Kapsamlar</option>
+                        <option value="">Tüm Kapsamlar</option>
                     </select>
                 </div>
                 <div class="col-md-2">
                     <select class="form-select form-select-sm" data-bind="value: selectedLang">
-                        <option value="tr">🇹🇷 TR</option>
-                        <option value="en">🇬🇧 EN</option>
-                        <option value="de">🇩🇪 DE</option>
-                        <option value="ar">🇸🇦 AR</option>
-                        <option value="ru">🇷🇺 RU</option>
+                        <option value="tr">TR</option>
+                        <option value="en">EN</option>
+                        <option value="de">DE</option>
+                        <option value="ar">AR</option>
+                        <option value="ru">RU</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -61,7 +61,7 @@
         <div class="card-body p-0">
             <div class="text-center py-5" data-bind="visible: isLoading"><div class="spinner-border text-primary"></div></div>
             <div class="text-center text-muted py-5" data-bind="visible: !isLoading() && items().length === 0">
-                <i class="bi bi-translate fs-1 d-block mb-2 opacity-25"></i>Ceviri bulunamadi
+                <i class="bi bi-translate fs-1 d-block mb-2 opacity-25"></i>Çeviri bulunamadı
             </div>
             <div data-bind="visible: !isLoading() && items().length > 0">
                 <div class="table-responsive">
@@ -80,7 +80,7 @@
                                 <td><span class="badge bg-secondary" data-bind="text: module || '-'"></span></td>
                                 <td class="small" data-bind="text: $data.values && $data.values[$root.selectedLang()] || '-'"></td>
                                 <td>
-                                    <button class="btn btn-outline-secondary btn-sm me-1" title="Duzenle" data-bind="click: $parent.openEdit"><i class="bi bi-pencil"></i></button>
+                                    <button class="btn btn-outline-secondary btn-sm me-1" title="Düzenle" data-bind="click: $parent.openEdit"><i class="bi bi-pencil"></i></button>
                                     <button class="btn btn-outline-danger btn-sm" title="Sil" data-bind="click: $parent.confirmDelete"><i class="bi bi-trash"></i></button>
                                 </td>
                             </tr>
@@ -88,7 +88,7 @@
                     </table>
                 </div>
                 <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center">
-                    <small class="text-muted">Toplam: <span data-bind="text: totalCount"></span> kayit</small>
+                    <small class="text-muted">Toplam: <span data-bind="text: totalCount"></span> kayıt</small>
                     <nav><ul class="pagination pagination-sm mb-0" data-bind="foreach: pageNumbers()">
                         <li class="page-item" data-bind="css: { active: $data === $parent.currentPage() }">
                             <a class="page-link" href="#" data-bind="text: $data, click: function() { $parent.goToPage($data); }"></a>
@@ -110,41 +110,41 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label small">Key *</label>
-                        <input class="form-control form-control-sm" data-bind="value: form.key, disable: !!form.id()" />
+                        <input class="form-control form-control-sm" data-bind="textInput: form.key, disable: !!form.id()" />
                     </div>
                     <div class="row g-2">
                         <div class="col-md-6 mb-3">
                             <label class="form-label small">Kapsam</label>
-                            <input class="form-control form-control-sm" data-bind="value: form.module" />
+                            <input class="form-control form-control-sm" data-bind="textInput: form.module" />
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label small">Aciklama</label>
-                            <input class="form-control form-control-sm" data-bind="value: form.description" />
+                            <label class="form-label small">Açıklama</label>
+                            <input class="form-control form-control-sm" data-bind="textInput: form.description" />
                         </div>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label small">🇹🇷 Türkçe</label>
-                        <input class="form-control form-control-sm" data-bind="value: form.tr" />
+                        <label class="form-label small">Türkçe</label>
+                        <input class="form-control form-control-sm" data-bind="textInput: form.tr" />
                     </div>
                     <div class="mb-2">
-                        <label class="form-label small">🇬🇧 English</label>
-                        <input class="form-control form-control-sm" data-bind="value: form.en" />
+                        <label class="form-label small">English</label>
+                        <input class="form-control form-control-sm" data-bind="textInput: form.en" />
                     </div>
                     <div class="mb-2">
-                        <label class="form-label small">🇩🇪 Deutsch</label>
-                        <input class="form-control form-control-sm" data-bind="value: form.de" />
+                        <label class="form-label small">Deutsch</label>
+                        <input class="form-control form-control-sm" data-bind="textInput: form.de" />
                     </div>
                     <div class="mb-2">
-                        <label class="form-label small">🇸🇦 العربية</label>
-                        <input class="form-control form-control-sm" data-bind="value: form.ar" />
+                        <label class="form-label small">Arabic</label>
+                        <input class="form-control form-control-sm" data-bind="textInput: form.ar" />
                     </div>
                     <div class="mb-2">
-                        <label class="form-label small">🇷🇺 Русский</label>
-                        <input class="form-control form-control-sm" data-bind="value: form.ru" />
+                        <label class="form-label small">Russian</label>
+                        <input class="form-control form-control-sm" data-bind="textInput: form.ru" />
                     </div>
                 </div>
                 <div class="modal-footer py-2">
-                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
                     <button class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
@@ -160,10 +160,10 @@
             <div class="modal-content">
                 <div class="modal-body text-center py-4">
                     <i class="bi bi-exclamation-triangle text-danger fs-1 d-block mb-2"></i>
-                    <p>Bu ceviriyi silmek istediginize emin misiniz?</p>
+                    <p>Bu çeviriyi silmek istediğinize emin misiniz?</p>
                 </div>
                 <div class="modal-footer py-2 justify-content-center">
-                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
                     <button class="btn btn-danger btn-sm" data-bind="click: executeDelete">Sil</button>
                 </div>
             </div>

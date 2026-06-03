@@ -229,7 +229,7 @@
                 <div class="nav-group-items @(managementOpen ? "show" : "")">
                     @if (canShow("Profile")) { <a class="nav-link @(ctrl == "Profile" ? "active" : "")" href="/Profile"><i class="bi bi-shop me-2"></i><t key="salon.sidebar.profile">Salon Profili</t></a> }
                     @if (canShow("Branches")) { <a class="nav-link @(ctrl == "Branches" ? "active" : "")" href="/Branches"><i class="bi bi-building me-2"></i><t key="salon.sidebar.branches">Subeler</t></a> }
-                    @if (canShow("DataImport")) { <a class="nav-link @(ctrl == "DataImport" ? "active" : "")" href="/DataImport"><i class="bi bi-database-up me-2"></i><t key="salon.sidebar.data_import">Veri Aktarimi</t></a> }
+                    @if (canShow("DataImport")) { <a class="nav-link @(ctrl == "DataImport" ? "active" : "")" href="/DataImport"><i class="bi bi-database-up me-2"></i><t key="salon.sidebar.data_import_label">Veri Aktarımı</t></a> }
                     @if (canShow("NoShowPolicy")) { <a class="nav-link @(ctrl == "NoShowPolicy" ? "active" : "")" href="/NoShowPolicy"><i class="bi bi-shield-exclamation me-2"></i><t key="salon.sidebar.noshow_policy">Randevu Kurallari</t></a> }
                     @if (canShow("ConsentForms")) { <a class="nav-link @(ctrl == "ConsentForms" ? "active" : "")" href="/ConsentForms"><i class="bi bi-file-earmark-text me-2"></i><t key="salon.sidebar.consent_forms">Onay Formlari</t></a> }
                     @if (canShow("BeforeAfter")) { <a class="nav-link @(ctrl == "BeforeAfter" ? "active" : "")" href="/BeforeAfter"><i class="bi bi-images me-2"></i><t key="salon.sidebar.before_after">Once/Sonra</t></a> }

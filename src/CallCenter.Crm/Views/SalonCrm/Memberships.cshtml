@@ -153,11 +153,11 @@
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label small"><t key="crm.salon.memberships.plan_name_required">Plan Adı *</t></label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: planForm.name" />
+                            <input type="text" class="form-control form-control-sm" data-bind="textInput: planForm.name" />
                         </div>
                         <div class="col-12">
                             <label class="form-label small"><t key="crm.common.description">Açıklama</t></label>
-                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: planForm.description"></textarea>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="textInput: planForm.description"></textarea>
                         </div>
                         <div class="col-12">
                             <label class="form-label small"><t key="crm.salon.common.branch_target">Şube hedefi *</t></label>
@@ -169,15 +169,15 @@
                         </div>
                         <div class="col-4">
                             <label class="form-label small"><t key="crm.salon.memberships.price">Fiyat</t></label>
-                            <input type="number" min="0" step="1" class="form-control form-control-sm" data-bind="value: planForm.price" />
+                            <input type="number" min="0" step="1" class="form-control form-control-sm" data-bind="textInput: planForm.price" />
                         </div>
                         <div class="col-4">
                             <label class="form-label small"><t key="crm.salon.memberships.discount_percent">İndirim %</t></label>
-                            <input type="number" min="0" max="100" step="1" class="form-control form-control-sm" data-bind="value: planForm.discountPercent" />
+                            <input type="number" min="0" max="100" step="1" class="form-control form-control-sm" data-bind="textInput: planForm.discountPercent" />
                         </div>
                         <div class="col-4">
                             <label class="form-label small"><t key="crm.salon.memberships.days">Gün</t></label>
-                            <input type="number" min="1" step="1" class="form-control form-control-sm" data-bind="value: planForm.durationDays" />
+                            <input type="number" min="1" step="1" class="form-control form-control-sm" data-bind="textInput: planForm.durationDays" />
                         </div>
                         <div class="col-12">
                             <div class="form-check">
@@ -202,10 +202,10 @@
                                         <!-- ko if: $parent.serviceSelected(id) -->
                                         <div class="row g-1 ms-3">
                                             <div class="col-6">
-                                                <input type="number" min="0" class="form-control form-control-sm" placeholder="Hak" data-bind="value: $parent.serviceDetail(id).freeCount" />
+                                                <input type="number" min="0" class="form-control form-control-sm" placeholder="Hak" data-bind="textInput: $parent.serviceDetail(id).freeCount" />
                                             </div>
                                             <div class="col-6">
-                                                <input type="number" min="0" max="100" class="form-control form-control-sm" placeholder="İndirim %" data-bind="value: $parent.serviceDetail(id).discountPercent" />
+                                                <input type="number" min="0" max="100" class="form-control form-control-sm" placeholder="İndirim %" data-bind="textInput: $parent.serviceDetail(id).discountPercent" />
                                             </div>
                                         </div>
                                         <!-- /ko -->
@@ -252,11 +252,11 @@
                         <!-- ko if: newClientVisible -->
                         <div class="col-7">
                             <label class="form-label small"><t key="crm.salon.memberships.new_client_name">Ad Soyad *</t></label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: newClientForm.fullName" />
+                            <input type="text" class="form-control form-control-sm" data-bind="textInput: newClientForm.fullName" />
                         </div>
                         <div class="col-5">
                             <label class="form-label small"><t key="crm.salon.memberships.new_client_phone">Telefon *</t></label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: newClientForm.phone" />
+                            <input type="text" class="form-control form-control-sm" data-bind="textInput: newClientForm.phone" />
                         </div>
                         <div class="col-12">
                             <button type="button" class="btn btn-success btn-sm" data-bind="click: saveNewClient, disable: isCreatingClient">

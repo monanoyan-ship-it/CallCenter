@@ -75,7 +75,11 @@ public class PaymentConfigFactory : IPaymentConfigFactory
         var existing = await _configEs.GetAllQueryable()
             .FirstOrDefaultAsync(c => c.ProviderTypeId == dto.ProviderTypeId && c.IsSandbox == dto.IsSandbox);
         if (existing != null)
-            return (false, null, $"Bu provider icin zaten bir {(dto.IsSandbox ? "sandbox" : "production")} yapilandirma mevcut (ID: {existing.Id}). Duzenlemek icin edit kullanin.");
+            return (false, null, $"Bu provider için zaten bir {(dto.IsSandbox ? "sandbox" : "production")} yapılandırma mevcut (ID: {existing.Id}). Düzenlemek için edit kullanın.");
+
+        var credentialError = ValidateCredentialSet(dto, requireCredentials: true);
+        if (credentialError != null)
+            return (false, null, credentialError);
 
         var config = new PlatformPaymentConfig
         {
@@ -103,10 +107,14 @@ public class PaymentConfigFactory : IPaymentConfigFactory
     public async Task<(bool Success, string? Error)> UpdateAsync(int id, PaymentConfigSaveDto dto)
     {
         var config = await _configEs.GetByIdAsync(id);
-        if (config == null) return (false, "Yapilandirma bulunamadi.");
+        if (config == null) return (false, "Yapılandırma bulunamadı.");
 
         config.ProviderTypeId = dto.ProviderTypeId;
         config.IsSandbox = dto.IsSandbox;
+
+        var credentialError = ValidateCredentialSet(dto, requireCredentials: false);
+        if (credentialError != null)
+            return (false, credentialError);
 
         // BUG2.18 fix: Credentials boşsa mevcut olanı koru (edit'te maskeleniyor)
         if (HasAnyCredential(dto))
@@ -134,7 +142,7 @@ public class PaymentConfigFactory : IPaymentConfigFactory
     public async Task<(bool Success, string? Error)> DeleteAsync(int id)
     {
         var config = await _configEs.GetByIdAsync(id);
-        if (config == null) return (false, "Yapilandirma bulunamadi.");
+        if (config == null) return (false, "Yapılandırma bulunamadı.");
 
         _configEs.Remove(config);
         await _uow.SaveChangesAsync();
@@ -144,7 +152,7 @@ public class PaymentConfigFactory : IPaymentConfigFactory
     public async Task<(bool Success, string? Error)> ActivateAsync(int id)
     {
         var config = await _configEs.GetByIdAsync(id);
-        if (config == null) return (false, "Yapilandirma bulunamadi.");
+        if (config == null) return (false, "Yapılandırma bulunamadı.");
 
         // Diger tum config'leri pasif yap
         var others = await _configEs.GetAllQueryable().Where(c => c.IsActive && c.Id != id).ToListAsync();
@@ -161,7 +169,7 @@ public class PaymentConfigFactory : IPaymentConfigFactory
     {
         var config = await _configEs.GetByIdAsync(id);
         if (config == null)
-            return new PaymentConfigTestResultDto { Success = false, Error = "Yapilandirma bulunamadi.", TestedAt = DateTime.UtcNow };
+            return new PaymentConfigTestResultDto { Success = false, Error = "Yapılandırma bulunamadı.", TestedAt = DateTime.UtcNow };
 
         try
         {
@@ -205,11 +213,57 @@ public class PaymentConfigFactory : IPaymentConfigFactory
         return dto.ProviderTypeId switch
         {
             PaymentProviders.Ids.Iyzico => !string.IsNullOrWhiteSpace(dto.IyzicoApiKey) || !string.IsNullOrWhiteSpace(dto.IyzicoSecretKey),
-            PaymentProviders.Ids.PayTR => !string.IsNullOrWhiteSpace(dto.PayTrMerchantId) || !string.IsNullOrWhiteSpace(dto.PayTrMerchantKey),
-            PaymentProviders.Ids.Param => !string.IsNullOrWhiteSpace(dto.ParamClientCode) || !string.IsNullOrWhiteSpace(dto.ParamClientUsername),
+            PaymentProviders.Ids.PayTR => !string.IsNullOrWhiteSpace(dto.PayTrMerchantId)
+                || !string.IsNullOrWhiteSpace(dto.PayTrMerchantKey)
+                || !string.IsNullOrWhiteSpace(dto.PayTrMerchantSalt),
+            PaymentProviders.Ids.Param => !string.IsNullOrWhiteSpace(dto.ParamClientCode)
+                || !string.IsNullOrWhiteSpace(dto.ParamClientUsername)
+                || !string.IsNullOrWhiteSpace(dto.ParamClientPassword)
+                || !string.IsNullOrWhiteSpace(dto.ParamGuid),
             _ => false
         };
     }
+
+    private string? ValidateCredentialSet(PaymentConfigSaveDto dto, bool requireCredentials)
+    {
+        var provider = PaymentProviders.GetById(dto.ProviderTypeId);
+        if (provider == null)
+            return $"Geçersiz provider tipi: {dto.ProviderTypeId}";
+
+        var hasAnyCredential = HasAnyCredential(dto);
+        if (!requireCredentials && !hasAnyCredential)
+            return null;
+
+        var missingFields = GetMissingCredentialFields(dto);
+        if (missingFields.Count == 0)
+            return null;
+
+        var providerName = provider.Description ?? provider.SystemName;
+        return $"{providerName} için credential alanları eksik: {string.Join(", ", missingFields)}.";
+    }
+
+    private static List<string> GetMissingCredentialFields(PaymentConfigSaveDto dto) => dto.ProviderTypeId switch
+    {
+        PaymentProviders.Ids.Iyzico => MissingFields(
+            (nameof(dto.IyzicoApiKey), dto.IyzicoApiKey),
+            (nameof(dto.IyzicoSecretKey), dto.IyzicoSecretKey)),
+        PaymentProviders.Ids.PayTR => MissingFields(
+            (nameof(dto.PayTrMerchantId), dto.PayTrMerchantId),
+            (nameof(dto.PayTrMerchantKey), dto.PayTrMerchantKey),
+            (nameof(dto.PayTrMerchantSalt), dto.PayTrMerchantSalt)),
+        PaymentProviders.Ids.Param => MissingFields(
+            (nameof(dto.ParamClientCode), dto.ParamClientCode),
+            (nameof(dto.ParamClientUsername), dto.ParamClientUsername),
+            (nameof(dto.ParamClientPassword), dto.ParamClientPassword),
+            (nameof(dto.ParamGuid), dto.ParamGuid)),
+        _ => new List<string>()
+    };
+
+    private static List<string> MissingFields(params (string Name, string? Value)[] fields)
+        => fields
+            .Where(field => string.IsNullOrWhiteSpace(field.Value))
+            .Select(field => field.Name)
+            .ToList();
 
     private string EncryptCredentialsFromDto(PaymentConfigSaveDto dto)
     {

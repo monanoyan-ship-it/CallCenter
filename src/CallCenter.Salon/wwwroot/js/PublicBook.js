@@ -37,12 +37,32 @@
             self.isHeadquarter = ko.observable(true);
             self.logoUrl = ko.observable('');
             self.coverImageUrl = ko.observable('');
+            self.branchOptions = ko.observableArray([]);
+            self.selectedBranchSlug = ko.observable(bookSlug);
             self.displaySalonName = ko.computed(function () {
                 if (self.branchName() && self.branchName() !== self.salonName() && !self.isHeadquarter()) {
                     return self.branchName() + ' - ' + self.salonName();
                 }
                 return self.salonName();
             });
+            self.hasBranchOptions = ko.computed(function () {
+                return self.branchOptions().length > 1;
+            });
+            self.changeBranch = function (_data, event) {
+                var slug = event && event.target ? event.target.value : self.selectedBranchSlug();
+                if (!slug || slug === bookSlug) return true;
+                self.selectedBranchSlug(slug);
+                self.clearBookingDraft();
+                window.location.href = '/salon/' + encodeURIComponent(slug) + '/book';
+                return true;
+            };
+            self.selectBranch = function (branch) {
+                var slug = branch && branch.slug;
+                if (!slug || slug === bookSlug) return;
+                self.selectedBranchSlug(slug);
+                self.clearBookingDraft();
+                window.location.href = '/salon/' + encodeURIComponent(slug) + '/book';
+            };
             self.customerId = ko.observable(null);
             self.categories = ko.observableArray([]);
             self.serviceCombos = ko.observableArray([]);
@@ -471,6 +491,7 @@
                     self.salonName(data.salonName);
                     self.branchName(data.branchName || '');
                     self.isHeadquarter(data.isHeadquarter !== false);
+                    self.selectedBranchSlug(data.slug || bookSlug);
                     self.logoUrl(data.logoUrl || '');
                     self.coverImageUrl(data.coverImageUrl || '');
                     self.customerId(data.customerId || data.CustomerId || null);
@@ -483,6 +504,23 @@
                     }
                     self.refreshRecoveryDraft();
                 });
+
+            fetch('/proxy/salon/' + bookSlug + '/branches')
+                .then(function (r) { return r.ok ? r.json() : []; })
+                .then(function (data) {
+                    var branches = Array.isArray(data) ? data : [];
+                    self.branchOptions(branches
+                        .filter(function (branch) { return !!(branch.slug || branch.Slug); })
+                        .map(function (branch) {
+                            return {
+                                id: branch.id || branch.Id,
+                                name: branch.name || branch.Name || '',
+                                slug: branch.slug || branch.Slug,
+                                isHeadquarter: branch.isHeadquarter || branch.IsHeadquarter || false
+                            };
+                        }));
+                })
+                .catch(function () { self.branchOptions([]); });
 
             // Load booking policy
             fetch('/proxy/salon/' + bookSlug + '/booking-policy')

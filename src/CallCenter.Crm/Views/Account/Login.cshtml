@@ -32,6 +32,7 @@
         }
 
         <form method="post" asp-action="Login">
+            @Html.AntiForgeryToken()
             <input type="hidden" name="returnUrl" value="@returnUrl" />
             <div class="mb-3">
                 <label class="form-label small">Kullanıcı Adı</label>
@@ -52,7 +53,7 @@
             </button>
         </form>
         <div class="text-center mt-3">
-            <a href="/Account/ForgotPassword" class="text-decoration-none small text-muted">Şifremi unuttüm</a>
+            <a href="/Account/ForgotPassword" class="text-decoration-none small text-muted">Şifremi unuttum</a>
         </div>
     </div>
 </body>

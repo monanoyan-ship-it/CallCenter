@@ -7,7 +7,7 @@
     <ul class="nav nav-tabs mb-3" role="tablist">
         <li class="nav-item">
             <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-forms">
-                <i class="bi bi-file-earmark-text me-1"></i><t key="salon.consentforms.auto.form_tanimlari"><t key="salon.consentforms.auto.form_tanimlari">Form Tanimlari</t></t>
+                <i class="bi bi-file-earmark-text me-1"></i><t key="salon.consentforms.form_definitions">Form Tanımları</t>
             </button>
         </li>
         <li class="nav-item">
@@ -18,10 +18,10 @@
     </ul>
 
     <div class="tab-content">
-        <!-- Form Tanimlari -->
+        <!-- Form Tanımları -->
         <div class="tab-pane fade show active" id="tab-forms">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="mb-0"><t key="salon.consentforms.auto.form_tanimlari">Form Tanimlari</t></h6>
+                <h6 class="mb-0"><t key="salon.consentforms.form_definitions">Form Tanımları</t></h6>
                 <button class="btn btn-primary btn-sm" data-bind="click: openNewForm">
                     <i class="bi bi-plus-lg me-1"></i><t key="salon.consentforms.auto.yeni_form"><t key="salon.consentforms.auto.yeni_form">Yeni Form</t></t>
                 </button>
@@ -35,7 +35,7 @@
                                 <tr>
                                     <th><t key="salon.common.title">Başlık</t></th>
                                     <th><t key="salon.consentforms.signature_required">İmza Gerekli</t></th>
-                                    <th><t key="salon.consentforms.auto.imzalayan">Imzalayan</t></th>
+                                    <th><t key="salon.consentforms.signer">İmzalayan</t></th>
                                     <th><t key="salon.appointments.status">Durum</t></th>
                                     <th><t key="salon.consentforms.auto.olusturma">Oluşturma</t></th>
                                     <th style="width:150px;"></th>
@@ -90,7 +90,7 @@
                                     <th><t key="salon.consentforms.auto.form">Form</t></th>
                                     <th><t key="salon.panel.payments.customer">Müşteri</t></th>
                                     <th><t key="salon.consentforms.auto.ip_adresi">IP Adresi</t></th>
-                                    <th><t key="salon.consentforms.auto.imza_tarihi">Imza Tarihi</t></th>
+                                    <th><t key="salon.consentforms.signature_date">İmza Tarihi</t></th>
                                 </tr>
                             </thead>
                             <tbody data-bind="foreach: signedConsents">
@@ -141,16 +141,16 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label small"><t key="salon.common.title">Başlık</t> *</label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.title" />
+                            <input type="text" class="form-control form-control-sm" data-bind="textInput: form.title" />
                         </div>
                         <div class="col-12">
                             <label class="form-label small"><t key="salon.consentforms.html_content">HTML İçerik</t> *</label>
-                            <textarea class="form-control form-control-sm" rows="8" data-bind="value: form.htmlContent"></textarea>
+                            <textarea class="form-control form-control-sm" rows="8" data-bind="textInput: form.htmlContent"></textarea>
                         </div>
                         <div class="col-6">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="reqSign" data-bind="checked: form.requireSignature" />
-                                <label class="form-check-label small" for="reqSign"><t key="salon.consentforms.auto.imza_gerekli">Imza Gerekli</t></label>
+                                <label class="form-check-label small" for="reqSign"><t key="salon.consentforms.auto.imza_gerekli">İmza Gerekli</t></label>
                             </div>
                         </div>
                         <div class="col-6">

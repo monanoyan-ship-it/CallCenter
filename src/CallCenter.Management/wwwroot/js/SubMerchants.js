@@ -38,12 +38,21 @@ function SubMerchantsViewModel() {
         }
     };
 
+    self.statusLabel = function (statusId, fallback) {
+        switch (statusId) {
+            case 1: return 'Beklemede';
+            case 2: return 'Onaylandı';
+            case 3: return 'Reddedildi';
+            default: return fallback || 'Başlamadı';
+        }
+    };
+
     self.typeLabel = function (t) {
         if (!t) return '-';
         switch ((t || '').toUpperCase()) {
-            case 'PERSONAL': return 'Sahis';
-            case 'PRIVATE_COMPANY': return 'Sirket';
-            case 'LIMITED_OR_JOINT_STOCK_COMPANY': return 'Ltd/A.S.';
+            case 'PERSONAL': return 'Şahıs';
+            case 'PRIVATE_COMPANY': return 'Şirket';
+            case 'LIMITED_OR_JOINT_STOCK_COMPANY': return 'Ltd/A.Ş.';
             default: return t;
         }
     };
@@ -58,7 +67,7 @@ function SubMerchantsViewModel() {
             .done(function (data) { self.items(data || []); })
             .fail(function (xhr) {
                 if (typeof toastr !== 'undefined') {
-                    toastr.error('Liste yuklenemedi: ' + (xhr.responseJSON ? (xhr.responseJSON.message || xhr.statusText) : xhr.statusText));
+                    toastr.error('Liste yüklenemedi: ' + (xhr.responseJSON ? (xhr.responseJSON.message || xhr.statusText) : xhr.statusText));
                 }
             })
             .always(function () { self.isLoading(false); });

@@ -1,6 +1,11 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     ViewData["Title"] = Translation.T("salon.appointments.title", "Randevular");
+    var __appointmentsJwt = CallCenter.Shared.Auth.JwtIdentityExtensions.GetJwtIdentity(Context);
+    var __appointmentsRoleId = __appointmentsJwt.CustomerRoleId > 0 ? __appointmentsJwt.CustomerRoleId : CallCenter.Shared.Enums.SalonRoles.Ids.SalonOwner;
+    var __canNormalizeAppointmentBranches = !__appointmentsJwt.BranchId.HasValue
+        && (__appointmentsRoleId == CallCenter.Shared.Enums.SalonRoles.Ids.SalonOwner
+            || __appointmentsRoleId == CallCenter.Shared.Enums.SalonRoles.Ids.Manager);
 }
 
 <div id="appointments-vm">
@@ -60,38 +65,41 @@
                     <label class="form-label small fw-semibold mb-1">
                         <i class="bi bi-people me-1"></i><t key="salon.sidebar.staff">Personel</t>
                     </label>
-                    <div class="position-relative" data-bind="with: staffFilterAutocomplete">
+                    <div class="position-relative">
                         <div class="form-control form-control-sm d-flex flex-wrap align-items-center gap-1"
                              style="min-height:31px; height:auto; cursor:text;"
                              data-bind="click: function(d,e){ e.currentTarget.querySelector('input').focus(); }">
-                            <!-- ko foreach: selectedItems -->
+                            <!-- ko foreach: staffFilterAutocomplete.selectedItems -->
                             <span class="badge bg-secondary d-inline-flex align-items-center gap-1" style="font-size:.75rem;">
-                                <span data-bind="text: $parent.getDisplayText($data)"></span>
-                                <i class="bi bi-x" style="cursor:pointer;" data-bind="click: $parent.remove"></i>
+                                <span data-bind="text: $parent.staffFilterAutocomplete.getDisplayText($data)"></span>
+                                <i class="bi bi-x" style="cursor:pointer;" data-bind="click: $parent.staffFilterAutocomplete.remove"></i>
                             </span>
                             <!-- /ko -->
                             <input type="text" class="border-0 flex-grow-1 bg-transparent"
                                    style="min-width:80px; outline:none; font-size:.875rem;"
                                    autocomplete="off"
-                                   data-bind="textInput: query,
-                                              event: { focus: onFocus, blur: onBlur, keydown: onKeydown },
-                                              attr: { placeholder: selectedItems().length ? '' : salonT('salon.appointments.all_staff_placeholder', 'Tüm personel...') }" />
+                                   data-bind="textInput: staffFilterAutocomplete.query,
+                                              event: { focus: staffFilterAutocomplete.onFocus, blur: staffFilterAutocomplete.onBlur, keydown: staffFilterAutocomplete.onKeydown },
+                                              attr: { placeholder: staffFilterAutocomplete.selectedItems().length ? '' : salonT('salon.appointments.all_staff_placeholder', 'Tüm personel...') }" />
                         </div>
                         <div class="dropdown-menu w-100 shadow-sm" style="max-height:220px; overflow-y:auto;"
-                             data-bind="css: { show: showDropdown }">
-                            <!-- ko foreach: filteredItems -->
+                             data-bind="css: { show: staffFilterAutocomplete.showDropdown }">
+                            <!-- ko foreach: staffFilterAutocomplete.filteredItems -->
                             <a class="dropdown-item small py-1 px-2" href="#"
-                               data-bind="text: $parent.getDisplayText($data), click: $parent.select,
-                                          css: { active: $parent.highlightIndex() === $index() },
-                                          event: { mousedown: function(){ $parent.select($data); } }"></a>
+                               data-bind="text: $parent.staffFilterAutocomplete.getDisplayText($data), click: $parent.staffFilterAutocomplete.select,
+                                          css: { active: $parent.staffFilterAutocomplete.highlightIndex() === $index() },
+                                          event: { mousedown: function(){ $parent.staffFilterAutocomplete.select($data); } }"></a>
                             <!-- /ko -->
                         </div>
                     </div>
                     <div class="mt-2 text-end d-flex gap-1 justify-content-end">
-                        <button class="btn btn-outline-secondary btn-sm" data-bind="click: normalizeBranches"
-                                title="@(Translation.T("salon.appointments.normalize_tooltip", "Şube bilgisi olmayan randevuları merkez şubeye bağla"))">
-                            <i class="bi bi-shuffle me-1"></i><t key="salon.appointments.normalize_branches">Şube Normalize</t>
-                        </button>
+                        @if (__canNormalizeAppointmentBranches)
+                        {
+                            <button class="btn btn-outline-secondary btn-sm" data-bind="click: normalizeBranches"
+                                    title="@(Translation.T("salon.appointments.normalize_tooltip", "Şube bilgisi olmayan randevuları merkez şubeye bağla"))">
+                                <i class="bi bi-shuffle me-1"></i><t key="salon.appointments.normalize_branches">Şube Normalize</t>
+                            </button>
+                        }
                         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
                             <i class="bi bi-plus-lg me-1"></i><t key="salon.appointments.new_appointment">Yeni Randevu</t>
                         </button>
@@ -175,7 +183,14 @@
                                 <span class="badge bg-warning text-dark ms-1" data-bind="attr: { title: salonT('salon.appointments.client_noshow_tooltip', 'Bu müşterinin gelmedigi randevu sayısı') }"><i class="bi bi-exclamation-triangle me-1"></i><span data-bind="text: clientNoShowCount"></span> <t key="salon.appointments.noshow_short">no-show</t></span>
                                 <!-- /ko -->
                             </td>
-                            <td class="small" data-bind="text: serviceNamesText"></td>
+                            <td class="small">
+                                <div data-bind="text: serviceNamesText"></div>
+                                <!-- ko if: notes -->
+                                <div class="text-muted mt-1">
+                                    <i class="bi bi-card-text me-1"></i><span data-bind="text: notes"></span>
+                                </div>
+                                <!-- /ko -->
+                            </td>
                             <td class="small" data-bind="text: personnelName"></td>
                             <td class="small">
                                 <!-- ko if: branchName -->
@@ -307,29 +322,29 @@
                     <div class="row g-3">
                         <div class="col-12">
                             <label class="form-label small"><t key="salon.appointments.customer_required">Müşteri *</t></label>
-                            <div class="position-relative" data-bind="with: clientAutocomplete">
+                            <div class="position-relative">
                                 <input type="text" class="form-control form-control-sm"
                                        placeholder="@(Translation.T("salon.appointments.customer_placeholder", "Müşteri adı yazın..."))"
                                        autocomplete="off"
-                                       data-bind="textInput: query,
-                                                  event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
-                                <!-- ko if: selectedName() -->
+                                       data-bind="textInput: clientAutocomplete.query,
+                                                  event: { focus: clientAutocomplete.onFocus, blur: clientAutocomplete.onBlur, keydown: clientAutocomplete.onKeydown }" />
+                                <!-- ko if: clientAutocomplete.selectedName() -->
                                 <span class="position-absolute top-50 end-0 translate-middle-y me-2" style="cursor:pointer; z-index:2;"
-                                      data-bind="click: clear" title="@(Translation.T("salon.memberships.clear", "Temizle"))">
+                                      data-bind="click: clientAutocomplete.clear" title="@(Translation.T("salon.memberships.clear", "Temizle"))">
                                     <i class="bi bi-x-circle text-muted"></i>
                                 </span>
                                 <!-- /ko -->
                                 <div class="dropdown-menu w-100 shadow-sm" style="max-height:220px; overflow-y:auto;"
-                                     data-bind="css: { show: showDropdown }">
-                                    <!-- ko foreach: filteredItems -->
+                                     data-bind="css: { show: clientAutocomplete.showDropdown }">
+                                    <!-- ko foreach: clientAutocomplete.filteredItems -->
                                     <a class="dropdown-item small py-1 px-2" href="#"
-                                       data-bind="text: $parent.getDisplayText($data), click: $parent.select,
-                                                  css: { active: $parent.highlightIndex() === $index() },
-                                                  event: { mousedown: function(){ $parent.select($data); } }"></a>
+                                       data-bind="text: $parent.clientAutocomplete.getDisplayText($data), click: $parent.clientAutocomplete.select,
+                                                  css: { active: $parent.clientAutocomplete.highlightIndex() === $index() },
+                                                  event: { mousedown: function(){ $parent.clientAutocomplete.select($data); } }"></a>
                                     <!-- /ko -->
-                                    <!-- ko if: filteredItems().length === 0 && query().length > 0 -->
+                                    <!-- ko if: clientAutocomplete.filteredItems().length === 0 && clientAutocomplete.query().length > 0 -->
                                     <a class="dropdown-item small py-1 px-2 text-primary fw-semibold" href="#"
-                                       data-bind="event: { mousedown: function() { $root.showNewClient(query()); } }">
+                                       data-bind="event: { mousedown: function() { showNewClient(clientAutocomplete.query()); } }">
                                         <i class="bi bi-person-plus me-1"></i><t key="salon.appointments.create_new_customer">Yeni müşteri oluştur</t>
                                     </a>
                                     <!-- /ko -->

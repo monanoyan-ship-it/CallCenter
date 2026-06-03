@@ -13,6 +13,11 @@
     function profileT(key, fallback) {
         return window.salonT(key, fallback);
     }
+    function toDateStr(d) {
+        var month = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        return d.getFullYear() + '-' + month + '-' + day;
+    }
     if (window.toastr) {
         toastr.options = { closeButton: true, progressBar: true, positionClass: 'toast-top-right', timeOut: 3500 };
     }
@@ -145,7 +150,7 @@ var salonSlug = profileSlug;
 
             self.copyText = function (text, successKey, fallback) {
                 var successMessage = profileT(successKey, fallback);
-                var errorMessage = profileT('salon.profile.distribution.copy_failed', 'Kopyalanamadi');
+                var errorMessage = profileT('salon.profile.distribution.copy_failed_label', 'Kopyalanamadı');
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     navigator.clipboard.writeText(text).then(function () {
                         showToast('success', successMessage);
@@ -166,11 +171,11 @@ var salonSlug = profileSlug;
             };
 
             self.copyBookingLink = function () {
-                self.copyText(self.bookingUrl(), 'salon.profile.distribution.booking_copied', 'Randevu linki kopyalandi');
+                self.copyText(self.bookingUrl(), 'salon.profile.distribution.booking_copied_label', 'Randevu linki kopyalandı');
             };
 
             self.copyWidgetCode = function () {
-                self.copyText(self.widgetCode(), 'salon.profile.distribution.widget_copied', 'Widget kodu kopyalandi');
+                self.copyText(self.widgetCode(), 'salon.profile.distribution.widget_copied_label', 'Widget kodu kopyalandı');
             };
 
             self.shareProfile = function () {
@@ -183,7 +188,7 @@ var salonSlug = profileSlug;
                     navigator.share(shareData).catch(function () {});
                     return;
                 }
-                self.copyText(self.profileUrl(), 'salon.profile.distribution.profile_copied', 'Profil linki kopyalandi');
+                self.copyText(self.profileUrl(), 'salon.profile.distribution.profile_copied_label', 'Profil linki kopyalandı');
             };
 
             // Signup
@@ -357,7 +362,7 @@ var salonSlug = profileSlug;
                 fullName: ko.observable(''),
                 phone: ko.observable(''),
                 serviceId: ko.observable(''),
-                date: ko.observable(new Date().toISOString().substring(0, 10)),
+                date: ko.observable(toDateStr(new Date())),
                 timeSlot: ko.observable('Farketmez'),
                 notes: ko.observable('')
             };
@@ -376,7 +381,7 @@ var salonSlug = profileSlug;
                 self.waitlist.fullName('');
                 self.waitlist.phone('');
                 self.waitlist.serviceId('');
-                self.waitlist.date(new Date().toISOString().substring(0, 10));
+                self.waitlist.date(toDateStr(new Date()));
                 self.waitlist.timeSlot('Farketmez');
                 self.waitlist.notes('');
                 if (!waitlistModal) waitlistModal = new bootstrap.Modal(document.getElementById('waitlistModal'));

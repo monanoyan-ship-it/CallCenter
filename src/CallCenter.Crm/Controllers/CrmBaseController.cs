@@ -104,4 +104,18 @@ public abstract class CrmBaseController : Controller
 
     protected IActionResult? RequireCrmScope(string scopeKey)
         => HasCrmScope(scopeKey) ? null : RedirectToAction("NoAccess", "Home", new { scope = scopeKey });
+
+    protected IActionResult? RequireCoreCrmScope()
+        => RequireCrmScope(CrmScopes.Core);
+
+    protected IActionResult? RequireSalonCrmScope()
+        => RequireCrmScope(CrmScopes.Salon);
+
+    protected IActionResult? RequireCallCenterCrmScope()
+        => RequireCrmScope(CrmScopes.CallCenter);
+
+    protected IActionResult? RequireCoreOrCallCenterCrmScope()
+        => HasCrmScope(CrmScopes.Core) || HasCrmScope(CrmScopes.CallCenter)
+            ? null
+            : RedirectToAction("NoAccess", "Home", new { scope = CrmScopes.Core });
 }

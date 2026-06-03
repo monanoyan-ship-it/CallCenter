@@ -75,15 +75,16 @@
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
-                        <div class="col-8">
+                        <div class="col-12">
                             <label class="form-label small"><t key="salon.recipes.auto.recete_adi_required">Reçete Adı *</t></label>
-                            <input type="text" class="form-control form-control-sm" placeholder="@(Translation.T("salon.recipes.auto.placeholder_orn_siyahtan_sariya", "Örn: Siyahtan Sarıya"))" data-bind="value: form.name" />
+                            <input type="text" class="form-control form-control-sm" placeholder="@(Translation.T("salon.recipes.auto.placeholder_orn_siyahtan_sariya", "Örn: Siyahtan Sarıya"))" data-bind="textInput: form.name" />
                         </div>
-                        <div class="col-4">
-                            <label class="form-label small"><t key="salon.recipes.auto.ikon">İkon</t></label>
-                            <div class="d-flex flex-wrap gap-1">
+                        <div class="col-12">
+                            <label class="form-label small d-block text-center"><t key="salon.recipes.auto.ikon">İkon</t></label>
+                            <div class="d-flex flex-wrap gap-1 justify-content-center border rounded bg-light p-2 mx-auto"
+                                 style="max-height:120px; overflow-y:auto;">
                                 <!-- ko foreach: iconOptions -->
-                                <button type="button" class="btn py-1 px-2" style="font-size:1.1rem;"
+                                <button type="button" class="btn p-0 d-inline-flex align-items-center justify-content-center" style="width:36px;height:34px;font-size:1.05rem;"
                                     data-bind="attr: { title: $data },
                                                click: function() { $root.form.iconClass($data); },
                                                css: $root.form.iconClass() === $data ? 'btn-primary' : 'btn-outline-secondary'">
@@ -107,27 +108,27 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label small"><t key="salon.common.description">Açıklama</t></label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.description" />
+                            <input type="text" class="form-control form-control-sm" data-bind="textInput: form.description" />
                         </div>
                         <!-- Hizmet Secimi (opsiyonel) -->
                         <div class="col-12">
                             <label class="form-label small"><t key="salon.recipes.auto.hizmet_opsiyonel">Hizmet (opsiyonel)</t></label>
-                            <div class="position-relative" data-bind="with: serviceAutocomplete">
+                            <div class="position-relative">
                                 <div class="input-group input-group-sm">
                                     <input type="text" class="form-control" placeholder="@(Translation.T("salon.recipes.auto.hizmet_secin", "Hizmet seçin..."))"
-                                           data-bind="textInput: query,
-                                                      event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
-                                    <!-- ko if: selectedName() -->
-                                    <button class="btn btn-outline-secondary" data-bind="click: clear"><i class="bi bi-x"></i></button>
+                                           data-bind="textInput: serviceAutocomplete.query,
+                                                      event: { focus: serviceAutocomplete.onFocus, blur: serviceAutocomplete.onBlur, keydown: serviceAutocomplete.onKeydown }" />
+                                    <!-- ko if: serviceAutocomplete.selectedName() -->
+                                    <button class="btn btn-outline-secondary" data-bind="click: serviceAutocomplete.clear"><i class="bi bi-x"></i></button>
                                     <!-- /ko -->
                                 </div>
                                 <div class="dropdown-menu w-100 shadow-sm" style="max-height:200px;overflow-y:auto;"
-                                     data-bind="css: { show: showDropdown() && filteredItems().length > 0 }">
-                                    <!-- ko foreach: filteredItems -->
+                                     data-bind="css: { show: serviceAutocomplete.showDropdown() && serviceAutocomplete.filteredItems().length > 0 }">
+                                    <!-- ko foreach: serviceAutocomplete.filteredItems -->
                                     <a class="dropdown-item small py-1 px-2" href="#"
-                                       data-bind="text: $parent.getDisplayText($data), click: $parent.select,
-                                                  css: { active: $parent.highlightIndex() === $index() },
-                                                  event: { mousedown: function(){ $parent.select($data); } }"></a>
+                                       data-bind="text: $parent.serviceAutocomplete.getDisplayText($data), click: $parent.serviceAutocomplete.select,
+                                                  css: { active: $parent.serviceAutocomplete.highlightIndex() === $index() },
+                                                  event: { mousedown: function(){ $parent.serviceAutocomplete.select($data); } }"></a>
                                     <!-- /ko -->
                                 </div>
                             </div>
@@ -157,24 +158,24 @@
                                 <tbody data-bind="foreach: form.items">
                                     <tr>
                                         <td>
-                                            <div class="position-relative" data-bind="with: productAutocomplete">
+                                            <div class="position-relative">
                                                 <input type="text" class="form-control form-control-sm" placeholder="@(Translation.T("salon.recipes.auto.urun_ara", "Ürün ara..."))"
-                                                       data-bind="textInput: query,
-                                                                  event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
+                                                       data-bind="textInput: productAutocomplete.query,
+                                                                  event: { focus: productAutocomplete.onFocus, blur: productAutocomplete.onBlur, keydown: productAutocomplete.onKeydown }" />
                                                 <div class="dropdown-menu w-100 shadow-sm" style="max-height:180px;overflow-y:auto;z-index:1060;"
-                                                     data-bind="css: { show: showDropdown() && filteredItems().length > 0 }">
-                                                    <!-- ko foreach: filteredItems -->
+                                                     data-bind="css: { show: productAutocomplete.showDropdown() && productAutocomplete.filteredItems().length > 0 }">
+                                                    <!-- ko foreach: productAutocomplete.filteredItems -->
                                                     <a class="dropdown-item small py-1 px-2" href="#"
-                                                       data-bind="text: $parent.getDisplayText($data), click: $parent.select,
-                                                                  css: { active: $parent.highlightIndex() === $index() },
-                                                                  event: { mousedown: function(){ $parent.select($data); } }"></a>
+                                                       data-bind="text: $parent.productAutocomplete.getDisplayText($data), click: $parent.productAutocomplete.select,
+                                                                  css: { active: $parent.productAutocomplete.highlightIndex() === $index() },
+                                                                  event: { mousedown: function(){ $parent.productAutocomplete.select($data); } }"></a>
                                                     <!-- /ko -->
                                                 </div>
                                             </div>
                                         </td>
                                         <td>
                                             <input type="number" class="form-control form-control-sm" step="0.1" min="0"
-                                                   data-bind="value: quantity" />
+                                                   data-bind="textInput: quantity" />
                                         </td>
                                         <td>
                                             <select class="form-select form-select-sm"
@@ -182,7 +183,7 @@
                                         </td>
                                         <td>
                                             <input type="text" class="form-control form-control-sm" placeholder="@(Translation.T("salon.recipes.auto.not", "Not..."))"
-                                                   data-bind="value: notes" />
+                                                   data-bind="textInput: notes" />
                                         </td>
                                         <td class="text-end small pt-2" data-bind="text: $parent.getItemCost($data)"></td>
                                         <td>

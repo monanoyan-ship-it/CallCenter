@@ -1,5 +1,11 @@
 function SubViewModel() {
     var self = this;
+    function toDateStr(d) {
+        var month = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        return d.getFullYear() + '-' + month + '-' + day;
+    }
+
     self.plans = ko.observableArray([]);
     self.subscriptions = ko.observableArray([]);
     self.customers = ko.observableArray([]);
@@ -75,7 +81,7 @@ function SubViewModel() {
     // Abonelik
     self.openNewSub = function () {
         self.subForm.customerId(null); self.subForm.planId(null); self.subForm.branchId(null);
-        self.subForm.startDate(new Date().toISOString().substring(0, 10));
+        self.subForm.startDate(toDateStr(new Date()));
         self.subForm.monthlyPrice(0);
         self.subForm.discountOverride('');
         self.branches([]);

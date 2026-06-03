@@ -31,6 +31,7 @@
                             <i class="bi bi-house me-1"></i>@T("salon.sidebar.dashboard", "Ana sayfa")
                         </a>
                         <form method="post" action="/Account/Logout" class="d-inline">
+                            @Html.AntiForgeryToken()
                             <button type="submit" class="btn btn-link text-muted">@T("salon.subscription_required.logout", "Çıkış yap")</button>
                         </form>
                     </div>

@@ -161,9 +161,36 @@ function DetailViewModel() {
         return total.toLocaleString('tr-TR');
     });
 
-    self.totalMonthlyLabel = ko.computed(function () {
-        return t('management.customer_detail.total_monthly', 'Toplam Aylik') + ': ' + self.moduleTotalPrice() + ' TL';
+    self.displayMonthlyPrice = ko.computed(function () {
+        var customer = self.customer ? self.customer() : {};
+        var displayMonthly = customer && customer.salonSubscriptionDisplayMonthly;
+        if (typeof displayMonthly === 'number') {
+            return displayMonthly.toLocaleString('tr-TR');
+        }
+        return self.moduleTotalPrice();
     });
+
+    self.totalMonthlyLabel = ko.computed(function () {
+        return t('management.customer_detail.total_monthly', 'Toplam Aylık') + ': ' + self.displayMonthlyPrice() + ' TL';
+    });
+
+    self.billingPeriodLabel = function (item) {
+        if (!item) return '-';
+        if (item.periodLabel) return item.periodLabel;
+        if (item.month && item.year) return item.month + '/' + item.year;
+        return '-';
+    };
+
+    self.formatMoney = function (value) {
+        var amount = moneyValue(value);
+        return amount.toFixed(2) + ' TL';
+    };
+
+    self.billingTotalAmount = function (item) {
+        if (!item) return 0;
+        if (item.totalAmount !== null && item.totalAmount !== undefined) return item.totalAmount;
+        return moneyValue(item.amount) + moneyValue(item.serviceAmount);
+    };
 
     // Urun checkbox/fiyat yonetimi
     self.isProductActive = function (productTypeId) {
@@ -234,6 +261,11 @@ function DetailViewModel() {
         self.loadModuleRequests();
     };
 
+    function reloadDetailData() {
+        self.loadCustomer();
+        self.loadTabs();
+    }
+
     self.saveGeneral = function () {
         var activeProducts = self.edit.products().filter(function(p) { return p.active(); });
         $.ajax({
@@ -241,7 +273,7 @@ function DetailViewModel() {
             contentType: 'application/json',
             data: JSON.stringify({
                 name: self.edit.name(), taxNumber: self.edit.taxNumber(),
-                contactPhone: self.edit.phone(), contactEmail: self.edit.email(),
+                phone: self.edit.phone(), email: self.edit.email(),
                 address: self.edit.address(),
                 maxUsers: parseInt(self.edit.maxUsers()),
                 timeZone: self.edit.timeZone(),
@@ -279,7 +311,7 @@ function DetailViewModel() {
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({ moduleIds: moduleIds, notes: group.groupName + ' ' + t('management.customer_detail.group_bulk_active_note', 'grubu toplu aktif') }),
-                success: function () { toastr.success(group.groupName + ' ' + t('management.customer_detail.group_activated', 'grubu aktif edildi.')); self.loadTabs(); },
+                success: function () { toastr.success(group.groupName + ' ' + t('management.customer_detail.group_activated', 'grubu aktif edildi.')); reloadDetailData(); },
                 error: function () { toastr.error(t('management.error.operation_error', 'Islem hatasi.')); }
             });
         } else {
@@ -289,7 +321,7 @@ function DetailViewModel() {
                 method: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(moduleIds),
-                success: function () { toastr.success(group.groupName + ' ' + t('management.customer_detail.group_deactivated', 'grubu kapatildi.')); self.loadTabs(); },
+                success: function () { toastr.success(group.groupName + ' ' + t('management.customer_detail.group_deactivated', 'grubu kapatildi.')); reloadDetailData(); },
                 error: function () { toastr.error(t('management.error.operation_error', 'Islem hatasi.')); }
             });
         }
@@ -306,7 +338,7 @@ function DetailViewModel() {
                 } else {
                     toastr.info(t('management.customer_detail.services_already_synced', 'Tum hizmetler zaten mevcut.'));
                 }
-                self.loadTabs();
+                reloadDetailData();
             },
             error: function () { toastr.error(t('management.customer_detail.sync_error', 'Senkronizasyon hatasi.')); }
         });
@@ -326,7 +358,7 @@ function DetailViewModel() {
             data: JSON.stringify({ moduleIds: defaultIds, notes: t('management.customer_detail.default_services_note', 'Temel paket hizmetleri toplu aktif edildi') }),
             success: function () {
                 toastr.success(t('management.customer_detail.default_services_activated', 'Temel paket hizmetleri aktif edildi.'));
-                self.loadTabs();
+                reloadDetailData();
             },
             error: function () { toastr.error(t('management.error.operation_error', 'Islem hatasi.')); }
         });
@@ -337,7 +369,7 @@ function DetailViewModel() {
         var url = '/proxy/customers/' + customerId + '/modules/' + (mod.moduleId || mod.id) + '/' + action;
         $.ajax({
             url: url, method: 'POST',
-            success: function () { toastr.success(t('management.customer_detail.service_updated', 'Hizmet guncellendi.')); self.loadTabs(); },
+            success: function () { toastr.success(t('management.customer_detail.service_updated', 'Hizmet guncellendi.')); reloadDetailData(); },
             error: function () { toastr.error(t('management.error.operation_error', 'Islem hatasi.')); }
         });
     };

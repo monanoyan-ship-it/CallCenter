@@ -20,6 +20,24 @@ function BillingReportViewModel() {
 
     self.goToPage = function(page) { self.currentPage(page); self.loadData(); };
 
+    self.statusLabel = function(item) {
+        switch (item && item.statusId) {
+            case 2: return 'Faturalanmış';
+            case 3: return 'Ödenmiş';
+            case 4: return 'Gecikmiş';
+            default: return (item && item.statusName) || 'Tahakkuk';
+        }
+    };
+
+    self.statusBadge = function(item) {
+        switch (item && item.statusId) {
+            case 2: return 'bg-info';
+            case 3: return 'bg-success';
+            case 4: return 'bg-danger';
+            default: return 'bg-warning text-dark';
+        }
+    };
+
     self.selectAll.subscribe(function(val) {
         if (val) {
             self.selectedIds(self.items().map(function(i) { return i.periodId; }));
@@ -53,9 +71,9 @@ function BillingReportViewModel() {
             });
         });
         $.when.apply($, promises).done(function() {
-            toastr.success(ids.length + ' kayit guncellendi.');
+            toastr.success(ids.length + ' kayıt güncellendi.');
             self.loadData();
-        }).fail(function() { toastr.error('Guncelleme hatasi.'); });
+        }).fail(function() { toastr.error('Güncelleme hatası.'); });
     };
 
     self.canDeletePeriod = function(item) {
@@ -69,12 +87,12 @@ function BillingReportViewModel() {
 
     self.deletePeriod = function(item) {
         if (!self.canDeletePeriod(item)) {
-            toastr.warning('Sadece islem gormemis tahakkuk silinebilir.');
+            toastr.warning('Sadece işlem görmemiş tahakkuk silinebilir.');
             return;
         }
 
-        var message = (item.customerName || 'Firma') + ' icin ' + (item.month || '-') + '/' + (item.year || '-') +
-            ' donemi tahakkuku silinsin mi?';
+        var message = (item.customerName || 'Firma') + ' için ' + (item.month || '-') + '/' + (item.year || '-') +
+            ' dönemi tahakkuku silinsin mi?';
         confirmModal('Tahakkuk Silme', message, function() {
             $.ajax({
                 url: '/proxy/customers/billing/' + item.periodId,

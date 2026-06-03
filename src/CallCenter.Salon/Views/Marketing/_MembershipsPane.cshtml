@@ -211,30 +211,30 @@
                     <div class="mb-3"><label class="form-label small"><t key="salon.memberships.plan_required">Plan *</t></label>
                         <select class="form-select form-select-sm" data-bind="value: memberForm.planId, options: plans, optionsText: 'name', optionsValue: 'id', optionsCaption: salonT('salon.memberships.select_plan', 'Plan seçiniz')"></select></div>
                     <div class="mb-3"><label class="form-label small"><t key="salon.memberships.customer_required">Müşteri *</t></label>
-                        <div class="position-relative" data-bind="with: clientAutocomplete">
+                        <div class="position-relative">
                             <input type="text" class="form-control form-control-sm"
                                    placeholder="@(Translation.T("salon.memberships.customer_placeholder", "Müşteri adı yazın..."))"
                                    autocomplete="off"
-                                   data-bind="textInput: query,
-                                              event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
-                            <!-- ko if: selectedName() -->
+                                   data-bind="textInput: clientAutocomplete.query,
+                                              event: { focus: clientAutocomplete.onFocus, blur: clientAutocomplete.onBlur, keydown: clientAutocomplete.onKeydown }" />
+                            <!-- ko if: clientAutocomplete.selectedName() -->
                             <span class="position-absolute top-50 end-0 translate-middle-y me-2" style="cursor:pointer; z-index:2;"
-                                  data-bind="click: clear" title="@(Translation.T("salon.memberships.clear", "Temizle"))">
+                                  data-bind="click: clientAutocomplete.clear" title="@(Translation.T("salon.memberships.clear", "Temizle"))">
                                 <i class="bi bi-x-circle text-muted"></i>
                             </span>
                             <!-- /ko -->
                             <div class="dropdown-menu w-100 shadow-sm" style="max-height:220px; overflow-y:auto;"
-                                 data-bind="css: { show: showDropdown }">
-                                <!-- ko foreach: filteredItems -->
+                                 data-bind="css: { show: clientAutocomplete.showDropdown }">
+                                <!-- ko foreach: clientAutocomplete.filteredItems -->
                                 <a class="dropdown-item small py-1 px-2" href="#"
-                                   data-bind="text: $parent.getDisplayText($data),
-                                              click: $parent.select,
-                                              css: { active: $parent.highlightIndex() === $index() },
-                                              event: { mousedown: function(){ $parent.select($data); } }"></a>
+                                   data-bind="text: $parent.clientAutocomplete.getDisplayText($data),
+                                              click: $parent.clientAutocomplete.select,
+                                              css: { active: $parent.clientAutocomplete.highlightIndex() === $index() },
+                                              event: { mousedown: function(){ $parent.clientAutocomplete.select($data); } }"></a>
                                 <!-- /ko -->
-                                <!-- ko if: filteredItems().length === 0 && query().length > 0 -->
+                                <!-- ko if: clientAutocomplete.filteredItems().length === 0 && clientAutocomplete.query().length > 0 -->
                                 <a class="dropdown-item small py-1 px-2 text-primary fw-semibold" href="#"
-                                   data-bind="event: { mousedown: function() { $root.showNewClient(query()); } }">
+                                   data-bind="event: { mousedown: function() { showNewClient(clientAutocomplete.query()); } }">
                                     <i class="bi bi-person-plus me-1"></i><t key="salon.memberships.create_new_customer">Yeni müşteri oluştur</t>
                                 </a>
                                 <!-- /ko -->

@@ -147,7 +147,7 @@
         </li>
         <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-treatment">
-                <i class="bi bi-heart-pulse me-1"></i><t key="salon.clients.treatment.tab">Tedavi Dosyasi</t>
+                <i class="bi bi-heart-pulse me-1"></i><t key="salon.clients.treatment.tab_label">Tedavi Dosyası</t>
                 <!-- ko if: client().healthInfoRequiresReview -->
                 <span class="badge bg-warning text-dark ms-1"><t key="salon.clients.health.review_required_short">Inceleme</t></span>
                 <!-- /ko -->
@@ -186,7 +186,7 @@
                         <div class="col-md-6">
                             <table class="table table-sm table-borderless">
                                 <tr><td class="text-muted small" style="width:120px;"><t key="salon.clients.auto.cinsiyet">Cinsiyet</t></td><td class="small" data-bind="text: client().genderText || '-'"></td></tr>
-                                <tr><td class="text-muted small"><t key="salon.clients.auto.dogum_tarihi">Doğum Tarihi</t></td><td class="small" data-bind="text: client().birthDate ? new Date(client().birthDate).toLocaleDateString(document.documentElement.lang || undefined) : '-'"></td></tr>
+                                <tr><td class="text-muted small"><t key="salon.clients.detail.birth_date_label">Doğum Tarihi</t></td><td class="small" data-bind="text: client().birthDate ? new Date(client().birthDate).toLocaleDateString(document.documentElement.lang || undefined) : '-'"></td></tr>
                                 <tr><td class="text-muted small"><t key="salon.clients.auto.adres">Adres</t></td><td class="small" data-bind="text: client().address || '-'"></td></tr>
                                 <tr><td class="text-muted small"><t key="salon.clients.auto.kayit_tarihi">Kayıt Tarihi</t></td><td class="small" data-bind="text: client().createdAt ? new Date(client().createdAt).toLocaleDateString(document.documentElement.lang || undefined) : '-'"></td></tr>
                             </table>
@@ -209,7 +209,7 @@
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="mb-0"><t key="salon.clients.auto.uygulanan_formuller">Uygulanan Formüller</t></h6>
                         <button class="btn btn-primary btn-sm" data-bind="click: openNewFormula">
-                            <i class="bi bi-plus-lg me-1"></i><t key="salon.clients.auto.yeni_formul"><t key="salon.clients.auto.yeni_formul">Yeni Formül</t></t>
+                            <i class="bi bi-plus-lg me-1"></i><t key="salon.clients.detail.new_formula_label">Yeni Formül</t>
                         </button>
                     </div>
                     <div data-bind="foreach: formulas">
@@ -247,20 +247,20 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div>
-                            <h6 class="mb-0"><i class="bi bi-shield-check me-1"></i><t key="salon.clients.health.title">Saglik ve Uyari Bilgileri</t></h6>
+                            <h6 class="mb-0"><i class="bi bi-shield-check me-1"></i><t key="salon.clients.health.title_label">Sağlık ve Uyarı Bilgileri</t></h6>
                             <!-- ko if: client().healthInfoUpdatedAt -->
-                            <small class="text-muted" data-bind="text: salonT('salon.clients.health.updated_at', 'Son guncelleme') + ': ' + new Date(client().healthInfoUpdatedAt).toLocaleString(document.documentElement.lang || undefined)"></small>
+                            <small class="text-muted" data-bind="text: salonT('salon.clients.health.updated_at_label', 'Son güncelleme') + ': ' + new Date(client().healthInfoUpdatedAt).toLocaleString(document.documentElement.lang || undefined)"></small>
                             <!-- /ko -->
                         </div>
                         <!-- ko if: client().healthInfoRequiresReview -->
                         <button class="btn btn-outline-success btn-sm" data-bind="click: reviewHealthInfo, disable: isSaving">
-                            <i class="bi bi-check2-circle me-1"></i><t key="salon.clients.health.mark_reviewed">Inceledim</t>
+                            <i class="bi bi-check2-circle me-1"></i><t key="salon.clients.health.mark_reviewed_label">İnceledim</t>
                         </button>
                         <!-- /ko -->
                     </div>
                     <!-- ko if: client().healthInfoRequiresReview -->
                     <div class="alert alert-warning py-2 small">
-                        <i class="bi bi-exclamation-triangle me-1"></i><t key="salon.clients.health.review_required">Musteri bu bilgileri guncelledi. Randevu oncesi salon tarafindan incelenmeli.</t>
+                        <i class="bi bi-exclamation-triangle me-1"></i><t key="salon.clients.health.review_required_label">Müşteri bu bilgileri güncelledi. Randevu öncesi salon tarafından incelenmeli.</t>
                     </div>
                     <!-- /ko -->
                     <div class="row g-2">
@@ -281,7 +281,7 @@
                             <textarea class="form-control form-control-sm" rows="3" data-bind="value: healthForm.contraindications"></textarea>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small"><t key="salon.clients.health.medical_notes">Saglik Notlari</t></label>
+                            <label class="form-label small"><t key="salon.clients.health.medical_notes_label">Sağlık Notları</t></label>
                             <textarea class="form-control form-control-sm" rows="3" data-bind="value: healthForm.medicalNotes"></textarea>
                         </div>
                     </div>
@@ -293,9 +293,9 @@
 
                     <hr />
                     <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="mb-0"><i class="bi bi-journal-medical me-1"></i><t key="salon.clients.treatment.records">Seans Kayitlari</t></h6>
+                        <h6 class="mb-0"><i class="bi bi-journal-medical me-1"></i><t key="salon.clients.treatment.records_label">Seans Kayıtları</t></h6>
                         <button class="btn btn-outline-primary btn-sm" data-bind="click: openTreatmentRecord">
-                            <i class="bi bi-plus-lg me-1"></i><t key="salon.clients.treatment.new">Yeni Seans Kaydi</t>
+                            <i class="bi bi-plus-lg me-1"></i><t key="salon.clients.treatment.new_label">Yeni Seans Kaydı</t>
                         </button>
                     </div>
                     <div data-bind="foreach: treatmentRecords">
@@ -318,12 +318,12 @@
                             <div class="small text-muted"><strong><t key="salon.clients.treatment.device_parameters">Cihaz Parametreleri</t>:</strong> <span data-bind="text: deviceParameters"></span></div>
                             <!-- /ko -->
                             <!-- ko if: aftercareNotes -->
-                            <div class="small text-muted"><strong><t key="salon.clients.treatment.aftercare">Bakim Onerisi</t>:</strong> <span data-bind="text: aftercareNotes"></span></div>
+                            <div class="small text-muted"><strong><t key="salon.clients.treatment.aftercare_label">Bakım Önerisi</t>:</strong> <span data-bind="text: aftercareNotes"></span></div>
                             <!-- /ko -->
                         </div>
                     </div>
                     <!-- ko if: treatmentRecords().length === 0 -->
-                    <div class="text-center text-muted py-3 small"><t key="salon.clients.treatment.empty">Henuz seans kaydi yok.</t></div>
+                    <div class="text-center text-muted py-3 small"><t key="salon.clients.treatment.empty_label">Henüz seans kaydı yok.</t></div>
                     <!-- /ko -->
                 </div>
             </div>
@@ -377,10 +377,10 @@
                                     <td><span class="badge" data-bind="text: statusText, css: statusCss"></span></td>
                                     <td class="text-end">
                                         <!-- ko if: $parent.hasTreatmentRecordForAppointment($data) -->
-                                        <span class="badge bg-light text-dark me-1"><t key="salon.clients.treatment.record_exists">Seans kaydi var</t></span>
+                                        <span class="badge bg-light text-dark me-1"><t key="salon.clients.treatment.record_exists_label">Seans kaydı var</t></span>
                                         <!-- /ko -->
                                         <button class="btn btn-outline-primary btn-sm" data-bind="click: $parent.openTreatmentRecord">
-                                            <i class="bi bi-journal-plus me-1"></i><t key="salon.clients.treatment.create_from_appointment">Seans Kaydi</t>
+                                            <i class="bi bi-journal-plus me-1"></i><t key="salon.clients.treatment.create_from_appointment_label">Seans Kaydı</t>
                                         </button>
                                     </td>
                                 </tr>
@@ -388,7 +388,7 @@
                         </table>
                     </div>
                     <!-- ko if: appointments().length === 0 -->
-                    <div class="text-center text-muted py-3 small"><t key="salon.clients.auto.randevu_bulunamadi">Randevu bulunamadi</t></div>
+                    <div class="text-center text-muted py-3 small"><t key="salon.clients.detail.no_appointments_label">Randevu bulunamadı</t></div>
                     <!-- /ko -->
                 </div>
             </div>
@@ -427,13 +427,13 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title"><t key="salon.clients.treatment.new">Yeni Seans Kaydi</t></h6>
+                    <h6 class="modal-title"><t key="salon.clients.treatment.new_label">Yeni Seans Kaydı</t></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-2">
                         <label class="form-label small"><t key="salon.clients.treatment.source_appointment">Randevudan getir</t></label>
-                        <select class="form-select form-select-sm" data-bind="options: treatmentAppointmentOptions, optionsText: 'label', optionsValue: 'id', optionsCaption: salonT('salon.clients.treatment.manual_entry', 'Manuel seans kaydi'), value: treatmentForm.slnAppointmentId"></select>
+                        <select class="form-select form-select-sm" data-bind="options: treatmentAppointmentOptions, optionsText: 'label', optionsValue: 'id', optionsCaption: salonT('salon.clients.treatment.manual_entry_label', 'Manuel seans kaydı'), value: treatmentForm.slnAppointmentId"></select>
                     </div>
                     <!-- ko if: treatmentForm.appointmentSummary -->
                     <div class="alert alert-info py-2 small">

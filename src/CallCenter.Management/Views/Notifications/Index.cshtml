@@ -7,35 +7,35 @@
         <div class="col-md-6">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white">
-                    <h6 class="mb-0"><i class="bi bi-megaphone me-2"></i>Yeni Bildirim Gonder</h6>
+                    <h6 class="mb-0"><i class="bi bi-megaphone me-2"></i>Yeni Bildirim Gönder</h6>
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label small">Baslik *</label>
-                        <input class="form-control form-control-sm" data-bind="value: form.title" placeholder="Bildirim basligi" />
+                        <label class="form-label small">Başlık *</label>
+                        <input class="form-control form-control-sm" data-bind="textInput: form.title" placeholder="Bildirim başlığı" />
                     </div>
                     <div class="mb-3">
                         <label class="form-label small">Mesaj *</label>
-                        <textarea class="form-control form-control-sm" rows="4" data-bind="value: form.message" placeholder="Bildirim mesaji..."></textarea>
+                        <textarea class="form-control form-control-sm" rows="4" data-bind="textInput: form.message" placeholder="Bildirim mesajı..."></textarea>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small">Hedef</label>
                         <select class="form-select form-select-sm" data-bind="value: form.target">
-                            <option value="all">Tum Musteriler</option>
+                            <option value="all">Tüm Müşteriler</option>
                             <option value="cc">Sadece Call Center</option>
                             <option value="salon">Sadece Salon</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small">Oncelik</label>
+                        <label class="form-label small">Öncelik</label>
                         <select class="form-select form-select-sm" data-bind="value: form.priority">
                             <option value="info">Bilgi</option>
-                            <option value="warning">Uyari</option>
+                            <option value="warning">Uyarı</option>
                             <option value="critical">Kritik</option>
                         </select>
                     </div>
                     <button class="btn btn-primary btn-sm w-100" data-bind="click: sendNotification">
-                        <i class="bi bi-send me-1"></i>Gonder
+                        <i class="bi bi-send me-1"></i>Gönder
                     </button>
                 </div>
             </div>
@@ -43,7 +43,7 @@
         <div class="col-md-6">
             <div class="card border-0 shadow-sm">
                 <div class="card-header bg-white">
-                    <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Gecmis Bildirimler</h6>
+                    <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Geçmiş Bildirimler</h6>
                 </div>
                 <div class="card-body p-0">
                     <div data-bind="foreach: history">
@@ -58,7 +58,7 @@
                     </div>
                     <div class="text-center py-4 text-muted" data-bind="visible: history().length === 0">
                         <i class="bi bi-bell-slash fs-1 d-block mb-2 opacity-25"></i>
-                        Henuz bildirim gonderilmemis. Bildirim sistemi ileri surumde aktif edilecek.
+                        Henüz bildirim gönderilmemiş. Bildirim sistemi ileriki sürümde aktif edilecek.
                     </div>
                 </div>
             </div>

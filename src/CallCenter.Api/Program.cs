@@ -1,4 +1,5 @@
 using System.Net;
+using System.Reflection;
 using System.Text;
 using CallCenter.Api.DependencyInjection;
 using CallCenter.Api.Helpers;
@@ -265,6 +266,14 @@ app.UseApiKeyAuth(); // Dis sistem API key dogrulamasi (/api/integration/v1/*)
 app.UseAuthorization();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+app.MapGet("/healthz", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+app.MapGet("/api/version", (IHostEnvironment env) => Results.Ok(new
+{
+    name = "CallCenter.Api",
+    version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown",
+    environment = env.EnvironmentName,
+    timestamp = DateTime.UtcNow
+}));
 app.MapControllers();
 app.MapHub<CallCenterHub>("/hubs/callcenter");
 

@@ -167,6 +167,25 @@ public class SlnServiceFactoryTests : IDisposable
         service.SortOrder.Should().Be(7);
     }
 
+    [Theory]
+    [InlineData(-1, 45, 1, "Fiyat 0 veya daha buyuk olmali")]
+    [InlineData(250, 0, 1, "Sure 0'dan buyuk olmali")]
+    [InlineData(250, 45, 0, "Seans sayisi en az 1 olmali")]
+    public async Task CreateServiceAsync_RejectsInvalidPositiveFields(decimal price, int durationMinutes, int sessionCount, string expectedError)
+    {
+        await SeedServiceAsync(isActive: true);
+        var dto = CreateDto();
+        dto.Price = price;
+        dto.DurationMinutes = durationMinutes;
+        dto.SessionCount = sessionCount;
+        var factory = CreateFactory();
+
+        var result = await factory.CreateServiceAsync(dto, customerId: 1);
+
+        result.Service.Should().BeNull();
+        result.Error.Should().Be(expectedError);
+    }
+
     [Fact]
     public async Task UpdateServiceAsync_UpdatesTaxRateAndSortOrder()
     {

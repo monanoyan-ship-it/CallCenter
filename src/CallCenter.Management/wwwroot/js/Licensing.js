@@ -21,7 +21,7 @@ function LicensingViewModel() {
     };
 
     self.saveLicense = function () {
-        toastr.info('Lisanslama sistemi henuz aktif degil. Ileri surumde eklenecek.');
+        toastr.info('Lisanslama sistemi henüz aktif değil. İleriki sürümde eklenecek.');
         bootstrap.Modal.getInstance(document.getElementById('licenseModal')).hide();
     };
 }

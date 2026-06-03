@@ -6,7 +6,7 @@ public class DataImportController : SlnBaseController
 {
     public IActionResult Index()
     {
-        ViewData["Title"] = "Veri Aktarimi";
+        ViewData["Title"] = "Veri Aktarımı";
         return View();
     }
 }

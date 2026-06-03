@@ -4,24 +4,24 @@
         <div class="card-body py-2">
             <div class="row g-2 align-items-center">
                 <div class="col-md-2">
-                    <input type="number" class="form-control form-control-sm" placeholder="Yil" data-bind="value: yearFilter" min="2020" max="2100" />
+                    <input type="number" class="form-control form-control-sm" placeholder="Yıl" data-bind="textInput: yearFilter" min="2020" max="2100" />
                 </div>
                 <div class="col-md-2">
                     <select class="form-select form-select-sm" data-bind="value: monthFilter">
-                        <option value="">Tum Aylar</option>
-                        <option value="1">Ocak</option><option value="2">Subat</option><option value="3">Mart</option>
-                        <option value="4">Nisan</option><option value="5">Mayis</option><option value="6">Haziran</option>
-                        <option value="7">Temmuz</option><option value="8">Agustos</option><option value="9">Eylul</option>
-                        <option value="10">Ekim</option><option value="11">Kasim</option><option value="12">Aralik</option>
+                        <option value="">Tüm Aylar</option>
+                        <option value="1">Ocak</option><option value="2">Şubat</option><option value="3">Mart</option>
+                        <option value="4">Nisan</option><option value="5">Mayıs</option><option value="6">Haziran</option>
+                        <option value="7">Temmuz</option><option value="8">Ağustos</option><option value="9">Eylül</option>
+                        <option value="10">Ekim</option><option value="11">Kasım</option><option value="12">Aralık</option>
                     </select>
                 </div>
                 <div class="col-md-2">
                     <select class="form-select form-select-sm" data-bind="value: statusFilter">
-                        <option value="">Tum Durumlar</option>
+                        <option value="">Tüm Durumlar</option>
                         <option value="1">Tahakkuk</option>
-                        <option value="2">Faturalanmis</option>
-                        <option value="3">Odenmis</option>
-                        <option value="4">Gecikme</option>
+                        <option value="2">Faturalanmış</option>
+                        <option value="3">Ödenmiş</option>
+                        <option value="4">Gecikmiş</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -33,14 +33,14 @@
         </div>
     </div>
 
-    <!-- Toplu Islemler -->
+    <!-- Toplu işlemler -->
     <div class="d-flex gap-2 mb-3" data-bind="visible: selectedIds().length > 0">
-        <span class="badge bg-primary align-self-center" data-bind="text: selectedIds().length + ' secili'"></span>
+        <span class="badge bg-primary align-self-center" data-bind="text: selectedIds().length + ' seçili'"></span>
         <button class="btn btn-outline-warning btn-sm" data-bind="click: bulkInvoice">
             <i class="bi bi-receipt me-1"></i>Faturala
         </button>
         <button class="btn btn-outline-success btn-sm" data-bind="click: bulkPaid">
-            <i class="bi bi-check-circle me-1"></i>Odendi
+            <i class="bi bi-check-circle me-1"></i>Ödendi
         </button>
     </div>
 
@@ -49,7 +49,7 @@
         <div class="card-body p-0">
             <div class="text-center py-5" data-bind="visible: isLoading"><div class="spinner-border text-primary"></div></div>
             <div class="text-center text-muted py-5" data-bind="visible: !isLoading() && items().length === 0">
-                <i class="bi bi-file-earmark-text fs-1 d-block mb-2 opacity-25"></i>Rapor verisi bulunamadi
+                <i class="bi bi-file-earmark-text fs-1 d-block mb-2 opacity-25"></i>Rapor verisi bulunamadı
             </div>
             <div data-bind="visible: !isLoading() && items().length > 0">
                 <div class="table-responsive">
@@ -62,11 +62,11 @@
                                 <th>Firma</th>
                                 <th>Tür</th>
                                 <th>Dönem</th>
-                                <th class="text-end">Operator</th>
+                                <th class="text-end">Operatör</th>
                                 <th class="text-end">Hizmet</th>
                                 <th class="text-end">Toplam</th>
                                 <th>Durum</th>
-                                <th style="width:72px;">Islem</th>
+                                <th style="width:72px;">İşlem</th>
                             </tr>
                         </thead>
                         <tbody data-bind="foreach: items">
@@ -81,10 +81,8 @@
                                 <td class="text-end" data-bind="text: (serviceAmount || 0).toFixed(2) + ' TL'"></td>
                                 <td class="text-end fw-semibold" data-bind="text: ((amount || 0) + (serviceAmount || 0)).toFixed(2) + ' TL'"></td>
                                 <td>
-                                    <span class="badge" data-bind="text: statusName || 'Tahakkuk',
-                                        css: statusName === 'Odenmis' ? 'bg-success' :
-                                             statusName === 'Faturalanmis' ? 'bg-info' :
-                                             statusName === 'Gecikme' ? 'bg-danger' : 'bg-warning'"></span>
+                                    <span class="badge" data-bind="text: $parent.statusLabel($data),
+                                        css: $parent.statusBadge($data)"></span>
                                 </td>
                                 <td class="text-nowrap">
                                     <button class="btn btn-outline-danger btn-sm py-0 px-1" title="Tahakkuku Sil"
@@ -97,7 +95,7 @@
                     </table>
                 </div>
                 <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center">
-                    <small class="text-muted">Toplam: <span data-bind="text: totalCount"></span> kayit</small>
+                    <small class="text-muted">Toplam: <span data-bind="text: totalCount"></span> kayıt</small>
                     <nav><ul class="pagination pagination-sm mb-0" data-bind="foreach: pageNumbers()">
                         <li class="page-item" data-bind="css: { active: $data === $parent.currentPage() }">
                             <a class="page-link" href="#" data-bind="text: $data, click: function() { $parent.goToPage($data); }"></a>

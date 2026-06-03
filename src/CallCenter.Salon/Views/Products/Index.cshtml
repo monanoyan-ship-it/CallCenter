@@ -229,27 +229,27 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.reports.category">Kategori</t></label>
-                            <div class="position-relative" data-bind="with: categoryAutocomplete">
+                            <div class="position-relative">
                                 <input type="text" class="form-control form-control-sm"
                                        placeholder="@(Translation.T("salon.products.auto.kategori_yazin", "Kategori yazin..."))"
                                        autocomplete="off"
-                                       data-bind="textInput: query,
-                                                  event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
-                                <!-- ko if: selectedName() -->
+                                       data-bind="textInput: categoryAutocomplete.query,
+                                                  event: { focus: categoryAutocomplete.onFocus, blur: categoryAutocomplete.onBlur, keydown: categoryAutocomplete.onKeydown }" />
+                                <!-- ko if: categoryAutocomplete.selectedName() -->
                                 <span class="position-absolute top-50 end-0 translate-middle-y me-2 autocomplete-clear"
-                                      data-bind="click: clear" title="@(Translation.T("salon.memberships.clear", "Temizle"))">
+                                      data-bind="click: categoryAutocomplete.clear" title="@(Translation.T("salon.memberships.clear", "Temizle"))">
                                     <i class="bi bi-x-circle text-muted"></i>
                                 </span>
                                 <!-- /ko -->
                                 <div class="dropdown-menu w-100 shadow-sm autocomplete-menu-scroll"
-                                     data-bind="css: { show: showDropdown }">
-                                    <!-- ko foreach: filteredItems -->
+                                     data-bind="css: { show: categoryAutocomplete.showDropdown }">
+                                    <!-- ko foreach: categoryAutocomplete.filteredItems -->
                                     <a class="dropdown-item small py-1 px-2" href="#"
-                                       data-bind="text: $parent.getDisplayText($data), click: $parent.select,
-                                                  css: { active: $parent.highlightIndex() === $index() },
-                                                  event: { mousedown: function(){ $parent.select($data); } }"></a>
+                                       data-bind="text: $parent.categoryAutocomplete.getDisplayText($data), click: $parent.categoryAutocomplete.select,
+                                                  css: { active: $parent.categoryAutocomplete.highlightIndex() === $index() },
+                                                  event: { mousedown: function(){ $parent.categoryAutocomplete.select($data); } }"></a>
                                     <!-- /ko -->
-                                    <!-- ko if: filteredItems().length === 0 && query().length > 0 -->
+                                    <!-- ko if: categoryAutocomplete.filteredItems().length === 0 && categoryAutocomplete.query().length > 0 -->
                                     <span class="dropdown-item-text small text-muted"><t key="salon.common.search.no_results">Sonuç bulunamadı</t></span>
                                     <!-- /ko -->
                                 </div>
@@ -257,27 +257,27 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="salon.products.auto.marka_2">Marka</t></label>
-                            <div class="position-relative" data-bind="with: brandAutocomplete">
+                            <div class="position-relative">
                                 <input type="text" class="form-control form-control-sm"
                                        placeholder="@(Translation.T("salon.products.auto.placeholder_marka_yazin", "Marka yazın..."))"
                                        autocomplete="off"
-                                       data-bind="textInput: query,
-                                                  event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
-                                <!-- ko if: selectedName() -->
+                                       data-bind="textInput: brandAutocomplete.query,
+                                                  event: { focus: brandAutocomplete.onFocus, blur: brandAutocomplete.onBlur, keydown: brandAutocomplete.onKeydown }" />
+                                <!-- ko if: brandAutocomplete.selectedName() -->
                                 <span class="position-absolute top-50 end-0 translate-middle-y me-2 autocomplete-clear"
-                                      data-bind="click: clear" title="@(Translation.T("salon.memberships.clear", "Temizle"))">
+                                      data-bind="click: brandAutocomplete.clear" title="@(Translation.T("salon.memberships.clear", "Temizle"))">
                                     <i class="bi bi-x-circle text-muted"></i>
                                 </span>
                                 <!-- /ko -->
                                 <div class="dropdown-menu w-100 shadow-sm autocomplete-menu-scroll"
-                                     data-bind="css: { show: showDropdown }">
-                                    <!-- ko foreach: filteredItems -->
+                                     data-bind="css: { show: brandAutocomplete.showDropdown }">
+                                    <!-- ko foreach: brandAutocomplete.filteredItems -->
                                     <a class="dropdown-item small py-1 px-2" href="#"
-                                       data-bind="text: $parent.getDisplayText($data), click: $parent.select,
-                                                  css: { active: $parent.highlightIndex() === $index() },
-                                                  event: { mousedown: function(){ $parent.select($data); } }"></a>
+                                       data-bind="text: $parent.brandAutocomplete.getDisplayText($data), click: $parent.brandAutocomplete.select,
+                                                  css: { active: $parent.brandAutocomplete.highlightIndex() === $index() },
+                                                  event: { mousedown: function(){ $parent.brandAutocomplete.select($data); } }"></a>
                                     <!-- /ko -->
-                                    <!-- ko if: filteredItems().length === 0 && query().length > 0 -->
+                                    <!-- ko if: brandAutocomplete.filteredItems().length === 0 && brandAutocomplete.query().length > 0 -->
                                     <span class="dropdown-item-text small text-muted"><t key="salon.common.search.no_results">Sonuç bulunamadı</t></span>
                                     <!-- /ko -->
                                 </div>

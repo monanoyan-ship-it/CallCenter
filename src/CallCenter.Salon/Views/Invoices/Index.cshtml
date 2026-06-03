@@ -148,18 +148,18 @@
                     <!-- Musteri -->
                     <div class="mb-3">
                         <label class="form-label small fw-semibold"><t key="salon.panel.payments.customer">Müşteri</t></label>
-                        <div class="position-relative" data-bind="with: clientAutocomplete">
+                        <div class="position-relative">
                             <input type="text" class="form-control form-control-sm" placeholder="@(Translation.T("salon.invoices.auto.musteri_adi_yazin", "Müşteri adi yazin..."))" autocomplete="off"
-                                   data-bind="textInput: query, event: { focus: onFocus, blur: onBlur, keydown: onKeydown }" />
-                            <!-- ko if: selectedName() -->
-                            <span class="position-absolute top-50 end-0 translate-middle-y me-2" style="cursor:pointer;z-index:2;" data-bind="click: clear"><i class="bi bi-x-circle text-muted"></i></span>
+                                   data-bind="textInput: clientAutocomplete.query, event: { focus: clientAutocomplete.onFocus, blur: clientAutocomplete.onBlur, keydown: clientAutocomplete.onKeydown }" />
+                            <!-- ko if: clientAutocomplete.selectedName() -->
+                            <span class="position-absolute top-50 end-0 translate-middle-y me-2" style="cursor:pointer;z-index:2;" data-bind="click: clientAutocomplete.clear"><i class="bi bi-x-circle text-muted"></i></span>
                             <!-- /ko -->
-                            <div class="dropdown-menu w-100 shadow-sm" style="max-height:200px;overflow-y:auto;" data-bind="css: { show: showDropdown }">
-                                <!-- ko foreach: filteredItems -->
-                                <a class="dropdown-item small py-1 px-2" href="#" data-bind="text: $parent.getDisplayText($data), event: { mousedown: function(){ $parent.select($data); } }, css: { active: $parent.highlightIndex() === $index() }"></a>
+                            <div class="dropdown-menu w-100 shadow-sm" style="max-height:200px;overflow-y:auto;" data-bind="css: { show: clientAutocomplete.showDropdown }">
+                                <!-- ko foreach: clientAutocomplete.filteredItems -->
+                                <a class="dropdown-item small py-1 px-2" href="#" data-bind="text: $parent.clientAutocomplete.getDisplayText($data), event: { mousedown: function(){ $parent.clientAutocomplete.select($data); } }, css: { active: $parent.clientAutocomplete.highlightIndex() === $index() }"></a>
                                 <!-- /ko -->
-                                <!-- ko if: filteredItems().length === 0 && query().length > 0 -->
-                                <a class="dropdown-item small py-1 px-2 text-primary fw-semibold" href="#" data-bind="event: { mousedown: function() { $root.showNewClient(query()); } }">
+                                <!-- ko if: clientAutocomplete.filteredItems().length === 0 && clientAutocomplete.query().length > 0 -->
+                                <a class="dropdown-item small py-1 px-2 text-primary fw-semibold" href="#" data-bind="event: { mousedown: function() { showNewClient(clientAutocomplete.query()); } }">
                                     <i class="bi bi-person-plus me-1"></i><t key="salon.invoices.auto.yeni_musteri_olustur">Yeni musteri olustur</t>
                                 </a>
                                 <!-- /ko -->

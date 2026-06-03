@@ -6,6 +6,8 @@ public class CallsController : CrmBaseController
 {
     public async Task<IActionResult> Index()
     {
+        if (RequireCallCenterCrmScope() is { } denied) return denied;
+
         // Musteri ayarlarini çek (Geri arama yonetimi aktif mi?)
         using var client = CreateApiClient();
         var resp = await client.GetAsync("api/portal/settings");
@@ -26,6 +28,8 @@ public class CallsController : CrmBaseController
     [HttpGet]
     public async Task<IActionResult> GetHistory(int page = 1, int pageSize = 20)
     {
+        if (RequireCallCenterCrmScope() is { } denied) return denied;
+
         using var client = CreateApiClient();
         var response = await client.GetAsync($"api/calls/history?page={page}&pageSize={pageSize}");
         if (!response.IsSuccessStatusCode) return Unauthorized();
@@ -37,6 +41,8 @@ public class CallsController : CrmBaseController
     [HttpPost]
     public async Task<IActionResult> AssignCallback(int id, int assignedToId, [FromBody] string? note)
     {
+        if (RequireCallCenterCrmScope() is { } denied) return denied;
+
         using var client = CreateApiClient();
         var response = await client.PostAsJsonAsync($"api/calls/{id}/assign-callback?assignedToId={assignedToId}", note);
         
@@ -52,6 +58,8 @@ public class CallsController : CrmBaseController
     [HttpGet]
     public async Task<IActionResult> GetNumberHistory(string number)
     {
+        if (RequireCallCenterCrmScope() is { } denied) return denied;
+
         if (string.IsNullOrWhiteSpace(number)) return BadRequest();
         using var client = CreateApiClient();
         var response = await client.GetAsync($"api/calls/number-history?number={Uri.EscapeDataString(number)}");
@@ -63,6 +71,8 @@ public class CallsController : CrmBaseController
     [HttpGet]
     public async Task<IActionResult> GetPersonnel()
     {
+        if (RequireCallCenterCrmScope() is { } denied) return denied;
+
         using var client = CreateApiClient();
         var response = await client.GetAsync("api/portal/personnel"); // Dogru route
         if (!response.IsSuccessStatusCode) return BadRequest();

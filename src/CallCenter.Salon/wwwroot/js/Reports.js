@@ -9,12 +9,17 @@ function ReportsViewModel() {
         var base = data ? (data.getAttribute('data-crm-base') || '') : '';
         return base.replace(/\/$/, '') + path;
     }
+    function toDateStr(d) {
+        var month = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        return d.getFullYear() + '-' + month + '-' + day;
+    }
 
     // Tarih araligi
     var today = new Date();
     var firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    self.dateFrom = ko.observable(firstOfMonth.toISOString().substring(0, 10));
-    self.dateTo = ko.observable(today.toISOString().substring(0, 10));
+    self.dateFrom = ko.observable(toDateStr(firstOfMonth));
+    self.dateTo = ko.observable(toDateStr(today));
     self.isLoading = ko.observable(false);
     self.activeTab = ko.observable('sales');
     self.isEmailSending = ko.observable(false);
@@ -227,7 +232,7 @@ function ReportsViewModel() {
 
     // Hizli tarih seciciler
     self.setToday = function () {
-        var d = new Date().toISOString().substring(0, 10);
+        var d = toDateStr(new Date());
         self.dateFrom(d);
         self.dateTo(d);
         self.refreshReports();
@@ -239,16 +244,16 @@ function ReportsViewModel() {
         var diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
         var monday = new Date(now);
         monday.setDate(now.getDate() - diff);
-        self.dateFrom(monday.toISOString().substring(0, 10));
-        self.dateTo(now.toISOString().substring(0, 10));
+        self.dateFrom(toDateStr(monday));
+        self.dateTo(toDateStr(now));
         self.refreshReports();
     };
 
     self.setMonth = function () {
         var now = new Date();
         var first = new Date(now.getFullYear(), now.getMonth(), 1);
-        self.dateFrom(first.toISOString().substring(0, 10));
-        self.dateTo(now.toISOString().substring(0, 10));
+        self.dateFrom(toDateStr(first));
+        self.dateTo(toDateStr(now));
         self.refreshReports();
     };
 

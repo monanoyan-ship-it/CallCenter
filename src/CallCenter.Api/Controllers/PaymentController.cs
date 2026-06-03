@@ -235,8 +235,8 @@ public class PaymentController : ControllerBase
 
         var customerId = GetCustomerId();
         var buyerIp = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var callbackUrl = $"{GetPaymentCallbackBaseUrl()}/api/payments/iyzico-callback";
         var returnApp = NormalizeReturnApp(request?.ReturnApp);
+        var callbackUrl = $"{GetPaymentCallbackBaseUrl(returnApp)}/api/payments/iyzico-callback";
         var result = await _paymentService.InitUnifiedBillingCheckoutAsync(
             customerId,
             request?.PaymentContext,
@@ -272,8 +272,8 @@ public class PaymentController : ControllerBase
                 requiresSessionRefresh = tx.PaymentTypeId == PaymentTypes.Ids.ModulSatinAlma
             });
         if (tx.StatusId == PaymentStatuses.Ids.Iptal)
-            return Ok(new { success = false, error = tx.ErrorMessage ?? "Odeme denemesi iptal edildi." });
-        return Ok(new { success = false, error = tx.ErrorMessage ?? "Odeme basarisiz." });
+            return Ok(new { success = false, error = tx.ErrorMessage ?? "Ödeme denemesi iptal edildi." });
+        return Ok(new { success = false, error = tx.ErrorMessage ?? "Ödeme başarısız." });
     }
 
     /// <summary>Iyzico checkout form callback (3DS sonrasi)</summary>
@@ -303,15 +303,15 @@ public class PaymentController : ControllerBase
     public async Task<ActionResult> IyzicoWebhook([FromBody] IyzicoWebhookPayload? payload)
     {
         if (payload == null || string.IsNullOrEmpty(payload.IyziEventType))
-            return BadRequest(new { message = "Webhook payload bos veya event type eksik." });
+            return BadRequest(new { message = "Webhook payload boş veya event type eksik." });
 
         var secretKey = await _paymentService.GetActiveIyzicoSecretKeyAsync();
         if (string.IsNullOrWhiteSpace(secretKey))
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = "Aktif Iyzico odeme yapilandirmasi bulunamadi." });
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = "Aktif Iyzico ödeme yapılandırması bulunamadı." });
 
         var signature = Request.Headers["X-IYZ-SIGNATURE-V3"].FirstOrDefault();
         if (!IyzicoWebhookSignatureValidator.Verify(ToSignatureInput(payload), secretKey, signature))
-            return Unauthorized(new { message = "Webhook imzasi gecersiz." });
+            return Unauthorized(new { message = "Webhook imzası geçersiz." });
 
         var (handled, message) = await _paymentService.HandleIyzicoWebhookAsync(payload);
         // Iyzico, 200 OK haricinde retry yapar — handle edilemese bile 200 don
@@ -529,7 +529,7 @@ public class PaymentController : ControllerBase
     {
         var result = await _paymentService.CancelTransactionAsync(uid, request?.Reason);
         if (!result.Success) return BadRequest(new { message = result.Error });
-        return Ok(new { transactionId = result.TransactionUid, message = "Odeme iptal edildi." });
+        return Ok(new { transactionId = result.TransactionUid, message = "Ödeme iptal edildi." });
     }
 
     /// <summary>Support/audit zaman cizelgesi</summary>
@@ -665,6 +665,16 @@ public class PaymentController : ControllerBase
         if (!string.IsNullOrWhiteSpace(configured))
             return configured.TrimEnd('/');
         return "https://sln.corplynk.com";
+    }
+
+    private string GetPaymentCallbackBaseUrl(string returnApp)
+    {
+        return returnApp switch
+        {
+            "crm" => GetCrmBaseUrl(),
+            "callcenter" => GetCallCenterBaseUrl(),
+            _ => GetPaymentCallbackBaseUrl()
+        };
     }
 
     private string GetCrmBaseUrl()

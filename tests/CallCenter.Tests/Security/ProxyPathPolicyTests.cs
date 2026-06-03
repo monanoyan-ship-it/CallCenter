@@ -11,6 +11,8 @@ public class ProxyPathPolicyTests
     [InlineData("customers/42", ProxyPathSurface.Management, "customers/42")]
     [InlineData("platform/login", ProxyPathSurface.PlatformPublic, "platform/login")]
     [InlineData("salon/ux-kadikoy-0506013753", ProxyPathSurface.PlatformPublic, "salon/ux-kadikoy-0506013753")]
+    [InlineData("salon/bostancı", ProxyPathSurface.PlatformPublic, "salon/bostancı")]
+    [InlineData("bostancı/available-staff", ProxyPathSurface.SalonPublic, "bostancı/available-staff")]
     [InlineData("branches/list", ProxyPathSurface.SalonPublic, "branches/list")]
     [InlineData("categories", ProxyPathSurface.MenuPublic, "categories")]
     public void TryNormalize_Allows_expected_proxy_paths(string path, ProxyPathSurface surface, string expected)

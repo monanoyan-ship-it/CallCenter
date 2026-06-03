@@ -34,10 +34,10 @@
             <div class="modal-content">
                 <div class="modal-header"><h6 class="modal-title">Geri Kazanım Planı</h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
-                    <label class="form-label small">Ad</label><input class="form-control form-control-sm mb-2" data-bind="value: form.name" />
-                    <div class="row g-2 mb-2"><div class="col-6"><label class="form-label small">Kaç gün gelmeyince</label><input type="number" class="form-control form-control-sm" data-bind="value: form.inactiveDays" /></div><div class="col-6"><label class="form-label small">Kanal</label><select class="form-select form-select-sm" data-bind="value: form.channelId"><option value="1">SMS</option><option value="2">WhatsApp</option><option value="3">E-posta</option></select></div></div>
-                    <label class="form-label small">Mesaj</label><textarea class="form-control form-control-sm mb-2" rows="4" data-bind="value: form.messageTemplate"></textarea>
-                    <label class="form-label small">İndirim (%)</label><input type="number" class="form-control form-control-sm" data-bind="value: form.discountPercent" />
+                    <label class="form-label small">Ad</label><input class="form-control form-control-sm mb-2" data-bind="textInput: form.name" />
+                    <div class="row g-2 mb-2"><div class="col-6"><label class="form-label small">Kaç gün gelmeyince</label><input type="number" class="form-control form-control-sm" data-bind="textInput: form.inactiveDays" /></div><div class="col-6"><label class="form-label small">Kanal</label><select class="form-select form-select-sm" data-bind="value: form.channelId"><option value="1">SMS</option><option value="2">WhatsApp</option><option value="3">E-posta</option></select></div></div>
+                    <label class="form-label small">Mesaj</label><textarea class="form-control form-control-sm mb-2" rows="4" data-bind="textInput: form.messageTemplate"></textarea>
+                    <label class="form-label small">İndirim (%)</label><input type="number" class="form-control form-control-sm" data-bind="textInput: form.discountPercent" />
                 </div>
                 <div class="modal-footer"><button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button><button class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">Kaydet</button></div>
             </div>
