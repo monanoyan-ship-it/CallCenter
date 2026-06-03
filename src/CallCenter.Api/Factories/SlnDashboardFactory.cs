@@ -54,7 +54,10 @@ public class SlnDashboardFactory : ISlnDashboardFactory
         // Hizmet veren personel (Kuafor/Uzman): kisisel kapsam.
         // Yalnizca KENDI randevularini gorur; salon geneli musteri/ciro/personel/stok/
         // dogum gunu/abonelik verisi gizlenir. (Finans=kendi hakedisi ileride eklenecek.)
-        var personalScope = personnelId > 0 && SalonRolePermissions.IsServiceStaffOnly(roleId);
+        // ONEMLI: Kapsam SADECE role bagli (menu/CanAccess ile tutarli). personnelId yalnizca
+        // randevu filtresi degeridir; 0 ise (personel kaydi yoksa) liste BOS doner -> salon
+        // geneli veri SIZMAZ. personnelId>0 sartina baglamak bu rollerde veri sizdirir.
+        var personalScope = SalonRolePermissions.IsServiceStaffOnly(roleId);
 
         // Bugunun randevulari (sube filtresi; kisisel kapsamda kendi personel filtresi)
         var apptQuery = _appointments.GetAllQueryable()
