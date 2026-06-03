@@ -23,10 +23,10 @@ function CustomersViewModel() {
         adminUsername: ko.observable(''),
         adminPassword: ko.observable('')
     };
-    self.formTitle = ko.observable('Yeni Musteri');
+    self.formTitle = ko.observable('Yeni Müşteri');
     self.productTypes = ko.observableArray([]);
 
-    // Urun checkbox/fiyat yonetimi
+    // Ürün checkbox/fiyat yönetimi
     self.isProductActive = function (productTypeId) {
         var prod = self.form.products().find(function(p) { return p.productTypeId === productTypeId; });
         return prod ? prod.active : ko.observable(false);
@@ -40,7 +40,7 @@ function CustomersViewModel() {
     self.deleteTarget = ko.observable(null);
     self.deleteMessage = ko.computed(function () {
         var t = self.deleteTarget();
-        return t ? "<strong>'" + t.name + "'</strong> musterisini silmek istediginize emin misiniz?" : '';
+        return t ? "'" + t.name + "' müşterisini silmek istediğinize emin misiniz?" : '';
     });
 
     // Faturalama
@@ -78,7 +78,7 @@ function CustomersViewModel() {
             self.totalCount(data.totalCount || 0);
             self.totalPages(data.totalPages || 1);
         }).fail(function () {
-            toastr.error('Veri yuklenemedi.');
+            toastr.error('Veri yüklenemedi.');
         }).always(function () {
             self.isLoading(false);
         });
@@ -112,7 +112,7 @@ function CustomersViewModel() {
 
     self.openCreate = function () {
         self.resetForm();
-        self.formTitle('Yeni Musteri');
+        self.formTitle('Yeni Müşteri');
         new bootstrap.Modal('#customerModal').show();
     };
 
@@ -125,19 +125,19 @@ function CustomersViewModel() {
         self.form.address(customer.address || '');
         self.form.maxUsers(customer.maxUsers || 5);
         self.initFormProducts(customer.products || []);
-        self.formTitle('Musteri Duzenle');
+        self.formTitle('Müşteri Düzenle');
         new bootstrap.Modal('#customerModal').show();
     };
 
     self.saveCustomer = function () {
-        if (!self.form.name()) { toastr.warning('Firma adi zorunlu.'); return; }
+        if (!self.form.name()) { toastr.warning('Firma adı zorunlu.'); return; }
         self.isSaving(true);
 
         var activeProducts = self.form.products().filter(function(p) { return p.active(); });
         var payload = {
             name: self.form.name(),
-            contactPhone: self.form.phone(),
-            contactEmail: self.form.email(),
+            phone: self.form.phone(),
+            email: self.form.email(),
             taxNumber: self.form.taxNumber(),
             address: self.form.address(),
             maxUsers: parseInt(self.form.maxUsers()) || 5,
@@ -159,12 +159,12 @@ function CustomersViewModel() {
             contentType: 'application/json',
             data: JSON.stringify(payload),
             success: function () {
-                toastr.success('Musteri kaydedildi.');
+                toastr.success('Müşteri kaydedildi.');
                 bootstrap.Modal.getInstance(document.getElementById('customerModal')).hide();
                 self.loadData();
             },
             error: function (xhr) {
-                var msg = xhr.responseJSON?.message || 'Kaydetme hatasi.';
+                var msg = xhr.responseJSON?.message || 'Kaydetme hatası.';
                 toastr.error(msg);
             },
             complete: function () { self.isSaving(false); }
@@ -182,11 +182,11 @@ function CustomersViewModel() {
         $.ajax({
             url: '/proxy/customers/' + t.id, method: 'DELETE',
             success: function () {
-                toastr.success('Musteri silindi.');
+                toastr.success('Müşteri silindi.');
                 bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
                 self.loadData();
             },
-            error: function () { toastr.error('Silme hatasi.'); }
+            error: function () { toastr.error('Silme hatası.'); }
         });
     };
 
@@ -199,22 +199,22 @@ function CustomersViewModel() {
             data: JSON.stringify({ year: parseInt(self.billingYear()), month: parseInt(self.billingMonth()) }),
             success: function (data) {
                 var pel = data.platformEligibleWithoutSubscription != null ? data.platformEligibleWithoutSubscription : null;
-                var msg = 'Salon platform (abonelik kaydı olmayan): ' + (data.platformTahakkukCreated || 0) + ' olusturuldu, ' + (data.platformTahakkukSkipped || 0) + ' atlandi';
-                if (pel !== null) msg += ' (aday musteri: ' + pel + ')';
-                msg += '. CC: ' + (data.created || 0) + ' donem, ' + (data.skipped || 0) + ' atlandi (zaten vardi).';
+                var msg = 'Salon platform (abonelik kaydı olmayan): ' + (data.platformTahakkukCreated || 0) + ' oluşturuldu, ' + (data.platformTahakkukSkipped || 0) + ' atlandı';
+                if (pel !== null) msg += ' (aday müşteri: ' + pel + ')';
+                msg += '. CC: ' + (data.created || 0) + ' dönem, ' + (data.skipped || 0) + ' atlandı (zaten vardı).';
                 if (pel === 0) {
-                    toastr.info(msg + ' Aboneliksiz salon musterisi yok; platform tahakkuku Hizmet Yonetimi → Abonelikler (aktif abonelikler) ile ayri kesilir.');
+                    toastr.info(msg + ' Aboneliksiz salon müşterisi yok; platform tahakkuku Hizmet Yönetimi -> Abonelikler (aktif abonelikler) ile ayrı kesilir.');
                 } else {
                     toastr.success(msg);
                 }
                 bootstrap.Modal.getInstance(document.getElementById('billingModal')).hide();
             },
-            error: function () { toastr.error('Faturalama hatasi.'); },
+            error: function () { toastr.error('Faturalama hatası.'); },
             complete: function () { self.isGeneratingBilling(false); }
         });
     };
 
-    // Lookup: Urun Tipleri
+    // Lookup: Ürün Tipleri
     $.get('/proxy/management/product-types', function (d) {
         self.productTypes(Array.isArray(d) ? d : []);
         self.initFormProducts([]);

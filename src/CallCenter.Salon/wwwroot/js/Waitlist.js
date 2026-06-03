@@ -20,7 +20,11 @@ function WaitlistViewModel() {
     };
     var apptStatusCss = { 1: 'bg-warning text-dark', 2: 'bg-info', 3: 'bg-success', 4: 'bg-danger', 5: 'bg-secondary' };
 
-    function toDateStr(d) { return d.toISOString().substring(0, 10); }
+    function toDateStr(d) {
+        var month = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        return d.getFullYear() + '-' + month + '-' + day;
+    }
 
     var today = new Date();
     self.todayLabel = today.toLocaleDateString(document.documentElement.lang || undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -147,7 +151,8 @@ function WaitlistViewModel() {
         if (!q) return self.waitlistEntries();
         return self.waitlistEntries().filter(function (e) {
             return (e.clientName || '').toLowerCase().indexOf(q) >= 0
-                || (e.serviceName || '').toLowerCase().indexOf(q) >= 0;
+                || (e.serviceName || '').toLowerCase().indexOf(q) >= 0
+                || (e.notes || '').toLowerCase().indexOf(q) >= 0;
         });
     });
 

@@ -33,10 +33,10 @@ function CallsViewModel() {
         });
     };
 
-    // Atama listesinden sadece Operator olanları filtrele
+    // Atama listesinden sadece Operatör olanları filtrele
     self.filteredPersonnel = ko.computed(function() {
         return self.personnel().filter(function(p) {
-            // CustomerRoleId 3 = Operator
+            // CustomerRoleId 3 = Operatör
             return p.customerRoleId === 3;
         });
     });
@@ -77,7 +77,7 @@ function CallsViewModel() {
                 self.load();
             },
             error: function(xhr) {
-                var err = xhr.responseJSON ? xhr.responseJSON.message : "Hata olustu";
+                var err = xhr.responseJSON ? xhr.responseJSON.message : "Bir hata oluştu";
                 toastr.error(err);
             },
             complete: function() {
@@ -86,7 +86,7 @@ function CallsViewModel() {
         });
     };
 
-    // ─── Numara Gecmisi ───
+    // ─── Numara Geçmişi ───
     self.historyNumber = ko.observable("");
     self.numberHistory = ko.observableArray([]);
     self.isHistoryLoading = ko.observable(false);

@@ -18,7 +18,7 @@ public static class PlatformEmailSeedHelper
     public static async Task SeedAsync(AppDbContext db)
     {
         await EnsureEventAsync(db, EventUserEmailVerify,
-            description: "Kullanici email dogrulama maili",
+            description: "Kullanıcı e-posta doğrulama maili",
             placeholders: "[\"FullName\",\"VerifyUrl\"]",
             templates: new[]
             {
@@ -27,7 +27,7 @@ public static class PlatformEmailSeedHelper
             });
 
         await EnsureEventAsync(db, EventUserPasswordReset,
-            description: "Sifre sifirlama maili",
+            description: "Şifre sıfırlama maili",
             placeholders: "[\"FullName\",\"ResetUrl\"]",
             templates: new[]
             {
@@ -36,7 +36,7 @@ public static class PlatformEmailSeedHelper
             });
 
         await EnsureEventAsync(db, EventPlatformUserEmailVerify,
-            description: "Salon musteri (PlatformUser) email dogrulama maili",
+            description: "Salon müşterisi (PlatformUser) e-posta doğrulama maili",
             placeholders: "[\"FullName\",\"VerifyUrl\"]",
             templates: new[]
             {
@@ -45,7 +45,7 @@ public static class PlatformEmailSeedHelper
             });
 
         await EnsureEventAsync(db, EventPlatformUserPasswordReset,
-            description: "Salon musteri (PlatformUser) sifre sifirlama maili",
+            description: "Salon müşterisi (PlatformUser) şifre sıfırlama maili",
             placeholders: "[\"FullName\",\"ResetUrl\"]",
             templates: new[]
             {
@@ -79,6 +79,12 @@ public static class PlatformEmailSeedHelper
             db.PlatformEmailEvents.Add(evt);
             await db.SaveChangesAsync();
         }
+        else if (ShouldRefreshSeedText(eventKey, evt.Description, description))
+        {
+            evt.Description = description;
+            evt.AvailablePlaceholders = placeholders;
+            evt.UpdatedAt = DateTime.UtcNow;
+        }
 
         foreach (var (lang, subject, html) in templates)
         {
@@ -94,6 +100,23 @@ public static class PlatformEmailSeedHelper
                 IsActive = true
             });
         }
+    }
+
+    private static bool ShouldRefreshSeedText(string eventKey, string? currentDescription, string newDescription)
+    {
+        if (currentDescription == newDescription) return false;
+        if (string.IsNullOrWhiteSpace(currentDescription)) return true;
+
+        var legacyDescriptions = eventKey switch
+        {
+            EventUserEmailVerify => new[] { "Kullanici email dogrulama maili" },
+            EventUserPasswordReset => new[] { "Sifre sifirlama maili" },
+            EventPlatformUserEmailVerify => new[] { "Salon musteri (PlatformUser) email dogrulama maili" },
+            EventPlatformUserPasswordReset => new[] { "Salon musteri (PlatformUser) sifre sifirlama maili" },
+            _ => Array.Empty<string>()
+        };
+
+        return legacyDescriptions.Contains(currentDescription);
     }
 
     private static string BuildVerifyHtmlTr() => """

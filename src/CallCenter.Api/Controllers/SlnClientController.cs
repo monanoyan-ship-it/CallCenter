@@ -31,7 +31,7 @@ public class SlnClientController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var result = await _clientFactory.GetClientsAsync(customerId, search, GetBranchId() ?? branchId, page, pageSize);
+        var result = await _clientFactory.GetClientsAsync(customerId, search, ResolveBranchId(branchId), page, pageSize);
         return Ok(result);
     }
 
@@ -41,7 +41,7 @@ public class SlnClientController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var client = await _clientFactory.GetClientDetailAsync(id, customerId, GetBranchId() ?? branchId);
+        var client = await _clientFactory.GetClientDetailAsync(id, customerId, ResolveBranchId(branchId));
         return client != null ? Ok(client) : NotFound();
     }
 
@@ -51,8 +51,15 @@ public class SlnClientController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var client = await _clientFactory.CreateClientAsync(dto, customerId, GetBranchId() ?? branchId);
-        return Ok(client);
+        try
+        {
+            var client = await _clientFactory.CreateClientAsync(dto, customerId, ResolveBranchId(branchId));
+            return Ok(client);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpPut("{id}")]
@@ -61,7 +68,7 @@ public class SlnClientController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _clientFactory.UpdateClientAsync(id, dto, customerId, GetBranchId() ?? branchId);
+        var (success, error) = await _clientFactory.UpdateClientAsync(id, dto, customerId, ResolveBranchId(branchId));
         return success ? Ok() : BadRequest(error);
     }
 
@@ -72,7 +79,7 @@ public class SlnClientController : ControllerBase
         if (customerId == 0) return Unauthorized();
 
         var (success, error) = await _clientFactory.UpdateHealthInfoAsync(
-            id, dto, customerId, requiresReview: false, reviewedByPersonnelId: GetUserId(), branchId: GetBranchId() ?? branchId);
+            id, dto, customerId, requiresReview: false, reviewedByPersonnelId: GetUserId(), branchId: ResolveBranchId(branchId));
         return success ? Ok() : BadRequest(error);
     }
 
@@ -82,7 +89,7 @@ public class SlnClientController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _clientFactory.ReviewHealthInfoAsync(id, customerId, GetUserId(), GetBranchId() ?? branchId);
+        var (success, error) = await _clientFactory.ReviewHealthInfoAsync(id, customerId, GetUserId(), ResolveBranchId(branchId));
         return success ? Ok() : BadRequest(error);
     }
 
@@ -92,7 +99,7 @@ public class SlnClientController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _clientFactory.DeleteClientAsync(id, customerId, GetBranchId() ?? branchId);
+        var (success, error) = await _clientFactory.DeleteClientAsync(id, customerId, ResolveBranchId(branchId));
         return success ? Ok() : BadRequest(error);
     }
 
@@ -102,7 +109,7 @@ public class SlnClientController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var suggestions = await _clientFactory.GetSuggestionsAsync(customerId, GetBranchId() ?? branchId);
+        var suggestions = await _clientFactory.GetSuggestionsAsync(customerId, ResolveBranchId(branchId));
         return Ok(suggestions);
     }
 
@@ -115,7 +122,7 @@ public class SlnClientController : ControllerBase
 
         try
         {
-            var formula = await _clientFactory.AddFormulaAsync(dto, userId, customerId, GetBranchId() ?? branchId);
+            var formula = await _clientFactory.AddFormulaAsync(dto, userId, customerId, ResolveBranchId(branchId));
             return Ok(formula);
         }
         catch (InvalidOperationException ex)
@@ -130,7 +137,7 @@ public class SlnClientController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _clientFactory.DeleteFormulaAsync(id, customerId, GetBranchId() ?? branchId);
+        var (success, error) = await _clientFactory.DeleteFormulaAsync(id, customerId, ResolveBranchId(branchId));
         return success ? Ok() : BadRequest(error);
     }
 
@@ -143,7 +150,7 @@ public class SlnClientController : ControllerBase
 
         try
         {
-            var record = await _clientFactory.AddTreatmentRecordAsync(dto, userId, customerId, GetBranchId() ?? branchId);
+            var record = await _clientFactory.AddTreatmentRecordAsync(dto, userId, customerId, ResolveBranchId(branchId));
             return Ok(record);
         }
         catch (InvalidOperationException ex)
@@ -158,7 +165,7 @@ public class SlnClientController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _clientFactory.DeleteTreatmentRecordAsync(id, customerId, GetBranchId() ?? branchId);
+        var (success, error) = await _clientFactory.DeleteTreatmentRecordAsync(id, customerId, ResolveBranchId(branchId));
         return success ? Ok() : BadRequest(error);
     }
 
@@ -185,7 +192,7 @@ public class SlnClientController : ControllerBase
 
         try
         {
-            var photo = await _clientFactory.AddPhotoAsync(id, url, description, customerId, GetBranchId() ?? branchId);
+            var photo = await _clientFactory.AddPhotoAsync(id, url, description, customerId, ResolveBranchId(branchId));
             return Ok(photo);
         }
         catch (InvalidOperationException ex)
@@ -206,7 +213,7 @@ public class SlnClientController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error, filePath) = await _clientFactory.DeletePhotoAsync(id, customerId, GetBranchId() ?? branchId);
+        var (success, error, filePath) = await _clientFactory.DeletePhotoAsync(id, customerId, ResolveBranchId(branchId));
         if (success)
         {
             var path = _gcs.TryGetObjectPath(filePath);
@@ -223,7 +230,7 @@ public class SlnClientController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _clientFactory.UnblockClientAsync(id, customerId, GetBranchId() ?? branchId);
+        var (success, error) = await _clientFactory.UnblockClientAsync(id, customerId, ResolveBranchId(branchId));
         return success ? Ok() : NotFound(error);
     }
 
@@ -236,6 +243,18 @@ public class SlnClientController : ControllerBase
     private int? GetBranchId()
     {
         var claim = User.FindFirst("BranchId")?.Value;
-        return claim != null && int.TryParse(claim, out var id) ? id : null;
+        return int.TryParse(claim, out var id) && id > 0 ? id : null;
     }
+
+    private int GetCustomerRoleId()
+    {
+        var claim = User.FindFirst("CustomerRoleId")?.Value;
+        return int.TryParse(claim, out var roleId) ? roleId : SalonRoles.Ids.SalonOwner;
+    }
+
+    private int? GetBranchScopeId()
+        => GetCustomerRoleId() == SalonRoles.Ids.SalonOwner ? null : GetBranchId();
+
+    private int? ResolveBranchId(int? requestedBranchId)
+        => GetBranchScopeId() ?? requestedBranchId;
 }

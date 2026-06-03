@@ -32,6 +32,20 @@ public class AuditLogsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("export")]
+    public async Task<IActionResult> Export(
+        [FromQuery] string? category = null,
+        [FromQuery] string? action = null,
+        [FromQuery] string? search = null,
+        [FromQuery] DateTime? dateFrom = null,
+        [FromQuery] DateTime? dateTo = null,
+        [FromQuery] int? customerId = null)
+    {
+        var bytes = await _auditLogFactory.ExportCsvAsync(category, action, search, dateFrom, dateTo, customerId);
+        var fileName = $"audit-logs-{DateTime.UtcNow:yyyyMMddHHmmss}.csv";
+        return File(bytes, "text/csv; charset=utf-8", fileName);
+    }
+
     [HttpGet("{id:long}")]
     public async Task<ActionResult<AuditLogDetailDto>> GetById(long id)
     {

@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "Gorevler";
+    ViewData["Title"] = "Görevler";
 }
 
 <div id="crmtasks-vm">
@@ -8,18 +8,18 @@
         <div class="d-flex gap-2">
             <div class="input-group" style="max-width: 280px;">
                 <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control" placeholder="Gorev ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+                <input type="text" class="form-control" placeholder="Görev ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
             </div>
             <select class="form-select form-select-sm" style="width: 140px;" data-bind="value: statusFilter">
-                <option value="">Tum Durumlar</option>
-                <option value="1">Yapilacak</option>
+                <option value="">Tüm Durumlar</option>
+                <option value="1">Yapılacak</option>
                 <option value="2">Devam Ediyor</option>
-                <option value="3">Tamamlandi</option>
-                <option value="4">Iptal</option>
+                <option value="3">Tamamlandı</option>
+                <option value="4">İptal</option>
             </select>
         </div>
         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
-            <i class="bi bi-plus-lg me-1"></i>Yeni Gorev
+            <i class="bi bi-plus-lg me-1"></i>Yeni Görev
         </button>
     </div>
 
@@ -28,7 +28,7 @@
         <div class="col-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .7rem;">Yapilacak</div>
+                    <div class="text-muted" style="font-size: .7rem;">Yapılacak</div>
                     <div class="fw-bold text-secondary" data-bind="text: stats().todo">0</div>
                 </div>
             </div>
@@ -44,7 +44,7 @@
         <div class="col-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .7rem;">Tamamlandi</div>
+                    <div class="text-muted" style="font-size: .7rem;">Tamamlandı</div>
                     <div class="fw-bold text-success" data-bind="text: stats().done">0</div>
                 </div>
             </div>
@@ -66,8 +66,8 @@
                 <table class="table table-hover table-sm mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="ps-3">Baslik</th>
-                            <th>Kisi</th>
+                            <th class="ps-3">Başlık</th>
+                            <th>Kişi</th>
                             <th>Durum</th>
                             <th>Atanan</th>
                             <th>Son Tarih</th>
@@ -84,7 +84,7 @@
                             <td class="small" data-bind="text: assignedToName"></td>
                             <td class="small text-muted" data-bind="text: dueDateFormatted"></td>
                             <td>
-                                <button class="btn btn-outline-secondary btn-sm" title="Duzenle" data-bind="click: $parent.openEdit">
+                                <button class="btn btn-outline-secondary btn-sm" title="Düzenle" data-bind="click: $parent.openEdit">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                             </td>
@@ -95,7 +95,7 @@
             <!-- ko if: filteredTasks().length === 0 -->
             <div class="text-center text-muted py-4">
                 <i class="bi bi-check2-square" style="font-size: 2rem;"></i>
-                <p class="mt-2 small">Henuz gorev yok</p>
+                <p class="mt-2 small">Henüz görev yok</p>
             </div>
             <!-- /ko -->
         </div>
@@ -106,26 +106,26 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Gorev Duzenle' : 'Yeni Gorev'"></h6>
+                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Görev Düzenle' : 'Yeni Görev'"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Baslik *</label>
+                            <label class="form-label small">Başlık *</label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.title" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Aciklama</label>
+                            <label class="form-label small">Açıklama</label>
                             <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.description"></textarea>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Kisi</label>
-                            <select class="form-select form-select-sm" data-bind="options: contactsList, optionsText: 'fullName', optionsValue: 'id', value: form.contactId, optionsCaption: 'Secin'"></select>
+                            <label class="form-label small">Kişi</label>
+                            <select class="form-select form-select-sm" data-bind="options: contactsList, optionsText: 'fullName', optionsValue: 'id', value: form.contactId, optionsCaption: 'Seçin'"></select>
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Atanan</label>
-                            <select class="form-select form-select-sm" data-bind="options: personnelList, optionsText: 'fullName', optionsValue: 'id', value: form.assignedToPersonnelId, optionsCaption: 'Secin'"></select>
+                            <select class="form-select form-select-sm" data-bind="options: personnelList, optionsText: 'fullName', optionsValue: 'id', value: form.assignedToPersonnelId, optionsCaption: 'Seçin'"></select>
                         </div>
                         <div class="col-6">
                             <label class="form-label small">Son Tarih</label>
@@ -135,17 +135,17 @@
                         <div class="col-6">
                             <label class="form-label small">Durum</label>
                             <select class="form-select form-select-sm" data-bind="value: form.statusId">
-                                <option value="1">Yapilacak</option>
+                                <option value="1">Yapılacak</option>
                                 <option value="2">Devam Ediyor</option>
-                                <option value="3">Tamamlandi</option>
-                                <option value="4">Iptal</option>
+                                <option value="3">Tamamlandı</option>
+                                <option value="4">İptal</option>
                             </select>
                         </div>
                         <!-- /ko -->
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet

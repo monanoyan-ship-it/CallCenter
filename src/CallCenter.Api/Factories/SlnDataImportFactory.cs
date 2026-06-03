@@ -126,7 +126,7 @@ public class SlnDataImportFactory : ISlnDataImportFactory
 
         if (table.Rows.Count > MaxRows)
         {
-            result.Rows.Add(ErrorRow(1, $"Tek seferde en fazla {MaxRows} satir aktarilabilir."));
+            result.Rows.Add(ErrorRow(1, $"Tek seferde en fazla {MaxRows} satır aktarılabilir."));
             result.TotalRows = table.Rows.Count;
             result.ErrorRows = 1;
             return result;
@@ -222,7 +222,7 @@ public class SlnDataImportFactory : ISlnDataImportFactory
             IsActive = true
         });
 
-        return Mark(dto, "imported", "Musteri aktarildi.");
+        return Mark(dto, "imported", "Müşteri aktarıldı.");
     }
 
     private async Task<SlnDataImportRowDto> BuildServiceRowAsync(
@@ -279,7 +279,7 @@ public class SlnDataImportFactory : ISlnDataImportFactory
             IsActive = true
         });
 
-        return Mark(dto, "imported", "Hizmet aktarildi.");
+        return Mark(dto, "imported", "Hizmet aktarıldı.");
     }
 
     private async Task<SlnDataImportRowDto> BuildPersonnelRowAsync(
@@ -371,7 +371,7 @@ public class SlnDataImportFactory : ISlnDataImportFactory
             _skills.Add(new SlnPersonnelSkill { PersonnelId = personnel.Id, ServiceId = serviceId });
 
         dto.Normalized["temporaryPassword"] = tempPassword;
-        return Mark(dto, "imported", "Personel aktarildi. Gecici sifre sonuc satirinda gosterildi.");
+        return Mark(dto, "imported", "Personel aktarıldı. Geçici şifre sonuç satırında gösterildi.");
     }
 
     private async Task<SlnDataImportRowDto> BuildProductRowAsync(
@@ -465,7 +465,7 @@ public class SlnDataImportFactory : ISlnDataImportFactory
             });
         }
 
-        return Mark(dto, "imported", "Urun ve stok aktarildi.");
+        return Mark(dto, "imported", "Ürün ve stok aktarıldı.");
     }
 
     private async Task<SlnServiceCategory> GetOrCreateServiceCategoryAsync(int customerId, string name)
@@ -562,18 +562,18 @@ public class SlnDataImportFactory : ISlnDataImportFactory
         new()
         {
             ImportType = SlnDataImportTypes.Clients,
-            DisplayName = "Musteriler",
+            DisplayName = "Müşteriler",
             Columns =
             [
-                Col("fullName", "Ad Soyad", true, "Musteri adi soyadi"),
-                Col("phone", "Telefon", false, "Tekil eslestirme icin onerilir"),
+                Col("fullName", "Ad Soyad", true, "Müşteri adı soyadı"),
+                Col("phone", "Telefon", false, "Tekil eşleştirme için önerilir"),
                 Col("phone2", "Telefon 2", false, null),
                 Col("email", "E-posta", false, null),
-                Col("birthDate", "Dogum Tarihi", false, "gg.aa.yyyy"),
-                Col("city", "Sehir", false, null),
+                Col("birthDate", "Doğum Tarihi", false, "gg.aa.yyyy"),
+                Col("city", "Şehir", false, null),
                 Col("address", "Adres", false, null),
                 Col("notes", "Not", false, null),
-                Col("branch", "Sube", false, "Bos kalirsa secili/ana sube kullanilir")
+                Col("branch", "Şube", false, "Boş kalırsa seçili/ana şube kullanılır")
             ]
         },
         new()
@@ -582,12 +582,12 @@ public class SlnDataImportFactory : ISlnDataImportFactory
             DisplayName = "Hizmetler",
             Columns =
             [
-                Col("name", "Hizmet Adi", true, null),
-                Col("category", "Kategori", false, "Bos kalirsa Genel"),
-                Col("durationMinutes", "Sure Dakika", false, "Bos kalirsa 30"),
+                Col("name", "Hizmet Adı", true, null),
+                Col("category", "Kategori", false, "Boş kalırsa Genel"),
+                Col("durationMinutes", "Süre Dakika", false, "Boş kalırsa 30"),
                 Col("price", "Fiyat", false, null),
-                Col("taxRate", "KDV", false, "Bos kalirsa 10"),
-                Col("sortOrder", "Sira", false, null)
+                Col("taxRate", "KDV", false, "Boş kalırsa 10"),
+                Col("sortOrder", "Sıra", false, null)
             ]
         },
         new()
@@ -598,29 +598,29 @@ public class SlnDataImportFactory : ISlnDataImportFactory
             [
                 Col("fullName", "Ad Soyad", true, null),
                 Col("title", "Unvan", false, null),
-                Col("role", "Rol", false, "Kuafor, Guzellik Uzmani, Resepsiyonist, Kasiyer, Mudur, Sube Muduru"),
-                Col("email", "E-posta", false, "Bos kalirsa import adresi uretilir"),
-                Col("userName", "Kullanici Adi", false, "Bos kalirsa ad soyaddan uretilir"),
-                Col("branch", "Sube", false, "Bos kalirsa secili/ana sube kullanilir"),
-                Col("services", "Hizmetler", false, "Virgulle ayirilmis hizmet adlari")
+                Col("role", "Rol", false, "Kuaför, Güzellik Uzmanı, Resepsiyonist, Kasiyer, Müdür, Şube Müdürü"),
+                Col("email", "E-posta", false, "Boş kalırsa import adresi üretilir"),
+                Col("userName", "Kullanıcı Adı", false, "Boş kalırsa ad soyaddan üretilir"),
+                Col("branch", "Şube", false, "Boş kalırsa seçili/ana şube kullanılır"),
+                Col("services", "Hizmetler", false, "Virgülle ayrılmış hizmet adları")
             ]
         },
         new()
         {
             ImportType = SlnDataImportTypes.Products,
-            DisplayName = "Urunler ve Stok",
+            DisplayName = "Ürünler ve Stok",
             Columns =
             [
-                Col("name", "Urun Adi", true, null),
-                Col("category", "Kategori", false, "Bos kalirsa Genel"),
+                Col("name", "Ürün Adı", true, null),
+                Col("category", "Kategori", false, "Boş kalırsa Genel"),
                 Col("brand", "Marka", false, null),
                 Col("barcode", "Barkod", false, null),
-                Col("purchasePrice", "Alis Fiyati", false, null),
-                Col("salePrice", "Satis Fiyati", false, null),
-                Col("stockQuantity", "Stok", false, "Bos kalirsa 0"),
+                Col("purchasePrice", "Alış Fiyatı", false, null),
+                Col("salePrice", "Satış Fiyatı", false, null),
+                Col("stockQuantity", "Stok", false, "Boş kalırsa 0"),
                 Col("minStockLevel", "Kritik Stok", false, null),
-                Col("unit", "Birim", false, "Bos kalirsa Adet"),
-                Col("branch", "Sube", false, "Bos kalirsa secili/ana sube kullanilir")
+                Col("unit", "Birim", false, "Boş kalırsa Adet"),
+                Col("branch", "Şube", false, "Boş kalırsa seçili/ana şube kullanılır")
             ]
         }
     ];
@@ -629,7 +629,7 @@ public class SlnDataImportFactory : ISlnDataImportFactory
     {
         var key = NormalizeImportType(importType);
         return BuildTemplates().FirstOrDefault(t => t.ImportType == key)
-            ?? throw new InvalidOperationException("Gecersiz import tipi.");
+            ?? throw new InvalidOperationException("Geçersiz import tipi.");
     }
 
     private static SlnDataImportTemplateColumnDto Col(string key, string label, bool required, string? description) =>
@@ -637,10 +637,10 @@ public class SlnDataImportFactory : ISlnDataImportFactory
 
     private static string[] BuildSampleRow(string importType) => importType switch
     {
-        SlnDataImportTypes.Clients => ["Deniz Yilmaz", "05060000000", "", "deniz@example.com", "01.01.1990", "Istanbul", "Adres", "Not", "Merkez"],
-        SlnDataImportTypes.Services => ["Sac Kesim", "Sac", "45", "750", "10", "1"],
-        SlnDataImportTypes.Personnel => ["Ayse Uzman", "Uzman", "Guzellik Uzmani", "ayse@example.com", "ayseuzman", "Merkez", "Sac Kesim, Cilt Bakimi"],
-        SlnDataImportTypes.Products => ["Bakim Serumu", "Bakim", "Demo Marka", "8690000000000", "250", "450", "10", "2", "Adet", "Merkez"],
+        SlnDataImportTypes.Clients => ["Deniz Yılmaz", "05060000000", "", "deniz@example.com", "01.01.1990", "İstanbul", "Adres", "Not", "Merkez"],
+        SlnDataImportTypes.Services => ["Saç Kesim", "Saç", "45", "750", "10", "1"],
+        SlnDataImportTypes.Personnel => ["Ayşe Uzman", "Uzman", "Güzellik Uzmanı", "ayse@example.com", "ayseuzman", "Merkez", "Saç Kesim, Cilt Bakımı"],
+        SlnDataImportTypes.Products => ["Bakım Serumu", "Bakım", "Demo Marka", "8690000000000", "250", "450", "10", "2", "Adet", "Merkez"],
         _ => []
     };
 

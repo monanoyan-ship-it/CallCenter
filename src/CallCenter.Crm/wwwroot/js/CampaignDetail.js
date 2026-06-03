@@ -1,17 +1,17 @@
 var statusMap = {
     1: { name: 'Taslak', css: 'bg-secondary' },
     2: { name: 'Aktif', css: 'bg-success' },
-    3: { name: 'Duraklatilmis', css: 'bg-warning text-dark' },
-    4: { name: 'Tamamlandi', css: 'bg-primary' },
-    5: { name: 'Arsivlendi', css: 'bg-dark' }
+    3: { name: 'Duraklatılmış', css: 'bg-warning text-dark' },
+    4: { name: 'Tamamlandı', css: 'bg-primary' },
+    5: { name: 'Arşivlendi', css: 'bg-dark' }
 };
 
 var contactStatusMap = {
     1: { name: 'Bekliyor', css: 'bg-secondary' },
-    2: { name: 'Araniyor', css: 'bg-info' },
-    3: { name: 'Ulasildi', css: 'bg-success' },
-    4: { name: 'Ulasilamadi', css: 'bg-danger' },
-    5: { name: 'Iptal', css: 'bg-dark' }
+    2: { name: 'Aranıyor', css: 'bg-info' },
+    3: { name: 'Ulaşıldı', css: 'bg-success' },
+    4: { name: 'Ulaşılamadı', css: 'bg-danger' },
+    5: { name: 'İptal', css: 'bg-dark' }
 };
 
 function CampaignDetailViewModel() {
@@ -96,7 +96,7 @@ function CampaignDetailViewModel() {
                 self.campaign(data);
             }
         }).fail(function () {
-            toastr.error('Kampanya yuklenemedi');
+            toastr.error('Kampanya yüklenemedi');
         }).always(function () {
             self.isLoading(false);
         });
@@ -111,9 +111,9 @@ function CampaignDetailViewModel() {
             data: JSON.stringify({ statusId: statusId })
         }).done(function () {
             self.loadCampaign();
-            toastr.success('Kampanya durumu guncellendi');
+            toastr.success('Kampanya durumu güncellendi');
         }).fail(function () {
-            toastr.error('Guncelenemedi');
+            toastr.error('Güncellenemedi');
         });
     };
 
@@ -139,7 +139,7 @@ function CampaignDetailViewModel() {
         }).done(function (data) {
             self.availableContacts(data || []);
         }).fail(function () {
-            toastr.error('Arama basarisiz');
+            toastr.error('Arama başarısız');
         });
     };
 
@@ -154,7 +154,7 @@ function CampaignDetailViewModel() {
         }).done(function () {
             addModal.hide();
             self.loadCampaign();
-            toastr.success('Kisiler eklendi');
+            toastr.success('Kişiler eklendi');
         }).fail(function () {
             toastr.error('Eklenemedi');
         }).always(function () {
@@ -169,9 +169,9 @@ function CampaignDetailViewModel() {
             method: 'DELETE'
         }).done(function () {
             self.loadCampaign();
-            toastr.success('Kisi cikarildi');
+            toastr.success('Kişi çıkarıldı');
         }).fail(function () {
-            toastr.error('Cikarilmadi');
+            toastr.error('Çıkarılamadı');
         });
     };
 
@@ -187,7 +187,7 @@ function CampaignDetailViewModel() {
             self.operators(data || []);
         }).fail(function () {
             self.operators([]);
-            toastr.error('Operatorler yuklenemedi');
+            toastr.error('Operatörler yüklenemedi');
         });
     };
 
@@ -206,9 +206,9 @@ function CampaignDetailViewModel() {
             assignModal.hide();
             self.selectedIds([]);
             self.loadCampaign();
-            toastr.success('Atama yapildi');
+            toastr.success('Atama yapıldı');
         }).fail(function () {
-            toastr.error('Atama basarisiz');
+            toastr.error('Atama başarısız');
         }).always(function () {
             self.isAssigning(false);
         });

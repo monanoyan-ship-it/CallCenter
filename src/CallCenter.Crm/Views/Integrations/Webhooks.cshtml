@@ -11,7 +11,7 @@
                 <input type="text" class="form-control form-control-sm" placeholder="Webhook ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
             </div>
             <select class="form-select form-select-sm" style="max-width: 180px;" data-bind="value: statusFilter">
-                <option value="">Tum Durumlar</option>
+                <option value="">Tüm Durumlar</option>
                 <option value="active">Aktif</option>
                 <option value="inactive">Pasif</option>
             </select>
@@ -61,7 +61,7 @@
                 <div class="card-body d-flex align-items-center gap-3 py-2">
                     <i class="bi bi-plug-fill fs-4 text-info"></i>
                     <div>
-                        <div class="text-muted small">Baglanti</div>
+                        <div class="text-muted small">Bağlantı</div>
                         <div class="fw-bold" data-bind="text: connections().length"></div>
                     </div>
                 </div>
@@ -78,7 +78,7 @@
                         <tr>
                             <th>Ad</th>
                             <th>Hedef URL</th>
-                            <th>Baglanti</th>
+                            <th>Bağlantı</th>
                             <th>Event Filtresi</th>
                             <th>Durum</th>
                             <th style="width:140px;"></th>
@@ -96,7 +96,7 @@
                                 <span data-bind="text: eventFilter.length + ' event'"></span>
                                 <!-- /ko -->
                                 <!-- ko if: !eventFilter || eventFilter.length === 0 -->
-                                <span class="text-muted">Tumunu dinliyor</span>
+                                <span class="text-muted">Tümunu dinliyor</span>
                                 <!-- /ko -->
                             </td>
                             <td>
@@ -109,10 +109,10 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-info" title="Test gonder" data-bind="click: $root.testWebhook">
+                                    <button class="btn btn-outline-info" title="Test gönder" data-bind="click: $root.testWebhook">
                                         <i class="bi bi-lightning"></i>
                                     </button>
-                                    <button class="btn btn-outline-secondary" title="Gonderim Loglari" data-bind="click: $root.showDeliveries">
+                                    <button class="btn btn-outline-secondary" title="Gönderim Loglari" data-bind="click: $root.showDeliveries">
                                         <i class="bi bi-clock-history"></i>
                                     </button>
                                     <button class="btn btn-outline-warning" title="Aktif/Pasif" data-bind="click: $root.toggleWebhook">
@@ -130,7 +130,7 @@
             <!-- ko if: webhooks().length === 0 -->
             <div class="text-center text-muted py-5">
                 <i class="bi bi-broadcast" style="font-size: 2.5rem;"></i>
-                <p class="mt-2 small">Henuz webhook eklenmemis</p>
+                <p class="mt-2 small">Henüz webhook eklenmemiş</p>
             </div>
             <!-- /ko -->
         </div>
@@ -140,7 +140,7 @@
     <div class="offcanvas offcanvas-end" tabindex="-1" id="deliveryOffcanvas" style="width:500px;">
         <div class="offcanvas-header">
             <h6 class="offcanvas-title">
-                <i class="bi bi-clock-history me-1"></i>Gonderim Loglari
+                <i class="bi bi-clock-history me-1"></i>Gönderim Loglari
                 <small class="text-muted d-block" data-bind="text: selectedWebhookName"></small>
             </h6>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
@@ -178,7 +178,7 @@
                 </div>
             </div>
             <!-- ko if: deliveries().length === 0 && !isLoadingDeliveries() -->
-            <div class="text-center text-muted py-4 small">Henuz gonderim yok</div>
+            <div class="text-center text-muted py-4 small">Henüz gönderim yok</div>
             <!-- /ko -->
         </div>
     </div>
@@ -201,8 +201,8 @@
                         <input type="url" class="form-control form-control-sm" placeholder="https://example.com/webhook" data-bind="value: form.targetUrl" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Baglanti (opsiyonel)</label>
-                        <select class="form-select form-select-sm" data-bind="value: form.connectionId, options: connectionOptions, optionsText: 'name', optionsValue: 'id', optionsCaption: 'Baglantisiz (genel)'"></select>
+                        <label class="form-label small fw-semibold">Bağlantı (opsiyonel)</label>
+                        <select class="form-select form-select-sm" data-bind="value: form.connectionId, options: connectionOptions, optionsText: 'name', optionsValue: 'id', optionsCaption: 'Bağlantısiz (genel)'"></select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Event Filtresi</label>
@@ -214,14 +214,14 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="form-text">Bos birakirsaniz tum eventler gonderilir</div>
+                        <div class="form-text">Bos birakirsaniz tüm eventler gönderilir</div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                        Olustur
+                        Oluştur
                     </button>
                 </div>
             </div>

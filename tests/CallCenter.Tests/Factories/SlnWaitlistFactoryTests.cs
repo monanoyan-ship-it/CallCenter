@@ -258,21 +258,24 @@ public class SlnWaitlistFactoryTests : IDisposable
 
         var createDto = CreateDto();
         createDto.PreferredDate = new DateTime(2026, 5, 20, 18, 45, 0, DateTimeKind.Local);
+        createDto.Notes = "Musteri notu";
         var createResult = await factory.CreateEntryAsync(createDto, 1);
 
         createResult.Success.Should().BeTrue();
         createResult.Entry!.PreferredDate.Should().Be(new DateTime(2026, 5, 20, 0, 0, 0, DateTimeKind.Utc));
+        createResult.Entry.Notes.Should().Be("Musteri notu");
 
         var updateDto = CreateUpdateDto();
         updateDto.PreferredDate = new DateTime(2026, 6, 21, 23, 59, 0, DateTimeKind.Local);
+        updateDto.Notes = "Guncel not";
         var updateResult = await factory.UpdateEntryAsync(10, updateDto, 1);
-        var updatedDate = await _db.SlnWaitlistEntries.AsNoTracking()
+        var updatedEntry = await _db.SlnWaitlistEntries.AsNoTracking()
             .Where(w => w.Id == 10)
-            .Select(w => w.PreferredDate)
             .SingleAsync();
 
         updateResult.Success.Should().BeTrue();
-        updatedDate.Should().Be(new DateTime(2026, 6, 21, 0, 0, 0, DateTimeKind.Utc));
+        updatedEntry.PreferredDate.Should().Be(new DateTime(2026, 6, 21, 0, 0, 0, DateTimeKind.Utc));
+        updatedEntry.Notes.Should().Be("Guncel not");
     }
 
     [Theory]
@@ -351,6 +354,11 @@ public class SlnWaitlistFactoryTests : IDisposable
         var entry = await _db.SlnWaitlistEntries.AsNoTracking().SingleAsync(w => w.Id == 10);
         entry.StatusId.Should().Be(SlnWaitlistStatuses.Ids.AppointmentBooked);
         entry.SlnAppointmentId.Should().Be(900);
+        await appointmentFactory.Received(1).CreateAppointmentAsync(
+            Arg.Is<SlnAppointmentCreateDto>(dto => dto.Notes == "Donustur"),
+            7,
+            1,
+            null);
     }
 
     [Fact]

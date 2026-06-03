@@ -178,7 +178,11 @@ function ClientsViewModel() {
             toastr.success(self.isEditing() ? slnJsT('salon.clients.js.musteri_guncellendi', 'Müşteri güncellendi') : slnJsT('salon.clients.js.musteri_eklendi', 'Müşteri eklendi'));
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
+            if (window.slnShowAjaxError) {
+                window.slnShowAjaxError(xhr, slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
+            } else {
+                toastr.error(xhr.responseJSON?.error || xhr.responseText || slnJsT('salon.common.error.generic', 'Bir hata oluştu'));
+            }
             self.isSaving(false);
         });
     };

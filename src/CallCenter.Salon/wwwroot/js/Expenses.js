@@ -4,6 +4,12 @@ function slnJsT(key, fallback) {
 
 function ExpensesViewModel() {
     var self = this;
+    function toDateStr(d) {
+        var month = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        return d.getFullYear() + '-' + month + '-' + day;
+    }
+
     self.expenses = ko.observableArray([]);
     self.expenseCategories = ko.observableArray([]);
     self.searchQuery = ko.observable('');
@@ -15,7 +21,7 @@ function ExpensesViewModel() {
     self.isSaving = ko.observable(false);
 
     self.form = {
-        expenseDate: ko.observable(new Date().toISOString().substring(0, 10)),
+        expenseDate: ko.observable(toDateStr(new Date())),
         categoryId: ko.observable(null),
         description: ko.observable(''),
         amount: ko.observable(0),
@@ -134,12 +140,20 @@ function ExpensesViewModel() {
 
     self.loadLookups = function () {
         $.ajax({ url: '/proxy/sln-finance/expense-categories', method: 'GET' }).done(function (data) {
-            self.expenseCategories(data);
+            var categories = data.items || data || [];
+            var seen = {};
+            var uniqueCategories = categories.filter(function (category) {
+                var key = normalizeCategoryText(category.name) || category.id;
+                if (!key || seen[key]) return false;
+                seen[key] = true;
+                return true;
+            });
+            self.expenseCategories(uniqueCategories);
         });
     };
 
     self.resetForm = function () {
-        self.form.expenseDate(new Date().toISOString().substring(0, 10));
+        self.form.expenseDate(toDateStr(new Date()));
         self.form.categoryId(null);
         self.form.description('');
         self.form.amount(0);
@@ -220,7 +234,7 @@ function ExpensesViewModel() {
                 data: JSON.stringify({ statusId: 2 })
             }).done(function () {
                 self.loadData();
-                toastr.success(slnJsT('salon.expenses.js.masraf_onaylandi', 'Masraf onaylandi'));
+                toastr.success(slnJsT('salon.expenses.js.masraf_onaylandi', 'Masraf onaylandı'));
             }).fail(function (xhr) {
                 toastr.error(xhr.responseJSON?.error || slnJsT('salon.expenses.js.approve_failed', 'Onaylama başarısız'));
             });

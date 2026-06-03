@@ -237,10 +237,10 @@ function ClientDetailViewModel() {
             data: JSON.stringify(data)
         }).done(function () {
             self.loadClient();
-            toastr.success(slnJsT('salon.clients.health.saved', 'Saglik bilgileri kaydedildi'));
+            toastr.success(slnJsT('salon.clients.health.saved_label', 'Sağlık bilgileri kaydedildi'));
             self.isSaving(false);
         }).fail(function () {
-            toastr.error(slnJsT('salon.clients.health.save_failed', 'Saglik bilgileri kaydedilemedi'));
+            toastr.error(slnJsT('salon.clients.health.save_failed_label', 'Sağlık bilgileri kaydedilemedi'));
             self.isSaving(false);
         });
     };
@@ -252,7 +252,7 @@ function ClientDetailViewModel() {
             method: 'PUT'
         }).done(function () {
             self.loadClient();
-            toastr.success(slnJsT('salon.clients.health.reviewed', 'Saglik bilgileri incelendi olarak isaretlendi'));
+            toastr.success(slnJsT('salon.clients.health.reviewed_label', 'Sağlık bilgileri incelendi olarak işaretlendi'));
             self.isSaving(false);
         }).fail(function () {
             toastr.error(slnJsT('salon.clients.health.review_failed', 'Inceleme durumu guncellenemedi'));
@@ -295,22 +295,22 @@ function ClientDetailViewModel() {
         }).done(function () {
             treatmentModal.hide();
             self.loadClient();
-            toastr.success(slnJsT('salon.clients.treatment.saved', 'Seans kaydi kaydedildi'));
+            toastr.success(slnJsT('salon.clients.treatment.saved_label', 'Seans kaydı kaydedildi'));
             self.isSaving(false);
         }).fail(function () {
-            toastr.error(slnJsT('salon.clients.treatment.save_failed', 'Seans kaydi kaydedilemedi'));
+            toastr.error(slnJsT('salon.clients.treatment.save_failed_label', 'Seans kaydı kaydedilemedi'));
             self.isSaving(false);
         });
     };
 
     self.removeTreatmentRecord = function (record) {
-        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.clients.treatment.delete_confirm', 'Bu seans kaydini silmek istediginize emin misiniz?'), function() {
+        confirmModal(slnJsT('salon.common.btn.confirm', 'Onayla'), slnJsT('salon.clients.treatment.delete_confirm_label', 'Bu seans kaydını silmek istediğinize emin misiniz?'), function() {
             $.ajax({
                 url: '/proxy/sln-clients/treatment-records/' + record.id,
                 method: 'DELETE'
             }).done(function () {
                 self.loadClient();
-                toastr.success(slnJsT('salon.clients.treatment.deleted', 'Seans kaydi silindi'));
+                toastr.success(slnJsT('salon.clients.treatment.deleted_label', 'Seans kaydı silindi'));
             });
         });
     };
@@ -379,7 +379,7 @@ function ClientDetailViewModel() {
         );
 
         if (hasTreatmentRecordForAppointment(appointment.id)) {
-            toastr.info(slnJsT('salon.clients.treatment.appointment_has_record', 'Bu randevuya bagli seans kaydi zaten var. Gerekirse yeni not olarak kaydedebilirsiniz.'));
+            toastr.info(slnJsT('salon.clients.treatment.appointment_has_record_label', 'Bu randevuya bağlı seans kaydı zaten var. Gerekirse yeni not olarak kaydedebilirsiniz.'));
         }
     }
 

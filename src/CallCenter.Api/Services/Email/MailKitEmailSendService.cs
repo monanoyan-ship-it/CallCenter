@@ -135,7 +135,9 @@ public class MailKitEmailSendService : IEmailSendService
                 var useSsl = creds.GetValueOrDefault("UseSsl", "true") == "true";
                 var username = creds.GetValueOrDefault("Username", "");
                 var password = creds.GetValueOrDefault("Password", "");
-                var socketOptions = useSsl ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls;
+                if (host.Equals("smtp.gmail.com", StringComparison.OrdinalIgnoreCase))
+                    password = RemoveWhitespace(password);
+                var socketOptions = ResolveSmtpSocketOptions(port, useSsl);
                 await client.ConnectAsync(host, port, socketOptions, ct);
                 if (!string.IsNullOrEmpty(username))
                     await client.AuthenticateAsync(username, password, ct);
@@ -242,5 +244,19 @@ public class MailKitEmailSendService : IEmailSendService
 
         message.Body = builder.ToMessageBody();
         return message;
+    }
+
+    private static string RemoveWhitespace(string value)
+        => new(value.Where(c => !char.IsWhiteSpace(c)).ToArray());
+
+    private static SecureSocketOptions ResolveSmtpSocketOptions(int port, bool useSsl)
+    {
+        if (port == 465)
+            return SecureSocketOptions.SslOnConnect;
+
+        if (port == 587)
+            return SecureSocketOptions.StartTls;
+
+        return useSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.Auto;
     }
 }

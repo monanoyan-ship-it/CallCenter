@@ -4,6 +4,11 @@ namespace CallCenter.Management.Controllers;
 
 public class ModulesController : MgmtBaseController
 {
+    public IActionResult Index()
+    {
+        return RedirectToAction(nameof(Inventory));
+    }
+
     public IActionResult CallCenter()
     {
         ViewData["Title"] = "CC Odeme Takibi";

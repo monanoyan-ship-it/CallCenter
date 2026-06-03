@@ -1,6 +1,6 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
-    ViewData["Title"] = Translation.T("salon.dataimport.title", "Veri Aktarimi");
+    ViewData["Title"] = Translation.T("salon.dataimport.title", "Veri Aktarımı");
 }
 
 @section Styles {
@@ -22,11 +22,11 @@
 <div id="data-import-vm" class="data-import-shell">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
         <div>
-            <h6 class="mb-1"><t key="salon.dataimport.heading">Eski Veri Importu</t></h6>
+            <h6 class="mb-1"><t key="salon.dataimport.heading">Eski Veri Aktarımı</t></h6>
             <div class="text-muted small"><t key="salon.dataimport.subtitle">Eski listenizi Excel olarak yükleyin; satırları kontrol edip uygun kayıtları içeri aktarın.</t></div>
         </div>
         <button type="button" class="btn btn-outline-primary btn-sm" data-bind="click: downloadTemplate, enable: selectedTemplate">
-            <i class="bi bi-file-earmark-spreadsheet me-1"></i><t key="salon.dataimport.download_template">Excel sablonu indir</t>
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i><t key="salon.dataimport.download_template">Excel şablonu indir</t>
         </button>
     </div>
 
@@ -35,29 +35,29 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <div class="data-import-step ps-3 mb-3">
-                        <div class="fw-semibold small"><t key="salon.dataimport.step_source">1. Veri tipini sec</t></div>
-                        <div class="text-muted small"><t key="salon.dataimport.step_source_hint">Musteri, hizmet, personel veya urun/stok listesi aktarabilirsiniz.</t></div>
+                        <div class="fw-semibold small"><t key="salon.dataimport.step_source">1. Veri tipini seç</t></div>
+                        <div class="text-muted small"><t key="salon.dataimport.step_source_hint">Müşteri, hizmet, personel veya ürün/stok listesi aktarabilirsiniz.</t></div>
                     </div>
 
                     <label class="form-label small"><t key="salon.dataimport.type">Veri Tipi</t></label>
                     <select class="form-select form-select-sm mb-3"
                             data-bind="options: templates, optionsText: 'displayName', optionsValue: 'importType', value: importType, optionsCaption: salonT('salon.common.select', 'Seciniz')"></select>
 
-                    <label class="form-label small"><t key="salon.dataimport.branch">Varsayilan Sube</t></label>
+                    <label class="form-label small"><t key="salon.dataimport.branch">Varsayılan Şube</t></label>
                     <select class="form-select form-select-sm mb-3"
-                            data-bind="options: branches, optionsText: 'name', optionsValue: 'id', value: branchId, optionsCaption: salonT('salon.dataimport.branch_auto', 'Dosyadan/merkez subeden al')"></select>
+                            data-bind="options: branches, optionsText: 'name', optionsValue: 'id', value: branchId, optionsCaption: salonT('salon.dataimport.branch_auto', 'Dosyadan/merkez şubeden al')"></select>
 
                     <label class="form-label small"><t key="salon.dataimport.file">Dosya</t></label>
                     <input type="file" class="form-control form-control-sm mb-2" accept=".xlsx,.xlsm,.xltx" data-bind="event: { change: onFileChange }" />
-                    <div class="text-muted small mb-3"><t key="salon.dataimport.file_hint">Excel XLSX dosyasi yukleyin. Eski XLS dosyasini once Excel'de XLSX olarak kaydedin.</t></div>
+                    <div class="text-muted small mb-3"><t key="salon.dataimport.file_hint">Excel XLSX dosyası yükleyin. Eski XLS dosyasını önce Excel'de XLSX olarak kaydedin.</t></div>
 
                     <div class="d-grid gap-2">
                         <button type="button" class="btn btn-primary btn-sm" data-bind="click: preview, enable: canPreview">
                             <span class="spinner-border spinner-border-sm me-1" data-bind="visible: isBusy"></span>
-                            <i class="bi bi-eye me-1" data-bind="visible: !isBusy()"></i><t key="salon.dataimport.preview">Onizle</t>
+                            <i class="bi bi-eye me-1" data-bind="visible: !isBusy()"></i><t key="salon.dataimport.preview">Önizle</t>
                         </button>
                         <button type="button" class="btn btn-success btn-sm" data-bind="click: commit, enable: canCommit">
-                            <i class="bi bi-database-check me-1"></i><t key="salon.dataimport.commit">Uygun satirlari aktar</t>
+                            <i class="bi bi-database-check me-1"></i><t key="salon.dataimport.commit">Uygun satırları aktar</t>
                         </button>
                     </div>
                 </div>
@@ -80,7 +80,7 @@
                     <div class="metric-value" data-bind="text: summaryValue('totalRows')"></div>
                 </div>
                 <div class="metric">
-                    <div class="text-muted small"><t key="salon.dataimport.ready_rows">Hazir</t></div>
+                    <div class="text-muted small"><t key="salon.dataimport.ready_rows">Hazır</t></div>
                     <div class="metric-value text-primary" data-bind="text: summaryValue('readyRows')"></div>
                 </div>
                 <div class="metric">
@@ -92,7 +92,7 @@
                     <div class="metric-value text-danger" data-bind="text: summaryValue('errorRows')"></div>
                 </div>
                 <div class="metric">
-                    <div class="text-muted small"><t key="salon.dataimport.imported_rows">Aktarilan</t></div>
+                    <div class="text-muted small"><t key="salon.dataimport.imported_rows">Aktarılan</t></div>
                     <div class="metric-value text-success" data-bind="text: summaryValue('importedRows')"></div>
                 </div>
             </div>
@@ -114,14 +114,14 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-body p-0">
                     <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
-                        <div class="fw-semibold small"><t key="salon.dataimport.rows">Satirlar</t></div>
+                        <div class="fw-semibold small"><t key="salon.dataimport.rows">Satırlar</t></div>
                         <div class="text-muted small" data-bind="text: rowCountText"></div>
                     </div>
                     <div class="data-import-table">
                         <table class="table table-sm table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width:80px;"><t key="salon.dataimport.row_no">Satir</t></th>
+                                    <th style="width:80px;"><t key="salon.dataimport.row_no">Satır</t></th>
                                     <th style="width:110px;"><t key="salon.dataimport.status">Durum</t></th>
                                     <th><t key="salon.dataimport.message">Mesaj</t></th>
                                     <th><t key="salon.dataimport.normalized">Okunan veri</t></th>
@@ -141,7 +141,7 @@
                     </div>
                     <div class="text-center text-muted py-5" data-bind="visible: rows().length === 0">
                         <i class="bi bi-table" style="font-size:2rem;"></i>
-                        <p class="small mt-2 mb-0"><t key="salon.dataimport.empty">Henuz onizleme yapilmadi.</t></p>
+                        <p class="small mt-2 mb-0"><t key="salon.dataimport.empty">Henüz önizleme yapılmadı.</t></p>
                     </div>
                 </div>
             </div>

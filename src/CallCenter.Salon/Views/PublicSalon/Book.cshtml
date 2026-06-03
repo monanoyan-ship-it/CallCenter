@@ -101,6 +101,25 @@
             </div>
         </div>
 
+        <div class="card border-0 shadow-sm mb-3" data-bind="visible: hasBranchOptions()" style="display:none;">
+            <div class="card-body py-3">
+                <label class="form-label small fw-semibold" for="public-book-branch">
+                    <i class="bi bi-building me-1"></i><t key="salon.book.branch.label">Randevu şubesi</t>
+                </label>
+                <div class="d-flex flex-wrap gap-2" data-bind="foreach: branchOptions">
+                    <button type="button"
+                            class="btn btn-sm"
+                            data-testid="public-book-branch-option"
+                            data-bind="click: $root.selectBranch,
+                                       css: $root.selectedBranchSlug() === slug ? 'btn-purple' : 'btn-outline-secondary',
+                                       attr: { 'aria-pressed': $root.selectedBranchSlug() === slug ? 'true' : 'false' }">
+                        <i class="bi bi-building me-1"></i><span data-bind="text: name"></span>
+                    </button>
+                </div>
+                <div class="text-muted small mt-2"><t key="salon.book.branch.hint">Randevu almak istediğiniz şubeyi seçin. Hizmet ve saatler seçilen şubeye göre gösterilir.</t></div>
+            </div>
+        </div>
+
         <!-- Adimlar -->
         <div class="step-indicator">
             <div class="step" data-bind="css: { active: currentStep() === 1, done: currentStep() > 1 }">1. <t key="salon.book.step1">Hizmet</t></div>
@@ -278,11 +297,11 @@
                         <div class="row g-2">
                             <div class="col-12">
                                 <label class="form-label small"><t key="salon.book.fullname">Ad Soyad *</t></label>
-                                <input type="text" class="form-control form-control-sm" data-bind="value: waitlist.fullName" />
+                                <input type="text" class="form-control form-control-sm" data-bind="textInput: waitlist.fullName" />
                             </div>
                             <div class="col-7">
                                 <label class="form-label small"><t key="salon.book.phone">Telefon *</t></label>
-                                <input type="tel" class="form-control form-control-sm" data-bind="value: waitlist.phone" placeholder="05xx xxx xx xx" />
+                                <input type="tel" class="form-control form-control-sm" data-bind="textInput: waitlist.phone" placeholder="05xx xxx xx xx" />
                             </div>
                             <div class="col-5">
                                 <label class="form-label small"><t key="salon.book.waitlist.time_preference">Saat Tercihi</t></label>
@@ -299,7 +318,7 @@
                             </div>
                             <div class="col-12">
                                 <label class="form-label small"><t key="salon.book.notes">Notlar (isteğe bağlı)</t></label>
-                                <textarea class="form-control form-control-sm" rows="2" data-bind="value: waitlist.notes"></textarea>
+                                <textarea class="form-control form-control-sm" rows="2" data-bind="textInput: waitlist.notes"></textarea>
                             </div>
                         </div>
                     </div>
@@ -319,7 +338,7 @@
             <div class="row g-3">
                 <div class="col-12">
                     <label class="form-label small"><t key="salon.book.fullname">Ad Soyad *</t></label>
-                    <input type="text" class="form-control" data-bind="value: form.fullName" />
+                    <input type="text" class="form-control" data-bind="textInput: form.fullName" />
                 </div>
                 <div class="col-6">
                     <label class="form-label small"><t key="salon.book.phone">Telefon *</t></label>
@@ -327,11 +346,11 @@
                 </div>
                 <div class="col-6">
                     <label class="form-label small"><t key="salon.book.email">E-posta</t></label>
-                    <input type="email" class="form-control" data-bind="value: form.email" />
+                    <input type="email" class="form-control" data-bind="textInput: form.email" />
                 </div>
                 <div class="col-12">
                     <label class="form-label small"><t key="salon.book.notes">Notlar (isteğe bağlı)</t></label>
-                    <textarea class="form-control" rows="2" data-bind="value: form.notes"></textarea>
+                    <textarea class="form-control" rows="2" data-bind="textInput: form.notes"></textarea>
                 </div>
             </div>
         </div>

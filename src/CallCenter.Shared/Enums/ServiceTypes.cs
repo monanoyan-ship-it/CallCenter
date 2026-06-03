@@ -211,9 +211,9 @@ public static class PaymentStatuses
 {
     public static readonly TypeItem Beklemede = new(1, "Beklemede", "PaymentStatus.Beklemede", "Beklemede", "bi-clock-fill", "bg-secondary", 1, isDefault: true);
     public static readonly TypeItem Basarili = new(2, "Basarili", "PaymentStatus.Basarili", "Başarılı", "bi-check-circle-fill", "bg-success", 2);
-    public static readonly TypeItem Basarisiz = new(3, "Basarisiz", "PaymentStatus.Basarisiz", "Basarisiz", "bi-x-circle-fill", "bg-danger", 3);
-    public static readonly TypeItem Iade = new(4, "Iade", "PaymentStatus.Iade", "Iade Edildi", "bi-arrow-counterclockwise", "bg-warning text-dark", 4);
-    public static readonly TypeItem Iptal = new(5, "Iptal", "PaymentStatus.Iptal", "Iptal Edildi", "bi-slash-circle", "bg-secondary", 5);
+    public static readonly TypeItem Basarisiz = new(3, "Basarisiz", "PaymentStatus.Basarisiz", "Başarısız", "bi-x-circle-fill", "bg-danger", 3);
+    public static readonly TypeItem Iade = new(4, "Iade", "PaymentStatus.Iade", "İade Edildi", "bi-arrow-counterclockwise", "bg-warning text-dark", 4);
+    public static readonly TypeItem Iptal = new(5, "Iptal", "PaymentStatus.Iptal", "İptal Edildi", "bi-slash-circle", "bg-secondary", 5);
 
     public static IEnumerable<TypeItem> All => new[] { Beklemede, Basarili, Basarisiz, Iade, Iptal };
     public static TypeItem? GetById(int id) => All.FirstOrDefault(x => x.Id == id);

@@ -21,7 +21,7 @@
     <!-- ko if: !isLoading() && campaigns().length === 0 -->
     <div class="text-center text-muted py-5">
         <i class="bi bi-list-check" style="font-size:3rem;"></i>
-        <p class="mt-2">Henuz kampanya olusturulmamis.</p>
+        <p class="mt-2">Henüz kampanya oluşturulmamış.</p>
     </div>
     <!-- /ko -->
 
@@ -35,10 +35,10 @@
                         <th>Tarih</th>
                         <th>Durum</th>
                         <th class="text-center">Toplam</th>
-                        <th class="text-center">Ulasildi</th>
-                        <th class="text-center">Ulasilamadi</th>
+                        <th class="text-center">Ulaşıldı</th>
+                        <th class="text-center">Ulaşılamadı</th>
                         <th class="text-center">Bekliyor</th>
-                        <th>Olusturan</th>
+                        <th>Oluşturan</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -90,7 +90,7 @@
                         <input type="text" class="form-control form-control-sm" data-bind="value: form.name" />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small">Aciklama</label>
+                        <label class="form-label small">Açıklama</label>
                         <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.description"></textarea>
                     </div>
                     <div class="mb-3">
@@ -99,10 +99,10 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
                     <button class="btn btn-primary btn-sm" data-bind="click: create, disable: isSaving() || !form.name()">
                         <span data-bind="visible: isSaving()" class="spinner-border spinner-border-sm me-1"></span>
-                        Olustur
+                        Oluştur
                     </button>
                 </div>
             </div>

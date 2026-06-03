@@ -1,10 +1,10 @@
 @{
-    ViewData["Title"] = "Kisi Detay";
+    ViewData["Title"] = "Kişi Detay";
     var contactId = (int)ViewData["ContactId"]!;
 }
 
 <div id="contact-detail-vm" data-contact-id="@contactId">
-    <!-- Ust Kart: Kisi Bilgisi -->
+    <!-- Ust Kart: Kişi Bilgisi -->
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-start">
@@ -33,7 +33,7 @@
         </div>
     </div>
 
-    <!-- KPI Kartlari -->
+    <!-- KPI Kartları -->
     <div class="row g-2 mb-3">
         <div class="col-3">
             <div class="card border-0 shadow-sm">
@@ -46,7 +46,7 @@
         <div class="col-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .7rem;">Firsatlar</div>
+                    <div class="text-muted" style="font-size: .7rem;">Fırsatlar</div>
                     <div class="fw-bold text-success" data-bind="text: contact().dealCount || 0">0</div>
                 </div>
             </div>
@@ -54,7 +54,7 @@
         <div class="col-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .7rem;">Etkilesimler</div>
+                    <div class="text-muted" style="font-size: .7rem;">Etkileşimler</div>
                     <div class="fw-bold text-info" data-bind="text: contact().activityCount || 0">0</div>
                 </div>
             </div>
@@ -62,7 +62,7 @@
         <div class="col-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .7rem;">Gorevler</div>
+                    <div class="text-muted" style="font-size: .7rem;">Görevler</div>
                     <div class="fw-bold text-warning" data-bind="text: contact().taskCount || 0">0</div>
                 </div>
             </div>
@@ -78,17 +78,17 @@
         </li>
         <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-deals">
-                <i class="bi bi-kanban me-1"></i>Firsatlar
+                <i class="bi bi-kanban me-1"></i>Fırsatlar
             </button>
         </li>
         <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-activities">
-                <i class="bi bi-clock-history me-1"></i>Etkilesimler
+                <i class="bi bi-clock-history me-1"></i>Etkileşimler
             </button>
         </li>
         <li class="nav-item">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-tasks">
-                <i class="bi bi-check2-square me-1"></i>Gorevler
+                <i class="bi bi-check2-square me-1"></i>Görevler
             </button>
         </li>
         <li class="nav-item">
@@ -106,7 +106,7 @@
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
-                                <tr><th>Baslik</th><th>Durum</th><th>Oncelik</th><th>Tarih</th></tr>
+                                <tr><th>Başlık</th><th>Durum</th><th>Öncelik</th><th>Tarih</th></tr>
                             </thead>
                             <tbody data-bind="foreach: tickets">
                                 <tr>
@@ -125,14 +125,14 @@
             </div>
         </div>
 
-        <!-- Firsatlar -->
+        <!-- Fırsatlar -->
         <div class="tab-pane fade" id="tab-deals">
             <div class="card border-0 shadow-sm border-top-0 rounded-top-0">
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
-                                <tr><th>Firsat</th><th>Asama</th><th>Deger</th><th>Olasilik</th><th>Tarih</th></tr>
+                                <tr><th>Fırsat</th><th>Aşama</th><th>Değer</th><th>Olasılık</th><th>Tarih</th></tr>
                             </thead>
                             <tbody data-bind="foreach: deals">
                                 <tr>
@@ -146,20 +146,20 @@
                         </table>
                     </div>
                     <!-- ko if: deals().length === 0 -->
-                    <div class="text-center text-muted py-3 small">Firsat bulunamadi</div>
+                    <div class="text-center text-muted py-3 small">Fırsat bulunamadi</div>
                     <!-- /ko -->
                 </div>
             </div>
         </div>
 
-        <!-- Etkilesimler -->
+        <!-- Etkileşimler -->
         <div class="tab-pane fade" id="tab-activities">
             <div class="card border-0 shadow-sm border-top-0 rounded-top-0">
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
-                                <tr><th style="width:40px;"></th><th>Tur</th><th>Ozet</th><th>Personel</th><th>Zaman</th></tr>
+                                <tr><th style="width:40px;"></th><th>Tür</th><th>Özet</th><th>Personel</th><th>Zaman</th></tr>
                             </thead>
                             <tbody data-bind="foreach: activities">
                                 <tr>
@@ -173,20 +173,20 @@
                         </table>
                     </div>
                     <!-- ko if: activities().length === 0 -->
-                    <div class="text-center text-muted py-3 small">Etkilesim bulunamadi</div>
+                    <div class="text-center text-muted py-3 small">Etkileşim bulunamadi</div>
                     <!-- /ko -->
                 </div>
             </div>
         </div>
 
-        <!-- Gorevler -->
+        <!-- Görevler -->
         <div class="tab-pane fade" id="tab-tasks">
             <div class="card border-0 shadow-sm border-top-0 rounded-top-0">
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover table-sm mb-0">
                             <thead class="table-light">
-                                <tr><th>Gorev</th><th>Durum</th><th>Atanan</th><th>Son Tarih</th></tr>
+                                <tr><th>Görev</th><th>Durum</th><th>Atanan</th><th>Son Tarih</th></tr>
                             </thead>
                             <tbody data-bind="foreach: tasks">
                                 <tr data-bind="css: { 'table-danger': dueDate && new Date(dueDate) < new Date() && statusId < 3 }">
@@ -199,7 +199,7 @@
                         </table>
                     </div>
                     <!-- ko if: tasks().length === 0 -->
-                    <div class="text-center text-muted py-3 small">Gorev bulunamadi</div>
+                    <div class="text-center text-muted py-3 small">Görev bulunamadi</div>
                     <!-- /ko -->
                 </div>
             </div>

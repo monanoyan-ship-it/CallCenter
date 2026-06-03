@@ -1,6 +1,11 @@
 @inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     ViewData["Title"] = Translation.T("salon.waitlist.auto.title", "Bekleme Listesi");
+    var __waitlistJwt = CallCenter.Shared.Auth.JwtIdentityExtensions.GetJwtIdentity(Context);
+    var __waitlistRoleId = __waitlistJwt.CustomerRoleId > 0 ? __waitlistJwt.CustomerRoleId : CallCenter.Shared.Enums.SalonRoles.Ids.SalonOwner;
+    var __canNormalizeWaitlistBranches = !__waitlistJwt.BranchId.HasValue
+        && (__waitlistRoleId == CallCenter.Shared.Enums.SalonRoles.Ids.SalonOwner
+            || __waitlistRoleId == CallCenter.Shared.Enums.SalonRoles.Ids.Manager);
 }
 
 <div id="waitlist-vm">
@@ -112,10 +117,13 @@
                     <input type="text" class="form-control" placeholder="@(Translation.T("salon.waitlist.auto.musteri_veya_hizmet_ara", "Müşteri veya hizmet ara..."))" data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
                 </div>
                 <div class="d-flex gap-1">
-                    <button class="btn btn-outline-secondary btn-sm" data-bind="click: normalizeBranches"
-                            title="@(Translation.T("salon.waitlist.auto.sube_bilgisi_olmayan_eski_kayitlari_personelin_merkezin_sube", "Şube bilgisi olmayan eski kayitlari personelin/merkezin subesine bagla"))">
-                        <i class="bi bi-shuffle me-1"></i><t key="salon.waitlist.auto.sube_normalize">Şube Normalize</t>
-                    </button>
+                    @if (__canNormalizeWaitlistBranches)
+                    {
+                        <button class="btn btn-outline-secondary btn-sm" data-bind="click: normalizeBranches"
+                                title="@(Translation.T("salon.waitlist.auto.sube_bilgisi_olmayan_eski_kayitlari_personelin_merkezin_sube", "Şube bilgisi olmayan eski kayıtları personelin/merkezin şubesine bağla"))">
+                            <i class="bi bi-shuffle me-1"></i><t key="salon.waitlist.auto.sube_normalize">Şube Normalize</t>
+                        </button>
+                    }
                     <button class="btn btn-primary btn-sm" data-bind="click: openNew">
                         <i class="bi bi-plus-lg me-1"></i><t key="salon.waitlist.auto.yeni_kayit">Yeni Kayıt</t>
                     </button>
@@ -140,7 +148,14 @@
                             <tbody data-bind="foreach: filteredEntries">
                                 <tr>
                                     <td class="fw-semibold small" data-bind="text: clientName"></td>
-                                    <td class="small" data-bind="text: serviceName"></td>
+                                    <td class="small">
+                                        <div data-bind="text: serviceName"></div>
+                                        <!-- ko if: notes -->
+                                        <div class="text-muted mt-1">
+                                            <i class="bi bi-card-text me-1"></i><span data-bind="text: notes"></span>
+                                        </div>
+                                        <!-- /ko -->
+                                    </td>
                                     <td class="small" data-bind="text: preferredPersonnelName || '-'"></td>
                                     <td class="small" data-bind="text: $parent.formatDate(preferredDate)"></td>
                                     <td class="small" data-bind="text: preferredTimeSlot || '-'"></td>
@@ -221,7 +236,7 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label small"><t key="salon.appointments.notes">Not</t></label>
-                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: convertForm.notes"></textarea>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="textInput: convertForm.notes"></textarea>
                         </div>
                     </div>
                 </div>
@@ -273,7 +288,7 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label small"><t key="salon.appointments.notes">Not</t></label>
-                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.notes"></textarea>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="textInput: form.notes"></textarea>
                         </div>
                     </div>
                 </div>

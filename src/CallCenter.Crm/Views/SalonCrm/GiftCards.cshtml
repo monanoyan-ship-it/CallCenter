@@ -15,7 +15,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="input-group crm-search-wide">
             <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-            <input type="text" class="form-control" placeholder="@Translation.T("crm.salon.giftcards.search_placeholder", "Kart, alıcı veya gönderen ara...")" data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+            <input type="text" class="form-control" placeholder="@Translation.T("crm.salon.giftcards.search_placeholder", "Kart, alıcı veya gönderen ara...")" data-bind="textInput: searchQuery" />
         </div>
         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
             <i class="bi bi-plus-lg me-1"></i><t key="crm.salon.giftcards.new">Yeni Hediye Kartı</t>
@@ -83,7 +83,7 @@
                     <div class="row g-3">
                         <div class="col-6">
                             <label class="form-label small"><t key="crm.salon.giftcards.amount_required">Tutar *</t></label>
-                            <input type="number" min="1" step="1" class="form-control form-control-sm" data-bind="value: form.amount" />
+                            <input type="number" min="1" step="1" class="form-control form-control-sm" data-bind="textInput: form.amount" />
                         </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="crm.salon.giftcards.payment">Ödeme</t></label>
@@ -95,15 +95,15 @@
                         </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="crm.salon.giftcards.recipient">Alıcı</t></label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.recipientName" />
+                            <input type="text" class="form-control form-control-sm" data-bind="textInput: form.recipientName" />
                         </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="crm.salon.giftcards.recipient_phone">Alıcı Telefon</t></label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.recipientPhone" />
+                            <input type="text" class="form-control form-control-sm" data-bind="textInput: form.recipientPhone" />
                         </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="crm.salon.giftcards.sender">Gönderen</t></label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: form.senderName" />
+                            <input type="text" class="form-control form-control-sm" data-bind="textInput: form.senderName" />
                         </div>
                         <div class="col-6">
                             <label class="form-label small"><t key="crm.salon.giftcards.expires_at">Son Kullanım</t></label>
@@ -111,7 +111,7 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label small"><t key="crm.salon.giftcards.message">Mesaj</t></label>
-                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: form.message"></textarea>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="textInput: form.message"></textarea>
                         </div>
                     </div>
                 </div>

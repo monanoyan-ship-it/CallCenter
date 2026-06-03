@@ -1,8 +1,9 @@
+@inject CallCenter.Shared.Services.ITranslationService Translation
 @{
     var moduleId = ViewData["ModuleId"] as int?;
-    var moduleName = ViewData["ModuleName"]?.ToString() ?? "Bu hizmet";
+    var moduleName = ViewData["ModuleName"]?.ToString() ?? Translation.T("salon.modulerequired.default_module", "Bu hizmet");
     var moduleIcon = ViewData["ModuleIcon"]?.ToString() ?? "bi-puzzle";
-    ViewData["Title"] = "Hizmet Paketi Gerekli";
+    ViewData["Title"] = Translation.T("salon.modulerequired.title", "Hizmet Paketi Gerekli");
 }
 
 <div class="container py-5">
@@ -11,22 +12,22 @@
             <div class="card border-0 shadow-sm">
                 <div class="card-body text-center p-5">
                     <i class="bi @moduleIcon text-warning" style="font-size:3rem;"></i>
-                    <h4 class="mt-3">Bu hizmet aktif degil</h4>
+                    <h4 class="mt-3"><t key="salon.modulerequired.heading">Bu hizmet aktif değil</t></h4>
                     <p class="text-muted mb-4">
-                        <strong>@moduleName</strong> paketinizde yok. Bu ekrani kullanmak icin hizmeti satin alin.
+                        <strong>@moduleName</strong> <t key="salon.modulerequired.description">paketinizde yok. Bu ekranı kullanmak için hizmeti satın alın.</t>
                     </p>
                     <div class="d-grid gap-2">
                         @if (moduleId.HasValue)
                         {
                             <a href="/Modules/Purchase?moduleId=@moduleId.Value" class="btn btn-primary">
-                                <i class="bi bi-cart-plus me-1"></i>Sat&#305;n Al
+                                <i class="bi bi-cart-plus me-1"></i><t key="salon.modulerequired.buy">Satın Al</t>
                             </a>
                         }
                         <a href="/Modules" class="btn btn-outline-secondary">
-                            <i class="bi bi-puzzle me-1"></i>Hizmet Paketleri
+                            <i class="bi bi-puzzle me-1"></i><t key="salon.modulerequired.modules">Hizmet Paketleri</t>
                         </a>
                         <a href="/Home" class="btn btn-link text-muted">
-                            <i class="bi bi-house me-1"></i>Dashboard
+                            <i class="bi bi-house me-1"></i><t key="salon.modulerequired.dashboard">Dashboard</t>
                         </a>
                     </div>
                 </div>

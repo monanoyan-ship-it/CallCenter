@@ -127,6 +127,10 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
     public async Task<(SlnAppointmentDto? Appointment, string? Error)> CreateAppointmentAsync(SlnAppointmentCreateDto dto, int userId, int customerId, int? branchId = null)
     {
+        var dateError = ValidateAppointmentDate(dto.StartTime);
+        if (dateError != null)
+            return (null, dateError);
+
         var resolved = await ResolveServiceIdsAsync(dto, customerId);
         if (resolved.Error != null)
             return (null, resolved.Error);
@@ -216,6 +220,10 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
 
     public async Task<(bool Success, string? Error)> UpdateAppointmentAsync(int appointmentId, SlnAppointmentCreateDto dto, int customerId, int? branchId = null)
     {
+        var dateError = ValidateAppointmentDate(dto.StartTime);
+        if (dateError != null)
+            return (false, dateError);
+
         var appointment = await ApplyBranchScope(_appointments.GetAllQueryable().Include(a => a.Services), branchId)
             .FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == customerId);
 
@@ -448,7 +456,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         var products = await _products.GetAllQueryable()
             .Where(p => p.CustomerId == appointment.CustomerId
                      && productIds.Contains(p.Id)
-                     && (p.BranchId == null || p.BranchId == appointment.BranchId))
+                     && p.IsActive)
             .ToDictionaryAsync(p => p.Id);
 
         foreach (var productGroup in recipeItems.GroupBy(x => x.Item.ProductId))
@@ -856,6 +864,23 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         }
 
         return slots;
+    }
+
+    private static string? ValidateAppointmentDate(DateTime startTime)
+    {
+        if (startTime == default) return "Tarih ve saat zorunludur";
+
+        var startUtc = startTime.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(startTime, DateTimeKind.Utc)
+            : startTime.ToUniversalTime();
+
+        if (startUtc < DateTime.UtcNow.AddMinutes(-5))
+            return "Gecmis tarihe randevu olusturulamaz";
+
+        if (startUtc > DateTime.UtcNow.AddYears(2))
+            return "Randevu tarihi en fazla 2 yil sonrasi olabilir";
+
+        return null;
     }
 
     public async Task<object> NormalizeBranchesAsync(int customerId)

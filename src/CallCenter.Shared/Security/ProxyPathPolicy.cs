@@ -39,6 +39,7 @@ public static class ProxyPathPolicy
         "organizations",
         "payment-config",
         "payments",
+        "platform-email-templates",
         "portal",
         "service-pricing",
         "settings",
@@ -130,5 +131,5 @@ public static class ProxyPathPolicy
     }
 
     private static bool IsAllowedPathChar(char c)
-        => char.IsAsciiLetterOrDigit(c) || c is '-' or '_' or '.';
+        => char.IsLetterOrDigit(c) || c is '-' or '_' or '.';
 }

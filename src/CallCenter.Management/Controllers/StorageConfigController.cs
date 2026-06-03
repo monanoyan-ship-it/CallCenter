@@ -4,5 +4,5 @@ namespace CallCenter.Management.Controllers;
 
 public class StorageConfigController : MgmtBaseController
 {
-    public IActionResult Index() { ViewData["Title"] = "Depolama Yapilandirmasi"; return View(); }
+    public IActionResult Index() { ViewData["Title"] = "Depolama Yapılandırması"; return View(); }
 }

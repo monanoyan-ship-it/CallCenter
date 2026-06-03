@@ -3,14 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 namespace CallCenter.Management.Controllers;
 
 /// <summary>
-/// PS.12 — Tum salonlarin iyzico Pazaryeri sub-merchant durumu.
-/// View knockout ile /proxy/management/sub-merchants endpoint-ini cekiyor.
+/// PS.12 — Tüm salonların iyzico Pazaryeri üye işyeri durumu.
+/// View knockout ile /proxy/management/sub-merchants endpoint'ini çekiyor.
 /// </summary>
 public class SubMerchantsController : MgmtBaseController
 {
     public IActionResult Index()
     {
-        ViewData["Title"] = "Sub-Merchants (iyzico Pazaryeri)";
+        ViewData["Title"] = "Pazaryeri Üye İşyerleri";
         return View();
     }
 }

@@ -1,5 +1,11 @@
 function PricingPeriodsViewModel() {
     var self = this;
+    function toDateStr(d) {
+        var month = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        return d.getFullYear() + '-' + month + '-' + day;
+    }
+
     self.periods = ko.observableArray([]);
     self.selectedPeriodId = ko.observable(null);
     self.selectedPeriod = ko.observable(null);
@@ -75,8 +81,8 @@ function PricingPeriodsViewModel() {
     var endOfYear = new Date(today.getFullYear(), 11, 31);
     self.newPeriod = {
         name: ko.observable(today.getFullYear() + ' Dönemi'),
-        startDate: ko.observable(today.toISOString().substring(0, 10)),
-        endDate: ko.observable(endOfYear.toISOString().substring(0, 10))
+        startDate: ko.observable(toDateStr(today)),
+        endDate: ko.observable(toDateStr(endOfYear))
     };
 
     var newPeriodModal;

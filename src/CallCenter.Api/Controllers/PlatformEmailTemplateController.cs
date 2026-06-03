@@ -64,4 +64,8 @@ public class PlatformEmailTemplateController : ControllerBase
         var (success, error) = await _factory.DeleteTemplateAsync(templateId);
         return success ? Ok() : BadRequest(error);
     }
+
+    [HttpPost("templates/{templateId}/test")]
+    public async Task<ActionResult<EmailSendResult>> SendTestTemplate(int templateId, [FromBody] PlatformEmailTemplateTestSendDto dto)
+        => Ok(await _factory.SendTestTemplateAsync(templateId, dto));
 }

@@ -38,7 +38,7 @@ function ContactsViewModel() {
         }).done(function(data) {
             self.contacts(data);
         }).fail(function() {
-            toastr.error('Kisiler yuklenemedi');
+            toastr.error('Kişiler yüklenemedi');
         });
     };
 
@@ -110,22 +110,22 @@ function ContactsViewModel() {
         }).done(function() {
             formModal.hide();
             self.loadData();
-            toastr.success(self.isEditing() ? 'Kisi guncellendi' : 'Kisi eklendi');
+            toastr.success(self.isEditing() ? 'Kişi güncellendi' : 'Kişi eklendi');
             self.isSaving(false);
         }).fail(function(xhr) {
-            toastr.error(xhr.responseJSON?.error || 'Bir hata olustu');
+            toastr.error(xhr.responseJSON?.error || 'Bir hata oluştu');
             self.isSaving(false);
         });
     };
 
     self.remove = function(contact) {
-        confirmModal('Kisiyi Sil', 'Bu kisiyi silmek istediginize emin misiniz?', function () {
+        confirmModal('Kişiyi Sil', 'Bu kişiyi silmek istediğinize emin misiniz?', function () {
             $.ajax({
                 url: '/proxy/crm/contacts/' + contact.id,
                 method: 'DELETE'
             }).done(function() {
                 self.loadData();
-                toastr.success('Kisi silindi');
+                toastr.success('Kişi silindi');
             }).fail(function() {
                 toastr.error('Silinemedi');
             });

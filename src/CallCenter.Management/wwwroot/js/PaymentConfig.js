@@ -10,7 +10,7 @@ function PaymentConfigViewModel() {
     self.reconciliationLoading = ko.observable(false);
     self.isLoading = ko.observable(false);
     self.isSaving = ko.observable(false);
-    self.formTitle = ko.observable('Yeni Saglayici');
+    self.formTitle = ko.observable('Yeni Sağlayıcı');
     self.deleteId = null;
 
     function fileNameFromDisposition(disposition, fallback) {
@@ -56,6 +56,33 @@ function PaymentConfigViewModel() {
     self.formatAmount = function(item) {
         if (!item || item.amount == null) return '-';
         return Number(item.amount).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ' ' + (item.currency || 'TRY');
+    };
+
+    function normalizeLegacyPaymentText(value) {
+        if (!value) return value;
+        return String(value)
+            .replaceAll('Iptal Edildi', 'İptal Edildi')
+            .replaceAll('Iade Edildi', 'İade Edildi')
+            .replaceAll('Basarisiz', 'Başarısız')
+            .replaceAll('Yeni odeme denemesi baslatildigi icin iptal edildi.', 'Yeni ödeme denemesi başlatıldığı için iptal edildi.')
+            .replaceAll('Odeme denemesi iptal edildi.', 'Ödeme denemesi iptal edildi.')
+            .replaceAll('Odeme basarisiz.', 'Ödeme başarısız.')
+            .replaceAll('Islem admin tarafindan iptal edildi.', 'İşlem admin tarafından iptal edildi.');
+    }
+
+    self.paymentStatusText = function(item) {
+        if (!item) return '-';
+        switch (item.statusId) {
+            case 2: return 'Başarılı';
+            case 3: return 'Başarısız';
+            case 4: return 'İade Edildi';
+            case 5: return 'İptal Edildi';
+            default: return normalizeLegacyPaymentText(item.status) || '-';
+        }
+    };
+
+    self.paymentErrorText = function(item) {
+        return normalizeLegacyPaymentText(item && item.errorMessage);
     };
 
     self.statusClass = function(item) {
@@ -130,7 +157,7 @@ function PaymentConfigViewModel() {
             self.reconciliation(data || null);
         }).fail(function() {
             self.reconciliation(null);
-            toastr.error('Mutabakat raporu alinamadi.');
+            toastr.error('Mutabakat raporu alınamadı.');
         }).always(function() {
             self.reconciliationLoading(false);
         });
@@ -146,7 +173,7 @@ function PaymentConfigViewModel() {
     };
 
     self.openCreate = function() {
-        self.resetForm(); self.formTitle('Yeni Saglayici');
+        self.resetForm(); self.formTitle('Yeni Sağlayıcı');
         new bootstrap.Modal('#paymentModal').show();
     };
 
@@ -155,12 +182,12 @@ function PaymentConfigViewModel() {
         self.form.providerTypeId(String(item.providerTypeId));
         self.form.isSandbox(item.isSandbox);
         self.form.isActive(item.isActive);
-        // Credential'lar maskelenmis, bos birak (kullanici yeniden girer)
+        // Credential'lar maskelenmiş, boş bırakılırsa mevcut değer korunur.
         self.form.iyzicoApiKey(''); self.form.iyzicoSecretKey('');
         self.form.payTrMerchantId(''); self.form.payTrMerchantKey(''); self.form.payTrMerchantSalt('');
         self.form.paramClientCode(''); self.form.paramClientUsername('');
         self.form.paramClientPassword(''); self.form.paramGuid('');
-        self.formTitle('Saglayici Duzenle');
+        self.formTitle('Sağlayıcı Düzenle');
         new bootstrap.Modal('#paymentModal').show();
     };
 
@@ -196,14 +223,14 @@ function PaymentConfigViewModel() {
                 self.loadData();
             },
             error: function(xhr) {
-                var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Kaydetme hatasi.';
+                var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Kaydetme hatası.';
                 toastr.error(msg);
             }
         }).always(function() { self.isSaving(false); });
     };
 
     self.activateConfig = function(item) {
-        confirmModal('Aktif Yap', '"' + item.providerName + ' (' + (item.isSandbox ? 'Sandbox' : 'Production') + ')" yapilandirmasini aktif etmek istiyor musunuz? Diger tum yapilandirmalar pasife alinacak.', function () {
+        confirmModal('Aktif Yap', '"' + item.providerName + ' (' + (item.isSandbox ? 'Sandbox' : 'Production') + ')" yapılandırmasını aktif etmek istiyor musunuz? Diğer tüm yapılandırmalar pasife alınacak.', function () {
             $.ajax({
                 url: '/proxy/payment-config/' + item.id + '/activate', method: 'PUT',
                 success: function() {
@@ -211,7 +238,7 @@ function PaymentConfigViewModel() {
                     self.loadData();
                 },
                 error: function(xhr) {
-                    var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Aktivasyon hatasi.';
+                    var msg = xhr.responseJSON ? xhr.responseJSON.message : 'Aktivasyon hatası.';
                     toastr.error(msg);
                 }
             });
@@ -219,15 +246,15 @@ function PaymentConfigViewModel() {
     };
 
     self.testConnection = function(item) {
-        toastr.info('Baglanti testi baslatildi...');
+        toastr.info('Bağlantı testi başlatıldı...');
         $.ajax({
             url: '/proxy/payment-config/' + item.id + '/test', method: 'POST',
             success: function(data) {
-                if (data && data.success) toastr.success('Baglanti basarili! Credential\'lar gecerli.');
-                else toastr.error('Test basarisiz: ' + (data.error || 'Bilinmeyen hata'));
+                if (data && data.success) toastr.success('Bağlantı başarılı! Credential bilgileri geçerli.');
+                else toastr.error('Test başarısız: ' + (data.error || 'Bilinmeyen hata'));
                 self.loadData();
             },
-            error: function() { toastr.error('Baglanti testi yapilamadi.'); }
+            error: function() { toastr.error('Bağlantı testi yapılamadı.'); }
         });
     };
 
@@ -244,16 +271,16 @@ function PaymentConfigViewModel() {
                 bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
                 self.loadData();
             },
-            error: function() { toastr.error('Silme hatasi.'); }
+            error: function() { toastr.error('Silme hatası.'); }
         });
     };
 
     self.confirmHavale = function(item) {
-        confirmModal('Havale Onayi', 'Bu havaleyi onaylamak istediginize emin misiniz?', function () {
+        confirmModal('Havale Onayı', 'Bu havaleyi onaylamak istediğinize emin misiniz?', function () {
             $.ajax({
                 url: '/proxy/payments/havale-confirm/' + item.uid, method: 'POST',
-                success: function() { toastr.success('Havale onaylandi.'); self.loadPendingHavale(); self.loadPaymentHistory(); self.loadReconciliation(); },
-                error: function(xhr) { toastr.error(xhr.responseJSON ? xhr.responseJSON.message : 'Onaylama hatasi.'); }
+                success: function() { toastr.success('Havale onaylandı.'); self.loadPendingHavale(); self.loadPaymentHistory(); self.loadReconciliation(); },
+                error: function(xhr) { toastr.error(xhr.responseJSON ? xhr.responseJSON.message : 'Onaylama hatası.'); }
             });
         }, { confirmText: 'Onayla', confirmClass: 'btn-success' });
     };
@@ -265,7 +292,7 @@ function PaymentConfigViewModel() {
                 url: '/proxy/payments/havale-reject/' + item.uid, method: 'POST',
                 contentType: 'application/json', data: JSON.stringify({ reason: reason }),
                 success: function() { toastr.success('Havale reddedildi.'); self.loadPendingHavale(); self.loadPaymentHistory(); self.loadReconciliation(); },
-                error: function() { toastr.error('Reddetme hatasi.'); }
+                error: function() { toastr.error('Reddetme hatası.'); }
             });
         }, { input: true, inputLabel: 'Red nedeni (opsiyonel)', confirmText: 'Reddet', confirmClass: 'btn-danger' });
     };
@@ -286,14 +313,14 @@ function PaymentConfigViewModel() {
             self.timeline(data || null);
             bootstrap.Modal.getOrCreateInstance(document.getElementById('timelineModal')).show();
         }).fail(function(xhr) {
-            toastr.error(xhr.responseJSON ? xhr.responseJSON.message : 'Zaman cizelgesi alinamadi.');
+            toastr.error(xhr.responseJSON ? xhr.responseJSON.message : 'Zaman çizelgesi alınamadı.');
         });
     };
 
     self.refundPayment = function(item) {
         if (!item || !item.uid) return;
         var maxAmount = Number(item.amount || 0);
-        confirmModal('Iade', 'Iade tutarini girin. Bos birakirsaniz tam tutar iade edilir.', function(amountText) {
+        confirmModal('İade', 'İade tutarını girin. Boş bırakırsanız tam tutar iade edilir.', function(amountText) {
             var amount = parseFloat(String(amountText || '').replace(',', '.'));
             var payload = { amount: isNaN(amount) || amount <= 0 ? null : amount };
             $.ajax({
@@ -302,25 +329,25 @@ function PaymentConfigViewModel() {
                 contentType: 'application/json',
                 data: JSON.stringify(payload),
                 success: function() {
-                    toastr.success('Iade kaydi olusturuldu.');
+                    toastr.success('İade kaydı oluşturuldu.');
                     self.loadPaymentHistory();
                     self.loadReconciliation();
                 },
                 error: function(xhr) {
-                    toastr.error(xhr.responseJSON ? xhr.responseJSON.message : 'Iade yapilamadi.');
+                    toastr.error(xhr.responseJSON ? xhr.responseJSON.message : 'İade yapılamadı.');
                 }
             });
         }, {
             input: true,
-            inputLabel: 'Iade tutari (maks. ' + maxAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ')',
-            confirmText: 'Iade Et',
+            inputLabel: 'İade tutarı (maks. ' + maxAmount.toLocaleString('tr-TR', { minimumFractionDigits: 2 }) + ')',
+            confirmText: 'İade Et',
             confirmClass: 'btn-warning'
         });
     };
 
     self.cancelPayment = function(item) {
         if (!item || !item.uid) return;
-        confirmModal('Odeme Iptali', 'Iptal nedenini girin (opsiyonel):', function(reason) {
+        confirmModal('Ödeme İptali', 'İptal nedenini girin (opsiyonel):', function(reason) {
             if (reason === true) reason = null;
             $.ajax({
                 url: '/proxy/payments/' + item.uid + '/cancel',
@@ -328,16 +355,16 @@ function PaymentConfigViewModel() {
                 contentType: 'application/json',
                 data: JSON.stringify({ reason: reason }),
                 success: function() {
-                    toastr.success('Odeme iptal edildi.');
+                    toastr.success('Ödeme iptal edildi.');
                     self.loadPendingHavale();
                     self.loadPaymentHistory();
                     self.loadReconciliation();
                 },
                 error: function(xhr) {
-                    toastr.error(xhr.responseJSON ? xhr.responseJSON.message : 'Odeme iptal edilemedi.');
+                    toastr.error(xhr.responseJSON ? xhr.responseJSON.message : 'Ödeme iptal edilemedi.');
                 }
             });
-        }, { input: true, inputLabel: 'Iptal nedeni', confirmText: 'Iptal Et', confirmClass: 'btn-danger' });
+        }, { input: true, inputLabel: 'İptal nedeni', confirmText: 'İptal Et', confirmClass: 'btn-danger' });
     };
 
     // Baslangic

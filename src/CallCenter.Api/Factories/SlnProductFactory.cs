@@ -481,7 +481,7 @@ public class SlnProductFactory : ISlnProductFactory
         return orders.Select(MapSupplierOrderToDto).ToList();
     }
 
-    public async Task<(bool Success, string? Error, SlnSupplierOrderDto? Order)> CreateSupplierOrderAsync(SlnSupplierOrderCreateDto dto, int userId, int customerId)
+    public async Task<(bool Success, string? Error, SlnSupplierOrderDto? Order)> CreateSupplierOrderAsync(SlnSupplierOrderCreateDto dto, int personnelId, int customerId)
     {
         if (dto.SupplierId <= 0) return (false, "Tedarikci secilmelidir", null);
         if (dto.Items.Count == 0) return (false, "En az bir urun eklenmelidir", null);
@@ -504,7 +504,7 @@ public class SlnProductFactory : ISlnProductFactory
             OrderDate = DateTime.UtcNow,
             ExpectedDate = dto.ExpectedDate,
             Notes = dto.Notes,
-            CreatedByPersonnelId = userId > 0 ? userId : null
+            CreatedByPersonnelId = personnelId > 0 ? personnelId : null
         };
 
         foreach (var item in dto.Items)
@@ -526,8 +526,8 @@ public class SlnProductFactory : ISlnProductFactory
         _supplierOrders.Add(order);
         await _uow.SaveChangesAsync();
         _logger.LogInformation(
-            "Tedarik siparisi olusturuldu. CustomerId={CustomerId} UserId={UserId} SupplierId={SupplierId} OrderId={OrderId} OrderNo={OrderNo} ItemCount={ItemCount}",
-            customerId, userId, supplier.Id, order.Id, order.OrderNo, order.Items.Count);
+            "Tedarik siparisi olusturuldu. CustomerId={CustomerId} PersonnelId={PersonnelId} SupplierId={SupplierId} OrderId={OrderId} OrderNo={OrderNo} ItemCount={ItemCount}",
+            customerId, personnelId, supplier.Id, order.Id, order.OrderNo, order.Items.Count);
 
         var created = await _supplierOrders.GetAllQueryable()
             .Include(o => o.Supplier)
@@ -537,7 +537,7 @@ public class SlnProductFactory : ISlnProductFactory
         return (true, null, MapSupplierOrderToDto(created));
     }
 
-    public async Task<(bool Success, string? Error)> UpdateSupplierOrderStatusAsync(int orderId, SlnSupplierOrderStatusUpdateDto dto, int userId, int customerId, int? branchId = null)
+    public async Task<(bool Success, string? Error)> UpdateSupplierOrderStatusAsync(int orderId, SlnSupplierOrderStatusUpdateDto dto, int personnelId, int customerId, int? branchId = null)
     {
         if (SalonSupplierOrderStatuses.GetById(dto.StatusId) == null)
             return (false, "Gecersiz siparis durumu");
@@ -581,7 +581,7 @@ public class SlnProductFactory : ISlnProductFactory
                     UnitPrice = item.UnitPrice,
                     SupplierId = order.SupplierId,
                     Notes = $"Tedarik siparisi teslim: {order.OrderNo}",
-                    CreatedByPersonnelId = userId > 0 ? userId : null
+                    CreatedByPersonnelId = personnelId > 0 ? personnelId : null
                 });
             }
 
@@ -612,7 +612,7 @@ public class SlnProductFactory : ISlnProductFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error)> AddStockMovementAsync(int productId, int movementTypeId, decimal quantity, decimal unitPrice, int? supplierId, string? notes, int userId, int customerId, int? branchId = null)
+    public async Task<(bool Success, string? Error)> AddStockMovementAsync(int productId, int movementTypeId, decimal quantity, decimal unitPrice, int? supplierId, string? notes, int personnelId, int customerId, int? branchId = null)
     {
         var product = await _products.GetAllQueryable()
             .FirstOrDefaultAsync(p => p.Id == productId && p.CustomerId == customerId);
@@ -646,7 +646,7 @@ public class SlnProductFactory : ISlnProductFactory
             UnitPrice = unitPrice,
             SupplierId = supplierId,
             Notes = notes,
-            CreatedByPersonnelId = userId
+            CreatedByPersonnelId = personnelId > 0 ? personnelId : null
         };
 
         if (movementTypeId == 1 && supplier != null)
@@ -679,8 +679,8 @@ public class SlnProductFactory : ISlnProductFactory
         await _uow.SaveChangesAsync();
 
         _logger.LogInformation(
-            "Stok hareketi eklendi. CustomerId={CustomerId} UserId={UserId} BranchId={BranchId} ProductId={ProductId} MovementTypeId={MovementTypeId} Quantity={Quantity} UnitPrice={UnitPrice}",
-            customerId, userId, movement.BranchId, productId, movementTypeId, quantity, unitPrice);
+            "Stok hareketi eklendi. CustomerId={CustomerId} PersonnelId={PersonnelId} BranchId={BranchId} ProductId={ProductId} MovementTypeId={MovementTypeId} Quantity={Quantity} UnitPrice={UnitPrice}",
+            customerId, personnelId, movement.BranchId, productId, movementTypeId, quantity, unitPrice);
 
         return (true, null);
     }
@@ -691,7 +691,7 @@ public class SlnProductFactory : ISlnProductFactory
         int toBranchId,
         decimal quantity,
         string? notes,
-        int userId,
+        int personnelId,
         int customerId)
     {
         var product = await _products.GetAllQueryable()
@@ -726,7 +726,7 @@ public class SlnProductFactory : ISlnProductFactory
             Quantity = -quantity,
             UnitPrice = unitPrice,
             Notes = $"TransferOut:{transferUid}|ToBranch:{toBranchId}{cleanNotes}",
-            CreatedByPersonnelId = userId
+            CreatedByPersonnelId = personnelId > 0 ? personnelId : null
         });
 
         _stockMovements.Add(new SlnStockMovement
@@ -738,7 +738,7 @@ public class SlnProductFactory : ISlnProductFactory
             Quantity = quantity,
             UnitPrice = unitPrice,
             Notes = $"TransferIn:{transferUid}|FromBranch:{effectiveFromBranchId.Value}{cleanNotes}",
-            CreatedByPersonnelId = userId
+            CreatedByPersonnelId = personnelId > 0 ? personnelId : null
         });
 
         var (fromOk, fromError) = await _stockBalances.AdjustStockAsync(product, customerId, effectiveFromBranchId.Value, -quantity, preventNegative: true);
@@ -749,8 +749,8 @@ public class SlnProductFactory : ISlnProductFactory
 
         await _uow.SaveChangesAsync();
         _logger.LogInformation(
-            "Stok transferi audit kaydi olustu. CustomerId={CustomerId} UserId={UserId} ProductId={ProductId} FromBranchId={FromBranchId} ToBranchId={ToBranchId} Quantity={Quantity}",
-            customerId, userId, productId, effectiveFromBranchId.Value, toBranchId, quantity);
+            "Stok transferi audit kaydi olustu. CustomerId={CustomerId} PersonnelId={PersonnelId} ProductId={ProductId} FromBranchId={FromBranchId} ToBranchId={ToBranchId} Quantity={Quantity}",
+            customerId, personnelId, productId, effectiveFromBranchId.Value, toBranchId, quantity);
         return (true, null);
     }
 
@@ -759,7 +759,7 @@ public class SlnProductFactory : ISlnProductFactory
         int? branchId,
         decimal countedQuantity,
         string? notes,
-        int userId,
+        int personnelId,
         int customerId)
     {
         var product = await _products.GetAllQueryable()
@@ -783,7 +783,7 @@ public class SlnProductFactory : ISlnProductFactory
             Quantity = difference,
             UnitPrice = product.PurchasePrice,
             Notes = $"StockCount|Before:{before:0.##}|Counted:{countedQuantity:0.##}|Diff:{difference:0.##}{cleanNotes}",
-            CreatedByPersonnelId = userId
+            CreatedByPersonnelId = personnelId > 0 ? personnelId : null
         });
 
         await _stockBalances.SetStockQuantityAsync(customerId, product.Id, effectiveBranchId.Value, countedQuantity);
@@ -791,8 +791,8 @@ public class SlnProductFactory : ISlnProductFactory
         await _uow.SaveChangesAsync();
 
         _logger.LogInformation(
-            "Stok sayim farki kaydedildi. CustomerId={CustomerId} UserId={UserId} BranchId={BranchId} ProductId={ProductId} Before={Before} Counted={Counted} Difference={Difference}",
-            customerId, userId, effectiveBranchId.Value, productId, before, countedQuantity, difference);
+            "Stok sayim farki kaydedildi. CustomerId={CustomerId} PersonnelId={PersonnelId} BranchId={BranchId} ProductId={ProductId} Before={Before} Counted={Counted} Difference={Difference}",
+            customerId, personnelId, effectiveBranchId.Value, productId, before, countedQuantity, difference);
         return (true, null);
     }
 

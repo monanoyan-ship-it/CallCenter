@@ -32,6 +32,7 @@
         }
 
         <form method="post" asp-action="Login">
+            @Html.AntiForgeryToken()
             <input type="hidden" name="returnUrl" value="@returnUrl" />
             <div class="mb-3">
                 <label class="form-label small">Kullanıcı Adı</label>

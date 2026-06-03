@@ -1,6 +1,7 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
+using CallCenter.Api.Services.Email;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -10,11 +11,16 @@ namespace CallCenter.Api.Factories;
 public class PlatformEmailTemplateFactory : IPlatformEmailTemplateFactory
 {
     private readonly IPlatformEmailTemplateEntityService _emailEs;
+    private readonly IPlatformEmailService _emailService;
     private readonly IUnitOfWork _uow;
 
-    public PlatformEmailTemplateFactory(IPlatformEmailTemplateEntityService emailEs, IUnitOfWork uow)
+    public PlatformEmailTemplateFactory(
+        IPlatformEmailTemplateEntityService emailEs,
+        IPlatformEmailService emailService,
+        IUnitOfWork uow)
     {
         _emailEs = emailEs;
+        _emailService = emailService;
         _uow = uow;
     }
 
@@ -53,7 +59,7 @@ public class PlatformEmailTemplateFactory : IPlatformEmailTemplateFactory
     public async Task<(bool Success, string? Error)> UpdateEventAsync(int id, PlatformEmailEventUpdateDto dto)
     {
         var ev = await _emailEs.GetEventByIdAsync(id);
-        if (ev == null) return (false, "Olay bulunamadi");
+        if (ev == null) return (false, "Olay bulunamadı");
 
         if (dto.ProductType != null) ev.ProductType = dto.ProductType;
         if (dto.Description != null) ev.Description = dto.Description;
@@ -70,7 +76,7 @@ public class PlatformEmailTemplateFactory : IPlatformEmailTemplateFactory
         var ev = await _emailEs.GetAllEventsQueryable()
             .Include(e => e.Templates)
             .FirstOrDefaultAsync(e => e.Id == id);
-        if (ev == null) return (false, "Olay bulunamadi");
+        if (ev == null) return (false, "Olay bulunamadı");
 
         _emailEs.RemoveEvent(ev); // Cascade delete templates
         await _uow.SaveChangesAsync();
@@ -97,7 +103,7 @@ public class PlatformEmailTemplateFactory : IPlatformEmailTemplateFactory
     public async Task<(bool Success, string? Error)> UpdateTemplateAsync(int templateId, PlatformEmailTemplateUpdateDto dto)
     {
         var template = await _emailEs.GetTemplateByIdAsync(templateId);
-        if (template == null) return (false, "Taslak bulunamadi");
+        if (template == null) return (false, "Taslak bulunamadı");
 
         if (dto.Subject != null) template.Subject = dto.Subject;
         if (dto.HtmlBody != null) template.HtmlBody = dto.HtmlBody;
@@ -111,7 +117,7 @@ public class PlatformEmailTemplateFactory : IPlatformEmailTemplateFactory
     public async Task<(bool Success, string? Error)> DeleteTemplateAsync(int templateId)
     {
         var template = await _emailEs.GetTemplateByIdAsync(templateId);
-        if (template == null) return (false, "Taslak bulunamadi");
+        if (template == null) return (false, "Taslak bulunamadı");
 
         _emailEs.RemoveTemplate(template);
         await _uow.SaveChangesAsync();
@@ -119,6 +125,35 @@ public class PlatformEmailTemplateFactory : IPlatformEmailTemplateFactory
     }
 
     // ─── Mapping ───
+
+    public async Task<EmailSendResult> SendTestTemplateAsync(int templateId, PlatformEmailTemplateTestSendDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.ToEmail) || !dto.ToEmail.Contains('@'))
+            return new EmailSendResult { Success = false, Error = "Geçerli bir alıcı e-posta adresi girin." };
+
+        var template = await _emailEs.GetTemplateByIdAsync(templateId);
+        if (template == null)
+            return new EmailSendResult { Success = false, Error = "Taslak bulunamadı." };
+
+        var placeholders = dto.Placeholders ?? new Dictionary<string, string>();
+        var subject = ReplacePlaceholders(template.Subject, placeholders);
+        var htmlBody = ReplacePlaceholders(template.HtmlBody, placeholders);
+        var toEmail = dto.ToEmail.Trim();
+        var toName = string.IsNullOrWhiteSpace(dto.ToName) ? toEmail : dto.ToName.Trim();
+
+        var sent = await _emailService.SendAsync(toEmail, toName, subject, htmlBody);
+        return sent
+            ? new EmailSendResult { Success = true }
+            : new EmailSendResult { Success = false, Error = "E-posta gönderilemedi. Platform e-posta SMTP ayarlarını kontrol edin." };
+    }
+
+    private static string ReplacePlaceholders(string text, Dictionary<string, string> placeholders)
+    {
+        foreach (var (key, value) in placeholders)
+            text = text.Replace($"{{{{{key}}}}}", value ?? string.Empty);
+
+        return text;
+    }
 
     private static PlatformEmailEventDto MapEventToDto(PlatformEmailEvent e) => new()
     {

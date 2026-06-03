@@ -1,5 +1,5 @@
 @{
-    ViewData["Title"] = "Etkilesimler";
+    ViewData["Title"] = "Etkileşimler";
 }
 
 <div id="activities-vm">
@@ -8,20 +8,20 @@
         <div class="d-flex gap-2">
             <div class="input-group" style="max-width: 280px;">
                 <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-                <input type="text" class="form-control" placeholder="Etkilesim ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+                <input type="text" class="form-control" placeholder="Etkileşim ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
             </div>
             <select class="form-select form-select-sm" style="width: 140px;" data-bind="value: typeFilter">
-                <option value="">Tum Turler</option>
+                <option value="">Tüm Türler</option>
                 <option value="1">Arama</option>
                 <option value="2">E-posta</option>
-                <option value="3">Toplanti</option>
+                <option value="3">Toplantı</option>
                 <option value="4">Not</option>
-                <option value="5">Gorev</option>
+                <option value="5">Görev</option>
                 <option value="6">SMS</option>
             </select>
         </div>
         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
-            <i class="bi bi-plus-lg me-1"></i>Yeni Etkilesim
+            <i class="bi bi-plus-lg me-1"></i>Yeni Etkileşim
         </button>
     </div>
 
@@ -33,9 +33,9 @@
                     <thead class="table-light">
                         <tr>
                             <th style="width: 40px;"></th>
-                            <th>Tur</th>
-                            <th>Ozet</th>
-                            <th>Kisi</th>
+                            <th>Tür</th>
+                            <th>Özet</th>
+                            <th>Kişi</th>
                             <th>Personel</th>
                             <th>Zaman</th>
                         </tr>
@@ -55,7 +55,7 @@
             <!-- ko if: filteredActivities().length === 0 -->
             <div class="text-center text-muted py-4">
                 <i class="bi bi-clock-history" style="font-size: 2rem;"></i>
-                <p class="mt-2 small">Henuz etkilesim yok</p>
+                <p class="mt-2 small">Henüz etkileşim yok</p>
             </div>
             <!-- /ko -->
         </div>
@@ -66,28 +66,28 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title">Yeni Etkilesim</h6>
+                    <h6 class="modal-title">Yeni Etkileşim</h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-6">
-                            <label class="form-label small">Tur *</label>
+                            <label class="form-label small">Tür *</label>
                             <select class="form-select form-select-sm" data-bind="value: form.typeId">
                                 <option value="1">Arama</option>
                                 <option value="2">E-posta</option>
-                                <option value="3">Toplanti</option>
+                                <option value="3">Toplantı</option>
                                 <option value="4">Not</option>
-                                <option value="5">Gorev</option>
+                                <option value="5">Görev</option>
                                 <option value="6">SMS</option>
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Kisi</label>
-                            <select class="form-select form-select-sm" data-bind="options: contactsList, optionsText: 'fullName', optionsValue: 'id', value: form.contactId, optionsCaption: 'Secin'"></select>
+                            <label class="form-label small">Kişi</label>
+                            <select class="form-select form-select-sm" data-bind="options: contactsList, optionsText: 'fullName', optionsValue: 'id', value: form.contactId, optionsCaption: 'Seçin'"></select>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Ozet *</label>
+                            <label class="form-label small">Özet *</label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.summary" />
                         </div>
                         <div class="col-12">
@@ -97,7 +97,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet

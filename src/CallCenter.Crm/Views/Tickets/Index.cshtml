@@ -11,12 +11,12 @@
                 <input type="text" class="form-control" placeholder="Talep ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
             </div>
             <select class="form-select form-select-sm" style="width: 140px;" data-bind="value: statusFilter">
-                <option value="">Tum Durumlar</option>
-                <option value="1">Acik</option>
+                <option value="">Tüm Durumlar</option>
+                <option value="1">Açık</option>
                 <option value="2">Devam Ediyor</option>
                 <option value="3">Beklemede</option>
-                <option value="4">Cozuldu</option>
-                <option value="5">Kapandi</option>
+                <option value="4">Çözüldü</option>
+                <option value="5">Kapandı</option>
             </select>
         </div>
         <button class="btn btn-primary btn-sm" data-bind="click: openNew">
@@ -29,7 +29,7 @@
         <div class="col-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .7rem;">Acik</div>
+                    <div class="text-muted" style="font-size: .7rem;">Açık</div>
                     <div class="fw-bold text-warning" data-bind="text: stats().open">0</div>
                 </div>
             </div>
@@ -45,7 +45,7 @@
         <div class="col-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .7rem;">Cozuldu</div>
+                    <div class="text-muted" style="font-size: .7rem;">Çözüldü</div>
                     <div class="fw-bold text-success" data-bind="text: stats().resolved">0</div>
                 </div>
             </div>
@@ -53,7 +53,7 @@
         <div class="col-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body py-2 text-center">
-                    <div class="text-muted" style="font-size: .7rem;">Kapandi</div>
+                    <div class="text-muted" style="font-size: .7rem;">Kapandı</div>
                     <div class="fw-bold text-secondary" data-bind="text: stats().closed">0</div>
                 </div>
             </div>
@@ -68,9 +68,9 @@
                     <thead class="table-light">
                         <tr>
                             <th style="width: 60px;">#</th>
-                            <th>Baslik</th>
-                            <th>Kisi</th>
-                            <th>Oncelik</th>
+                            <th>Başlık</th>
+                            <th>Kişi</th>
+                            <th>Öncelik</th>
                             <th>Durum</th>
                             <th>Atanan</th>
                             <th>Tarih</th>
@@ -91,7 +91,7 @@
                             <td class="small" data-bind="text: assignedToName"></td>
                             <td class="small text-muted" data-bind="text: new Date(createdAt).toLocaleDateString('tr-TR')"></td>
                             <td>
-                                <button class="btn btn-outline-secondary btn-sm" title="Duzenle" data-bind="click: $parent.openEdit">
+                                <button class="btn btn-outline-secondary btn-sm" title="Düzenle" data-bind="click: $parent.openEdit">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                             </td>
@@ -102,7 +102,7 @@
             <!-- ko if: filteredTickets().length === 0 -->
             <div class="text-center text-muted py-4">
                 <i class="bi bi-ticket-detailed" style="font-size: 2rem;"></i>
-                <p class="mt-2 small">Henuz talep yok</p>
+                <p class="mt-2 small">Henüz talep yok</p>
             </div>
             <!-- /ko -->
         </div>
@@ -113,27 +113,27 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Talep Duzenle' : 'Yeni Talep'"></h6>
+                    <h6 class="modal-title" data-bind="text: isEditing() ? 'Talep Düzenle' : 'Yeni Talep'"></h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label small">Baslik *</label>
+                            <label class="form-label small">Başlık *</label>
                             <input type="text" class="form-control form-control-sm" data-bind="value: form.subject" />
                         </div>
                         <div class="col-12">
-                            <label class="form-label small">Aciklama</label>
+                            <label class="form-label small">Açıklama</label>
                             <textarea class="form-control form-control-sm" rows="3" data-bind="value: form.description"></textarea>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Kisi</label>
-                            <select class="form-select form-select-sm" data-bind="options: contactsList, optionsText: 'fullName', optionsValue: 'id', value: form.contactId, optionsCaption: 'Secin'"></select>
+                            <label class="form-label small">Kişi</label>
+                            <select class="form-select form-select-sm" data-bind="options: contactsList, optionsText: 'fullName', optionsValue: 'id', value: form.contactId, optionsCaption: 'Seçin'"></select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small">Oncelik</label>
+                            <label class="form-label small">Öncelik</label>
                             <select class="form-select form-select-sm" data-bind="value: form.priorityId">
-                                <option value="1">Dusuk</option>
+                                <option value="1">Düşük</option>
                                 <option value="2">Orta</option>
                                 <option value="3">Yuksek</option>
                                 <option value="4">Acil</option>
@@ -143,18 +143,18 @@
                         <div class="col-6">
                             <label class="form-label small">Durum</label>
                             <select class="form-select form-select-sm" data-bind="value: form.statusId">
-                                <option value="1">Acik</option>
+                                <option value="1">Açık</option>
                                 <option value="2">Devam Ediyor</option>
                                 <option value="3">Beklemede</option>
-                                <option value="4">Cozuldu</option>
-                                <option value="5">Kapandi</option>
+                                <option value="4">Çözüldü</option>
+                                <option value="5">Kapandı</option>
                             </select>
                         </div>
                         <!-- /ko -->
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
                     <button type="button" class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet

@@ -11,7 +11,7 @@ function TranslationsViewModel() {
     self.currentPage = ko.observable(1);
     self.totalCount = ko.observable(0);
     self.pageSize = 20;
-    self.formTitle = ko.observable('Yeni Ceviri');
+    self.formTitle = ko.observable('Yeni Çeviri');
     self.deleteId = null;
 
     self.form = {
@@ -72,7 +72,7 @@ function TranslationsViewModel() {
 
     self.openCreate = function() {
         self.resetForm();
-        self.formTitle('Yeni Ceviri');
+        self.formTitle('Yeni Çeviri');
         new bootstrap.Modal('#translationModal').show();
     };
 
@@ -86,12 +86,12 @@ function TranslationsViewModel() {
         self.form.ar(item.values && item.values['ar'] || '');
         self.form.ru(item.values && item.values['ru'] || '');
         self.form.en(item.values && item.values['en'] || '');
-        self.formTitle('Ceviri Duzenle');
+        self.formTitle('Çeviri Düzenle');
         new bootstrap.Modal('#translationModal').show();
     };
 
     self.save = function() {
-        if (!self.form.key()) { toastr.warning('Key zorunludur.'); return; }
+        if (!self.form.key()) { toastr.warning('Anahtar zorunludur.'); return; }
         self.isSaving(true);
         var payload = {
             key: self.form.key(), module: self.form.module(),
@@ -107,7 +107,7 @@ function TranslationsViewModel() {
                 toastr.success('Kaydedildi.'); bootstrap.Modal.getInstance(document.getElementById('translationModal')).hide();
                 self.loadData();
             },
-            error: function() { toastr.error('Kaydetme hatasi.'); }
+            error: function() { toastr.error('Kaydetme hatası.'); }
         }).always(function() { self.isSaving(false); });
     };
 
@@ -120,7 +120,7 @@ function TranslationsViewModel() {
         $.ajax({
             url: '/proxy/translations/keys/' + self.deleteId, method: 'DELETE',
             success: function() { toastr.success('Silindi.'); bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide(); self.loadData(); },
-            error: function() { toastr.error('Silme hatasi.'); }
+            error: function() { toastr.error('Silme hatası.'); }
         });
     };
 
@@ -131,8 +131,8 @@ function TranslationsViewModel() {
     self.reloadCache = function() {
         $.ajax({
             url: '/proxy/translations/reload-cache', method: 'POST',
-            success: function() { toastr.success('Cache yenilendi.'); },
-            error: function() { toastr.error('Cache yenileme hatasi.'); }
+            success: function() { toastr.success('Önbellek yenilendi.'); },
+            error: function() { toastr.error('Önbellek yenileme hatası.'); }
         });
     };
 
@@ -142,19 +142,19 @@ function TranslationsViewModel() {
             if (!input.files.length) return;
             var formData = new FormData();
             formData.append('file', input.files[0]);
-            toastr.info('XML yukleniyor...');
+            toastr.info('XML yükleniyor...');
             self.isLoading(true);
             $.ajax({
                 url: '/proxy/translations/import/xml' + (self.platformFilter() ? '?platformId=' + self.platformFilter() : ''), method: 'POST',
                 data: formData, processData: false, contentType: false,
                 success: function(data) {
                     toastr.clear();
-                    toastr.success(data.message || 'Import basarili.');
+                    toastr.success(data.message || 'Import başarılı.');
                     self.loadData(); self.reloadCache();
                 },
                 error: function(xhr) {
                     toastr.clear();
-                    var msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Import hatasi: ' + xhr.status;
+                    var msg = (xhr.responseJSON && xhr.responseJSON.message) || 'Import hatası: ' + xhr.status;
                     toastr.error(msg);
                     self.isLoading(false);
                 }

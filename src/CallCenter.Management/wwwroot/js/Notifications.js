@@ -10,10 +10,10 @@ function NotificationsViewModel() {
 
     self.sendNotification = function () {
         if (!self.form.title() || !self.form.message()) {
-            toastr.warning('Baslik ve mesaj zorunlu.');
+            toastr.warning('Başlık ve mesaj zorunlu.');
             return;
         }
-        toastr.info('Bildirim sistemi henuz aktif degil. Ileri surumde eklenecek.');
+        toastr.info('Bildirim sistemi henüz aktif değil. İleriki sürümde eklenecek.');
     };
 }
 ko.applyBindings(new NotificationsViewModel(), document.getElementById('notifications-vm'));

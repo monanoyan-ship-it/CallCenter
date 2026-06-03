@@ -59,3 +59,10 @@ public class PlatformEmailTemplateUpdateDto
     public string? HtmlBody { get; set; }
     public bool? IsActive { get; set; }
 }
+
+public class PlatformEmailTemplateTestSendDto
+{
+    public string ToEmail { get; set; } = string.Empty;
+    public string? ToName { get; set; }
+    public Dictionary<string, string> Placeholders { get; set; } = new();
+}

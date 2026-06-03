@@ -91,7 +91,7 @@
                         <div class="mb-3">
                             <label class="form-label small">Temsilci Seçin</label>
                             <select class="form-select form-select-sm" data-bind="value: assignForm.assignedToId">
-                                <option value="0">Havuz (Tum Operatorler)</option>
+                                <option value="0">Havuz (Tüm Operatörler)</option>
                                 <!-- ko foreach: filteredPersonnel -->
                                 <option data-bind="value: id, text: fullName"></option>
                                 <!-- /ko -->
@@ -115,14 +115,14 @@
     }
 </div>
 
-    <!-- Numara Gecmisi Modali -->
+    <!-- Numara Geçmişi Modali -->
     <div class="modal fade" id="numberHistoryModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header py-2">
                     <h6 class="modal-title">
                         <i class="bi bi-clock-history me-1"></i>
-                        <span data-bind="text: historyNumber"></span> - Arama Gecmisi
+                        <span data-bind="text: historyNumber"></span> - Arama Geçmişi
                     </h6>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -165,7 +165,7 @@
                     </div>
                     <!-- ko if: numberHistory().length === 0 -->
                     <div class="text-center text-muted py-4">
-                        <p class="small mb-0">Bu numara icin gecmis kayit bulunamadi.</p>
+                        <p class="small mb-0">Bu numara icin geçmiş kayit bulunamadi.</p>
                     </div>
                     <!-- /ko -->
                     <!-- /ko -->

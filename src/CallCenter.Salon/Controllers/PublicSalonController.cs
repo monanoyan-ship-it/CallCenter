@@ -149,6 +149,7 @@ public class PublicSalonController : Controller
     public IActionResult ResendVerification() => View();
 
     [HttpPost("user/resend-verification")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ResendVerification(string email)
     {
         using var client = CreateApi();
@@ -168,6 +169,7 @@ public class PublicSalonController : Controller
     public IActionResult ForgotPassword() => View();
 
     [HttpPost("user/forgot-password")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ForgotPassword(string email)
     {
         using var client = CreateApi();
@@ -189,6 +191,7 @@ public class PublicSalonController : Controller
     }
 
     [HttpPost("user/reset-password")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ResetPassword(string token, string newPassword, string confirmPassword)
     {
         ViewBag.Token = token;

@@ -40,27 +40,27 @@
                             <div class="row g-2">
                                 <div class="col-md-6 mb-2">
                                     <label class="form-label small"><t key="management.table.company_name">Firma Adi</t></label>
-                                    <input class="form-control form-control-sm" data-bind="value: edit.name" />
+                                    <input class="form-control form-control-sm" data-bind="textInput: edit.name" />
                                 </div>
                                 <div class="col-md-6 mb-2">
                                     <label class="form-label small"><t key="management.form.tax_number">Vergi No</t></label>
-                                    <input class="form-control form-control-sm" data-bind="value: edit.taxNumber" />
+                                    <input class="form-control form-control-sm" data-bind="textInput: edit.taxNumber" />
                                 </div>
                                 <div class="col-md-6 mb-2">
                                     <label class="form-label small"><t key="management.form.phone">Telefon</t></label>
-                                    <input class="form-control form-control-sm" data-bind="value: edit.phone" />
+                                    <input class="form-control form-control-sm" data-bind="textInput: edit.phone" />
                                 </div>
                                 <div class="col-md-6 mb-2">
                                     <label class="form-label small"><t key="management.form.email">E-posta</t></label>
-                                    <input class="form-control form-control-sm" data-bind="value: edit.email" />
+                                    <input class="form-control form-control-sm" data-bind="textInput: edit.email" />
                                 </div>
                                 <div class="col-12 mb-2">
                                     <label class="form-label small"><t key="management.form.address">Adres</t></label>
-                                    <textarea class="form-control form-control-sm" rows="2" data-bind="value: edit.address"></textarea>
+                                    <textarea class="form-control form-control-sm" rows="2" data-bind="textInput: edit.address"></textarea>
                                 </div>
                                 <div class="col-md-4 mb-2">
                                     <label class="form-label small"><t key="management.form.max_users">Max Kullanici</t></label>
-                                    <input type="number" class="form-control form-control-sm" data-bind="value: edit.maxUsers" />
+                                    <input type="number" class="form-control form-control-sm" data-bind="textInput: edit.maxUsers" />
                                 </div>
                                 <div class="col-md-4 mb-2">
                                     <label class="form-label small"><t key="management.customer_detail.time_zone">Zaman Dilimi</t></label>
@@ -85,7 +85,7 @@
                                 </div>
                                 <div class="col-md-4 mb-2" data-bind="visible: edit.isTest">
                                     <label class="form-label small"><t key="management.customer_detail.test_note">Test Notu</t></label>
-                                    <input type="text" class="form-control form-control-sm" placeholder="Neden test?" data-bind="value: edit.testNotes" />
+                                    <input type="text" class="form-control form-control-sm" placeholder="Neden test?" data-bind="textInput: edit.testNotes" />
                                 </div>
                                 <div class="col-12 mb-2">
                                     <label class="form-label small"><t key="management.customer_detail.products_info_price">Urunler ve Bilgi Fiyati</t></label>
@@ -96,7 +96,7 @@
                                         <span class="small fw-medium customer-product-label" data-bind="text: description"></span>
                                         <div class="input-group input-group-sm customer-product-price">
                                             <input type="number" step="0.01" class="form-control form-control-sm"
-                                                   data-bind="value: $parent.getProductPrice($data.id), enable: $parent.isProductActive($data.id)" placeholder="0.00" />
+                                                   data-bind="textInput: $parent.getProductPrice($data.id), enable: $parent.isProductActive($data.id)" placeholder="0.00" />
                                             <span class="input-group-text">TL</span>
                                         </div>
                                     </div>
@@ -221,11 +221,11 @@
                             <tbody data-bind="foreach: billing">
                                 <tr>
                                     <td class="small text-muted" data-bind="text: billingKindName || '—'"></td>
-                                    <td data-bind="text: periodLabel || (month + '/' + year)"></td>
-                                    <td data-bind="text: (amount != null ? amount : 0).toFixed(2) + ' TL'"></td>
-                                    <td data-bind="text: (serviceAmount != null ? serviceAmount : 0).toFixed(2) + ' TL'"></td>
-                                    <td class="fw-semibold" data-bind="text: (totalAmount != null ? totalAmount : ((amount || 0) + (serviceAmount || 0))).toFixed(2) + ' TL'"></td>
-                                    <td><span class="badge bg-secondary" data-bind="text: statusName || 'Tahakkuk'"></span></td>
+                                    <td data-bind="text: $parent.billingPeriodLabel($data)"></td>
+                                    <td data-bind="text: $parent.formatMoney($data.amount)"></td>
+                                    <td data-bind="text: $parent.formatMoney($data.serviceAmount)"></td>
+                                    <td class="fw-semibold" data-bind="text: $parent.formatMoney($parent.billingTotalAmount($data))"></td>
+                                    <td><span class="badge bg-secondary" data-bind="text: $data.statusName || 'Tahakkuk'"></span></td>
                                 </tr>
                             </tbody>
                         </table>

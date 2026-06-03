@@ -17,7 +17,7 @@ function SalesViewModel() {
     self.loyaltyConfig = ko.observable(null);
     self.clientLoyaltyBalance = ko.observable(0);
     self.loyaltyPointsToRedeem = ko.observable(0);
-    // Cok Seansli Hizmet (B): musteriye satilmis aktif planlar
+    // Cok seansli hizmet (B): musteriye satilmis aktif planlar
     self.serviceSessionPlans = ko.observableArray([]);
     self.laserDevices = ko.observableArray([
         { id: 'Alexandrite', name: 'Alexandrite Lazer' },
@@ -304,8 +304,8 @@ function SalesViewModel() {
             item.packageRemainingSessions = remaining;
             item.editPrice(0);
             item.benefitText(
-                pkg.packageName + ': '
-                + slnJsT('salon.sales.session_plan_available_suffix', 'satilmis seans planindan dusulecek')
+                self.packageDisplayName(pkg) + ': '
+                + slnJsT('salon.sales.package_available_suffix', 'paket hakkından düşülecek')
                 + ' (' + slnJsT('salon.packages.auto.kalan', 'kalan') + ' ' + remaining + ')'
             );
         });
@@ -373,7 +373,7 @@ function SalesViewModel() {
                     item.editPrice(0);
                     item.membershipId = benefit.membershipId;
                     item.useMembershipBenefit = true;
-                    item.benefitText(benefit.planName + ': ' + benefit.usedThisPeriod + '/' + benefit.freeCount + ' kullanildi (ucretsiz)');
+                    item.benefitText(benefit.planName + ': ' + benefit.usedThisPeriod + '/' + benefit.freeCount + ' kullanıldı (ücretsiz)');
                 } else if (benefit.discountPercent && benefit.discountPercent > 0) {
                     // Indirimli
                     var discounted = item.unitPrice * (1 - benefit.discountPercent / 100);
@@ -394,6 +394,12 @@ function SalesViewModel() {
         var catId = self.selectedCategoryId();
         if (!catId) return self.allServices();
         return self.allServices().filter(function (s) { return s.categoryId === catId && s.isActive; });
+    });
+
+    self.hasMultiSessionServices = ko.computed(function () {
+        return self.allServices().some(function (service) {
+            return (parseInt(service && service.sessionCount, 10) || 1) > 1;
+        });
     });
 
     self.filteredSessionDefinitions = ko.computed(function () {
@@ -430,12 +436,17 @@ function SalesViewModel() {
         }).slice(0, 8);
     });
 
+    self.packageDisplayName = function (pkg) {
+        if (!pkg) return '';
+        return pkg.packageName || pkg.offerName || pkg.name || slnJsT('salon.sales.loyalty.package_fallback', 'Sadakat paketi');
+    };
+
     self.activeClientPackages = ko.computed(function () {
         return self.clientPackages().filter(function (pkg) {
             return pkg.isActive && (parseInt(pkg.remainingSessions, 10) || 0) > 0;
         }).sort(function (a, b) {
             return (a.expiresAt || '').localeCompare(b.expiresAt || '')
-                || (a.packageName || '').localeCompare(b.packageName || '', document.documentElement.lang || undefined);
+                || self.packageDisplayName(a).localeCompare(self.packageDisplayName(b), document.documentElement.lang || undefined);
         });
     });
 
@@ -450,7 +461,7 @@ function SalesViewModel() {
     };
 
     self.isLaserSessionPackage = function (pkg) {
-        var text = ((pkg && ((pkg.serviceName || '') + ' ' + (pkg.packageName || ''))) || '').toLocaleLowerCase('tr-TR');
+        var text = ((pkg && ((pkg.serviceName || '') + ' ' + self.packageDisplayName(pkg))) || '').toLocaleLowerCase('tr-TR');
         return text.indexOf('lazer') >= 0 || text.indexOf('epilasyon') >= 0;
     };
 
@@ -477,21 +488,28 @@ function SalesViewModel() {
         }) || null;
     };
 
+    self.serviceSessionCountForService = function (serviceOrId) {
+        var service = typeof serviceOrId === 'object' && serviceOrId !== null
+            ? serviceOrId
+            : self.allServices().find(function (s) { return parseInt(s.id, 10) === parseInt(serviceOrId, 10); });
+        return Math.max(1, parseInt(service && service.sessionCount, 10) || 1);
+    };
+
     self.sessionDefinitionLabel = function (service) {
-        var def = self.sessionDefinitionForService(service && service.id);
-        if (!def) return '';
-        return (parseInt(def.totalSessions) || 0) + ' ' + slnJsT('salon.services.package_sessions', 'seans');
+        var count = self.serviceSessionCountForService(service);
+        if (count <= 1) return '';
+        return count + ' ' + slnJsT('salon.services.package_sessions', 'seans');
     };
 
     self.setSessionSaleHint = function (item) {
         if (!item || !item.serviceId || item.usePackageSession === true || item.useMembershipBenefit === true) return;
-        var def = self.sessionDefinitionForService(item.serviceId);
-        if (!def) return;
+        var count = Math.max(1, parseInt(item.sessionCount, 10) || self.serviceSessionCountForService(item.serviceId));
+        if (count <= 1) return;
 
         self.ensureBenefitFields(item);
         item.benefitText(
-            slnJsT('salon.sales.session_plan_sale_hint', 'Odeme alindiginda musteriye {count} seanslik takip acilir.')
-                .replace('{count}', parseInt(def.totalSessions) || 0)
+            slnJsT('salon.sales.session_plan_sale_hint', 'Ödeme alındığında müşteriye {count} seanslık takip açılır.')
+                .replace('{count}', count)
         );
     };
 
@@ -518,7 +536,7 @@ function SalesViewModel() {
             editPrice: ko.observable(def.price || 0),
             quantity: ko.observable(1),
             benefitText: ko.observable(
-                slnJsT('salon.sales.loyalty_package_sale_hint', 'Odeme alindiginda musteriye {count} seanslik sadakat paketi acilir.')
+                slnJsT('salon.sales.loyalty_package_sale_hint', 'Ödeme alındığında müşteriye {count} seanslık sadakat paketi açılır.')
                     .replace('{count}', parseInt(def.totalSessions, 10) || 0)
             ),
             materialUsages: ko.observableArray([]),
@@ -605,7 +623,7 @@ function SalesViewModel() {
         self.cartItems.push({
             serviceId: parseInt(plan.serviceId, 10),
             productId: null,
-            name: (plan.serviceName || 'Hizmet') + ' (Plan Seansi #' + ((parseInt(plan.usedSessions, 10) || 0) + 1) + ')',
+            name: (plan.serviceName || 'Hizmet') + ' (Plan Seansı #' + ((parseInt(plan.usedSessions, 10) || 0) + 1) + ')',
             quantity: ko.observable(1),
             editPrice: ko.observable(0),
             unitPrice: 0,
@@ -619,11 +637,11 @@ function SalesViewModel() {
             serviceSessionPlanId: plan.id,
             isPlanSession: true,
             forceSessionSale: false,
-            benefitText: ko.observable(slnJsT('salon.sales.js.plan_session_benefit', 'Cok seansli hizmet plani seansi (0 TL).')),
+            benefitText: ko.observable(slnJsT('salon.sales.js.plan_session_benefit', 'Çok seanslı hizmet planı seansı (0 TL).')),
             materialUsages: ko.observableArray([]),
             noMaterialUsed: ko.observable(true)
         });
-        toastr.success(slnJsT('salon.sales.js.plan_session_added', 'Plan seansi sepete eklendi'));
+        toastr.success(slnJsT('salon.sales.js.plan_session_added', 'Plan seansı sepete eklendi'));
     };
 
     self.loadLoyaltyConfig = function () {
@@ -657,11 +675,11 @@ function SalesViewModel() {
         if (!reward || !reward.rewardServiceId) return;
         self.selectDefaultPersonnel();
         var already = self.cartItems().some(function (i) { return i.loyaltyRewardId === reward.id; });
-        if (already) { toastr.info(slnJsT('salon.sales.js.reward_already_in_cart', 'Bu odul zaten sepette')); return; }
+        if (already) { toastr.info(slnJsT('salon.sales.js.reward_already_in_cart', 'Bu ödül zaten sepette')); return; }
         self.cartItems.push({
             serviceId: parseInt(reward.rewardServiceId, 10),
             productId: null,
-            name: (reward.rewardServiceName || 'Odul') + ' (Sadakat Odulu)',
+            name: (reward.rewardServiceName || 'Ödül') + ' (Sadakat Ödülü)',
             quantity: ko.observable(1),
             editPrice: ko.observable(0),
             unitPrice: 0,
@@ -673,11 +691,11 @@ function SalesViewModel() {
             loyaltyRewardId: reward.id,
             isLoyaltyReward: true,
             forceSessionSale: false,
-            benefitText: ko.observable(slnJsT('salon.sales.js.loyalty_reward_benefit', 'Sadakat programi odulu (0 TL).')),
+            benefitText: ko.observable(slnJsT('salon.sales.js.loyalty_reward_benefit', 'Sadakat programı ödülü (0 TL).')),
             materialUsages: ko.observableArray([]),
             noMaterialUsed: ko.observable(true)
         });
-        toastr.success(slnJsT('salon.sales.js.reward_added', 'Odul sepete eklendi'));
+        toastr.success(slnJsT('salon.sales.js.reward_added', 'Ödül sepete eklendi'));
     };
 
     self.loyaltyPointsTlValue = ko.computed(function () {
@@ -695,7 +713,11 @@ function SalesViewModel() {
 
         $.ajax({ url: '/proxy/sln-loyalty-packages/purchases?clientId=' + parseInt(clientId, 10), method: 'GET' })
             .done(function (data) {
-                self.clientPackages(normalizeList(data));
+                self.clientPackages(normalizeList(data).map(function (pkg) {
+                    pkg.packageName = pkg.packageName || pkg.offerName || pkg.name || '';
+                    pkg.clientPackageId = pkg.clientPackageId || pkg.id;
+                    return pkg;
+                }));
             })
             .fail(function () {
                 self.clientPackages([]);
@@ -703,7 +725,10 @@ function SalesViewModel() {
     };
 
     self.loadProducts = function () {
-        $.ajax({ url: '/proxy/sln-products', method: 'GET' })
+        var branchId = window.slnGetBranch ? (parseInt(window.slnGetBranch(), 10) || null) : null;
+        var url = '/proxy/sln-products';
+        if (branchId) url += '?branchId=' + encodeURIComponent(branchId);
+        $.ajax({ url: url, method: 'GET' })
             .done(function (data) { self.products(data.items || data); })
             .fail(function () { self.products([]); });
     };
@@ -730,6 +755,7 @@ function SalesViewModel() {
                         serviceId: item.serviceId,
                         forceSessionSale: false,
                         name: item.serviceName,
+                        sessionCount: self.serviceSessionCountForService(item.serviceId),
                         unitPrice: item.servicePrice,
                         editPrice: ko.observable(item.servicePrice),
                         quantity: ko.observable(1),
@@ -766,6 +792,7 @@ function SalesViewModel() {
             serviceId: service.id,
             forceSessionSale: false,
             name: service.name,
+            sessionCount: self.serviceSessionCountForService(service),
             unitPrice: service.price,
             editPrice: ko.observable(service.price),
             quantity: ko.observable(1),
@@ -951,7 +978,7 @@ function SalesViewModel() {
         var missingMaterialItem = findMissingMaterialItem();
         if (missingMaterialItem) {
             self.openMaterials(missingMaterialItem);
-            toastr.warning('Bu hizmette ne kullanildigini yazin ya da "Malzeme yok" secin.');
+            toastr.warning('Bu hizmet için kullanılan sarfı girin ya da "Malzeme yok" seçin.');
             return;
         }
 
@@ -1224,7 +1251,7 @@ function SalesViewModel() {
             self.linkedAppointmentId(null);
             self.isPrepaid(false);
             self.prepaidAmount(0);
-        }).fail(function (xhr) { toastr.error(readError(xhr, 'Islem kaydedilemedi.')); });
+        }).fail(function (xhr) { toastr.error(readError(xhr, 'İşlem kaydedilemedi.')); });
     };
 
     self.unlinkAppointment = function () {

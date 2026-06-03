@@ -36,7 +36,7 @@
                 <div class="modal-header"><h6 class="modal-title"><t key="crm.salon.emailcampaigns.form_title">E-posta Kampanyası</t></h6><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
                     <label class="form-label small"><t key="crm.common.subject">Konu</t></label>
-                    <input class="form-control form-control-sm mb-2" data-bind="value: form.subject" />
+                    <input class="form-control form-control-sm mb-2" data-bind="textInput: form.subject" />
                     <label class="form-label small"><t key="crm.salon.common.branch_target">Şube hedefi *</t></label>
                     <select class="form-select form-select-sm mb-2"
                             data-bind="options: branchTargetOptions,
@@ -44,9 +44,9 @@
                                        optionsValue: 'id',
                                        value: form.branchTarget"></select>
                     <label class="form-label small"><t key="crm.common.content">İçerik</t></label>
-                    <textarea class="form-control form-control-sm mb-2" rows="8" data-bind="value: form.htmlBody"></textarea>
+                    <textarea class="form-control form-control-sm mb-2" rows="8" data-bind="textInput: form.htmlBody"></textarea>
                     <label class="form-label small"><t key="crm.salon.emailcampaigns.segment_filter">Gelişmiş müşteri filtresi</t></label>
-                    <input type="text" class="form-control form-control-sm mb-2" placeholder="Hazır gruplardan seçim yapabilirsiniz" data-bind="value: form.segmentFilter" />
+                    <input type="text" class="form-control form-control-sm mb-2" placeholder="Hazır gruplardan seçim yapabilirsiniz" data-bind="textInput: form.segmentFilter" />
                     <label class="form-label small"><t key="crm.salon.emailcampaigns.segment_presets">Hazır Müşteri Grupları</t></label>
                     <div class="d-flex flex-wrap gap-2 mb-2" data-bind="foreach: segmentPresets">
                         <button type="button" class="btn btn-outline-secondary btn-sm text-start" data-bind="click: $parent.applySegmentPreset, attr: { title: description }">

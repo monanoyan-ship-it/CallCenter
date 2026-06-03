@@ -1,8 +1,10 @@
+using System.Net.Mail;
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Infrastructure;
 using CallCenter.Shared.DTOs;
 using CallCenter.Shared.Entities;
+using CallCenter.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace CallCenter.Api.Factories;
@@ -189,14 +191,18 @@ public class SlnClientFactory : ISlnClientFactory
 
     public async Task<SlnClientDto> CreateClientAsync(SlnClientCreateDto dto, int customerId, int? branchId = null)
     {
+        var validationError = ValidateClientSave(dto);
+        if (validationError != null)
+            throw new ArgumentException(validationError);
+
         var client = new SlnClient
         {
             CustomerId = customerId,
             BranchId = branchId,
-            FullName = dto.FullName,
-            Phone = Shared.Helpers.PhoneHelper.Normalize(dto.Phone),
-            Phone2 = Shared.Helpers.PhoneHelper.Normalize(dto.Phone2),
-            Email = dto.Email,
+            FullName = dto.FullName.Trim(),
+            Phone = PhoneHelper.Normalize(dto.Phone),
+            Phone2 = PhoneHelper.Normalize(dto.Phone2),
+            Email = NormalizeOptional(dto.Email),
             GenderId = dto.GenderId,
             BirthDate = dto.BirthDate,
             MarriageDate = dto.MarriageDate,
@@ -238,6 +244,10 @@ public class SlnClientFactory : ISlnClientFactory
 
     public async Task<(bool Success, string? Error)> UpdateClientAsync(int clientId, SlnClientUpdateDto dto, int customerId, int? branchId = null)
     {
+        var validationError = ValidateClientSave(dto);
+        if (validationError != null)
+            return (false, validationError);
+
         var query = _clients.GetAllQueryable()
             .Where(c => c.Id == clientId && c.CustomerId == customerId);
         query = SalonBranchScope.ApplyToClients(query, branchId);
@@ -249,10 +259,10 @@ public class SlnClientFactory : ISlnClientFactory
         if (client.BranchId == null && branchId.HasValue)
             client.BranchId = branchId;
 
-        client.FullName = dto.FullName;
-        client.Phone = Shared.Helpers.PhoneHelper.Normalize(dto.Phone);
-        client.Phone2 = Shared.Helpers.PhoneHelper.Normalize(dto.Phone2);
-        client.Email = dto.Email;
+        client.FullName = dto.FullName.Trim();
+        client.Phone = PhoneHelper.Normalize(dto.Phone);
+        client.Phone2 = PhoneHelper.Normalize(dto.Phone2);
+        client.Email = NormalizeOptional(dto.Email);
         client.GenderId = dto.GenderId;
         client.BirthDate = dto.BirthDate;
         client.MarriageDate = dto.MarriageDate;
@@ -684,4 +694,51 @@ public class SlnClientFactory : ISlnClientFactory
         || !string.IsNullOrWhiteSpace(dto.Allergies)
         || !string.IsNullOrWhiteSpace(dto.Contraindications)
         || !string.IsNullOrWhiteSpace(dto.MedicalNotes);
+
+    private static string? ValidateClientSave(SlnClientCreateDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.FullName)) return "Ad soyad zorunludur";
+        if (!PhoneHelper.IsValid(dto.Phone)) return "Gecerli bir telefon girin";
+        if (!string.IsNullOrWhiteSpace(dto.Phone2) && !PhoneHelper.IsValid(dto.Phone2)) return "Gecerli bir ikinci telefon girin";
+        if (!string.IsNullOrWhiteSpace(dto.Email) && !IsValidEmail(dto.Email)) return "Gecerli bir e-posta girin";
+        if (dto.WhiteRatioPercent is < 0 or > 100) return "Beyaz orani 0 ile 100 arasinda olmali";
+
+        return ValidateLength(dto.FullName, 255, "Ad soyad")
+            ?? ValidateLength(dto.Phone, 32, "Telefon")
+            ?? ValidateLength(dto.Phone2, 32, "Ikinci telefon")
+            ?? ValidateLength(dto.Email, 255, "E-posta")
+            ?? ValidateLength(dto.Occupation, 255, "Meslek")
+            ?? ValidateLength(dto.City, 255, "Sehir")
+            ?? ValidateLength(dto.HairColor, 255, "Sac rengi")
+            ?? ValidateLength(dto.SkinType, 255, "Cilt tipi")
+            ?? ValidateLength(dto.SkinSensitivity, 255, "Cilt hassasiyeti")
+            ?? ValidateLength(dto.Notes, 4000, "Not");
+    }
+
+    private static string? ValidateLength(string? value, int maxLength, string fieldName)
+    {
+        return value?.Trim().Length > maxLength
+            ? $"{fieldName} en fazla {maxLength} karakter olmali"
+            : null;
+    }
+
+    private static bool IsValidEmail(string email)
+    {
+        try
+        {
+            var trimmed = email.Trim();
+            var address = new MailAddress(trimmed);
+            return address.Address.Equals(trimmed, StringComparison.OrdinalIgnoreCase)
+                && trimmed.Contains('@', StringComparison.Ordinal);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static string? NormalizeOptional(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
 }

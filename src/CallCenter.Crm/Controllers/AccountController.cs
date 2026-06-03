@@ -17,6 +17,7 @@ public class AccountController : CrmBaseController
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(string username, string password, string? returnUrl = null)
     {
         ViewBag.ReturnUrl = returnUrl ?? "";
@@ -113,6 +114,7 @@ public class AccountController : CrmBaseController
     public IActionResult ForgotPassword() => View();
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ForgotPassword(string username)
     {
         using var client = CreateApiClient();
@@ -121,7 +123,7 @@ public class AccountController : CrmBaseController
             new StringContent(payload, Encoding.UTF8, "application/json"));
 
         ViewBag.Submitted = true;
-        ViewBag.Message = "Eğer hesap kayıtlıysa, şifre sıfırlama bağlantısı email adresine gönderildi.";
+        ViewBag.Message = "Eğer hesap kayıtlıysa, şifre sıfırlama bağlantısı e-posta adresine gönderildi.";
         return View();
     }
 
@@ -135,6 +137,7 @@ public class AccountController : CrmBaseController
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ResetPassword(string token, string newPassword, string confirmPassword)
     {
         ViewBag.Token = token;

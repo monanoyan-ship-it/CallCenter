@@ -143,6 +143,42 @@ public class SlnMarketingFactory : ISlnMarketingFactory
 
     public async Task<SlnSegmentPreviewDto> GetSegmentPreviewAsync(string? segmentFilter, int customerId, int? branchId = null)
     {
+        var clients = await GetSegmentClientsAsync(segmentFilter, customerId, branchId);
+        var eligibleClients = clients.Where(c => !c.IsBlacklisted).ToList();
+        var smsReachable = eligibleClients.Count(c => HasContactValue(c.Phone));
+        var emailReachable = eligibleClients.Count(c => HasContactValue(c.Email));
+
+        return new SlnSegmentPreviewDto
+        {
+            MatchingClients = clients.Count,
+            SmsReachableClients = smsReachable,
+            EmailReachableClients = emailReachable,
+            MissingPhoneCount = eligibleClients.Count(c => !HasContactValue(c.Phone)),
+            MissingEmailCount = eligibleClients.Count(c => !HasContactValue(c.Email)),
+            ExcludedByOptOutCount = clients.Count(c => c.IsBlacklisted),
+            EstimatedSmsCost = Math.Round(smsReachable * EstimatedSmsUnitCost, 2, MidpointRounding.AwayFromZero),
+            EstimatedEmailCost = Math.Round(emailReachable * EstimatedEmailUnitCost, 2, MidpointRounding.AwayFromZero)
+        };
+    }
+
+    public async Task<List<SlnSegmentRecipientDto>> GetSegmentRecipientsAsync(string? segmentFilter, int customerId, int? branchId = null)
+    {
+        var clients = await GetSegmentClientsAsync(segmentFilter, customerId, branchId);
+
+        return clients
+            .Where(c => !c.IsBlacklisted && HasContactValue(c.Email))
+            .Select(c => new SlnSegmentRecipientDto
+            {
+                ClientId = c.Id,
+                FullName = c.FullName,
+                Phone = c.Phone,
+                Email = c.Email
+            })
+            .ToList();
+    }
+
+    private async Task<List<SegmentClientProjection>> GetSegmentClientsAsync(string? segmentFilter, int customerId, int? branchId = null)
+    {
         var now = DateTime.UtcNow;
         var query = _clients.GetAllQueryable()
             .Where(c => c.CustomerId == customerId && c.IsActive);
@@ -248,31 +284,16 @@ public class SlnMarketingFactory : ISlnMarketingFactory
             }
         }
 
-        var clients = await query
-            .Select(c => new
+        return await query
+            .Select(c => new SegmentClientProjection
             {
-                c.Id,
-                c.Phone,
-                c.Email,
-                c.IsBlacklisted
+                Id = c.Id,
+                FullName = c.FullName,
+                Phone = c.Phone,
+                Email = c.Email,
+                IsBlacklisted = c.IsBlacklisted
             })
             .ToListAsync();
-
-        var eligibleClients = clients.Where(c => !c.IsBlacklisted).ToList();
-        var smsReachable = eligibleClients.Count(c => HasContactValue(c.Phone));
-        var emailReachable = eligibleClients.Count(c => HasContactValue(c.Email));
-
-        return new SlnSegmentPreviewDto
-        {
-            MatchingClients = clients.Count,
-            SmsReachableClients = smsReachable,
-            EmailReachableClients = emailReachable,
-            MissingPhoneCount = eligibleClients.Count(c => !HasContactValue(c.Phone)),
-            MissingEmailCount = eligibleClients.Count(c => !HasContactValue(c.Email)),
-            ExcludedByOptOutCount = clients.Count(c => c.IsBlacklisted),
-            EstimatedSmsCost = Math.Round(smsReachable * EstimatedSmsUnitCost, 2, MidpointRounding.AwayFromZero),
-            EstimatedEmailCost = Math.Round(emailReachable * EstimatedEmailUnitCost, 2, MidpointRounding.AwayFromZero)
-        };
     }
 
     public async Task<List<SlnSegmentPresetDto>> GetSegmentPresetsAsync(int customerId, int? branchId = null)
@@ -534,6 +555,15 @@ public class SlnMarketingFactory : ISlnMarketingFactory
         => !string.IsNullOrWhiteSpace(value);
 
     private sealed record SegmentPresetDefinition(string Key, string Name, string Description, SegmentFilterModel? Filter);
+
+    private sealed class SegmentClientProjection
+    {
+        public int Id { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public bool IsBlacklisted { get; set; }
+    }
 
     /// <summary>Segment filtre modeli (JSON deserialize)</summary>
     private class SegmentFilterModel

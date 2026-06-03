@@ -28,7 +28,27 @@ public class SlnAppointmentFactoryTests : IDisposable
     public void Dispose() => _db.Dispose();
 
     [Fact]
-    public async Task UpdateStatusAsync_CompletedMultiServiceAppointment_ConsumesRecipeBranchStock()
+    public async Task CreateAppointmentAsync_RejectsPastStartTime()
+    {
+        SeedRecipeAppointment();
+        var factory = CreateFactory();
+        var dto = new SlnAppointmentCreateDto
+        {
+            SlnClientId = 10,
+            PersonnelId = 11,
+            ServiceIds = [7],
+            StartTime = DateTime.UtcNow.AddDays(-1)
+        };
+
+        var (appointment, error) = await factory.CreateAppointmentAsync(dto, userId: 11, customerId: 1);
+
+        appointment.Should().BeNull();
+        error.Should().Be("Gecmis tarihe randevu olusturulamaz");
+        (await _db.SlnAppointments.CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_CompletedMultiServiceAppointment_ConsumesRecipeBranchStockWhenProductCardBelongsToAnotherBranch()
     {
         SeedRecipeAppointment();
         _db.ChangeTracker.Clear();
@@ -408,6 +428,14 @@ public class SlnAppointmentFactoryTests : IDisposable
             IsHeadquarter = true,
             IsActive = true
         });
+        _db.SlnBranches.Add(new SlnBranch
+        {
+            Id = 99,
+            CustomerId = 1,
+            Name = "Depo Sube",
+            Slug = "test-salon-depo",
+            IsActive = true
+        });
         _db.SlnClients.Add(new SlnClient
         {
             Id = 10,
@@ -476,6 +504,7 @@ public class SlnAppointmentFactoryTests : IDisposable
             CustomerId = 1,
             CategoryId = 15,
             Name = "Boya",
+            BranchId = 99,
             PurchasePrice = 10m,
             SalePrice = 20m,
             StockQuantity = 10m,

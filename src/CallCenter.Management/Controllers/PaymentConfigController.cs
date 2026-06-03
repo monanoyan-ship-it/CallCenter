@@ -4,5 +4,5 @@ namespace CallCenter.Management.Controllers;
 
 public class PaymentConfigController : MgmtBaseController
 {
-    public IActionResult Index() { ViewData["Title"] = "Odeme Ayarlari"; return View(); }
+    public IActionResult Index() { ViewData["Title"] = "Ödeme Ayarları"; return View(); }
 }

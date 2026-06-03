@@ -1,10 +1,10 @@
 <div id="paymentconfig-vm">
     <div class="d-flex align-items-center justify-content-between mb-3">
         <div>
-            <span class="text-muted small">Management panelinden odeme saglayiciyi ve banka bilgilerini yapilandir.</span>
+            <span class="text-muted small">Management panelinden ödeme sağlayıcıyı ve banka bilgilerini yapılandır.</span>
         </div>
         <button class="btn btn-primary btn-sm" data-bind="click: openCreate">
-            <i class="bi bi-plus-lg me-1"></i>Yeni Saglayici Ekle
+            <i class="bi bi-plus-lg me-1"></i>Yeni Sağlayıcı Ekle
         </button>
     </div>
 
@@ -22,7 +22,7 @@
                     Son test: <span data-bind="text: activeConfig() && activeConfig().lastTestedAt ? new Date(activeConfig().lastTestedAt).toLocaleString('tr-TR') : '-'"></span>
                 </span>
                 <span class="badge" data-bind="visible: activeConfig() && activeConfig().lastTestSuccess !== null,
-                    text: activeConfig() && activeConfig().lastTestSuccess ? 'Basarili' : 'Basarisiz',
+                    text: activeConfig() && activeConfig().lastTestSuccess ? 'Başarılı' : 'Başarısız',
                     css: activeConfig() && activeConfig().lastTestSuccess ? 'bg-success' : 'bg-danger'"></span>
             </div>
         </div>
@@ -30,18 +30,18 @@
 
     <!-- Config Listesi -->
     <div class="card border-0 shadow-sm mb-3">
-        <div class="card-header bg-white py-2"><h6 class="mb-0"><i class="bi bi-credit-card me-2"></i>Odeme Saglayicilari</h6></div>
+        <div class="card-header bg-white py-2"><h6 class="mb-0"><i class="bi bi-credit-card me-2"></i>Ödeme Sağlayıcıları</h6></div>
         <div class="card-body p-0">
             <div class="text-center py-5" data-bind="visible: isLoading"><div class="spinner-border text-primary"></div></div>
             <div class="text-center text-muted py-5" data-bind="visible: !isLoading() && items().length === 0">
-                <i class="bi bi-credit-card fs-1 d-block mb-2 opacity-25"></i>Henuz odeme saglayici tanimlanmamis.
+                <i class="bi bi-credit-card fs-1 d-block mb-2 opacity-25"></i>Henüz ödeme sağlayıcı tanımlanmamış.
             </div>
             <div data-bind="visible: !isLoading() && items().length > 0">
                 <div class="table-responsive">
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>Saglayici</th>
+                                <th>Sağlayıcı</th>
                                 <th>Mod</th>
                                 <th>Durum</th>
                                 <th>Son Test</th>
@@ -63,8 +63,8 @@
                                         css: isActive ? 'bg-success' : 'bg-secondary'"></span>
                                 </td>
                                 <td>
-                                    <span data-bind="visible: lastTestSuccess === true" class="text-success small"><i class="bi bi-check-circle-fill"></i> Basarili</span>
-                                    <span data-bind="visible: lastTestSuccess === false" class="text-danger small"><i class="bi bi-x-circle-fill"></i> Basarisiz</span>
+                                    <span data-bind="visible: lastTestSuccess === true" class="text-success small"><i class="bi bi-check-circle-fill"></i> Başarılı</span>
+                                    <span data-bind="visible: lastTestSuccess === false" class="text-danger small"><i class="bi bi-x-circle-fill"></i> Başarısız</span>
                                     <span data-bind="visible: lastTestSuccess == null" class="text-muted small">-</span>
                                 </td>
                                 <td>
@@ -73,10 +73,10 @@
                                         <i class="bi bi-check-circle me-1"></i>Aktif Yap
                                     </button>
                                     <!-- /ko -->
-                                    <button class="btn btn-outline-info btn-sm me-1" title="Baglanti Testi" data-bind="click: $parent.testConnection">
+                                    <button class="btn btn-outline-info btn-sm me-1" title="Bağlantı Testi" data-bind="click: $parent.testConnection">
                                         <i class="bi bi-plug"></i>
                                     </button>
-                                    <button class="btn btn-outline-secondary btn-sm me-1" title="Duzenle" data-bind="click: $parent.openEdit">
+                                    <button class="btn btn-outline-secondary btn-sm me-1" title="Düzenle" data-bind="click: $parent.openEdit">
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <button class="btn btn-outline-danger btn-sm" title="Sil" data-bind="click: $parent.confirmDelete">
@@ -95,23 +95,23 @@
     <div class="card border-0 shadow-sm mb-3">
         <div class="card-header bg-white py-2"><h6 class="mb-0"><i class="bi bi-bank me-2"></i>Havale/EFT Banka Bilgileri</h6></div>
         <div class="card-body">
-            <p class="text-muted small mb-3">Havale ile odeme seceneginde musterilere gosterilecek banka bilgileri.</p>
+            <p class="text-muted small mb-3">Havale ile ödeme seçeneğinde müşterilere gösterilecek banka bilgileri.</p>
             <div class="row g-2">
                 <div class="col-md-6 mb-2">
-                    <label class="form-label small">Banka Adi</label>
-                    <input class="form-control form-control-sm" data-bind="value: bankForm.bankName" placeholder="Ornek: Garanti BBVA" />
+                    <label class="form-label small">Banka Adı</label>
+                    <input class="form-control form-control-sm" data-bind="textInput: bankForm.bankName" placeholder="Örnek: Garanti BBVA" />
                 </div>
                 <div class="col-md-6 mb-2">
                     <label class="form-label small">Hesap Sahibi</label>
-                    <input class="form-control form-control-sm" data-bind="value: bankForm.accountHolder" placeholder="Ornek: CorpLynk Teknoloji A.S." />
+                    <input class="form-control form-control-sm" data-bind="textInput: bankForm.accountHolder" placeholder="Örnek: CorpLynk Teknoloji A.Ş." />
                 </div>
                 <div class="col-md-8 mb-2">
                     <label class="form-label small">IBAN</label>
-                    <input class="form-control form-control-sm" data-bind="value: bankForm.iban" placeholder="TR00 0000 0000 0000 0000 0000 00" />
+                    <input class="form-control form-control-sm" data-bind="textInput: bankForm.iban" placeholder="TR00 0000 0000 0000 0000 0000 00" />
                 </div>
                 <div class="col-md-4 mb-2">
-                    <label class="form-label small">Aciklama</label>
-                    <input class="form-control form-control-sm" data-bind="value: bankForm.description" placeholder="Odeme aciklamasi" />
+                    <label class="form-label small">Açıklama</label>
+                    <input class="form-control form-control-sm" data-bind="textInput: bankForm.description" placeholder="Ödeme açıklaması" />
                 </div>
             </div>
             <div class="text-muted small mt-1 mb-2"><i class="bi bi-info-circle me-1"></i>Banka bilgileri aktif config ile birlikte kaydedilir.</div>
@@ -126,7 +126,7 @@
         </div>
         <div class="card-body p-0">
             <div class="text-center text-muted py-4" data-bind="visible: pendingHavale().length === 0">
-                Bekleyen havale islemi yok.
+                Bekleyen havale işlemi yok.
             </div>
             <div class="table-responsive" data-bind="visible: pendingHavale().length > 0">
                 <table class="table table-hover table-sm mb-0">
@@ -148,7 +148,7 @@
                             <td class="fw-medium" data-bind="text: amount.toLocaleString('tr-TR', {style:'currency',currency:currency||'TRY'})"></td>
                             <td>
                                 <button class="btn btn-success btn-sm me-1" data-bind="click: $parent.confirmHavale"><i class="bi bi-check-lg"></i> Onayla</button>
-                                <button class="btn btn-outline-info btn-sm me-1" title="Zaman cizelgesi" data-bind="click: $parent.openTimeline"><i class="bi bi-clock-history"></i></button>
+                                <button class="btn btn-outline-info btn-sm me-1" title="Zaman çizelgesi" data-bind="click: $parent.openTimeline"><i class="bi bi-clock-history"></i></button>
                                 <button class="btn btn-danger btn-sm" data-bind="click: $parent.rejectHavale"><i class="bi bi-x-lg"></i></button>
                             </td>
                         </tr>
@@ -158,12 +158,12 @@
         </div>
     </div>
 
-    <!-- Odeme Operasyonlari -->
+    <!-- Ödeme Operasyonları -->
     <div class="row g-3 mb-3">
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between">
-                    <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Son Odeme Islemleri</h6>
+                    <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Son Ödeme İşlemleri</h6>
                     <button class="btn btn-outline-primary btn-sm" data-bind="click: loadPaymentHistory, disable: paymentHistoryLoading">
                         <span class="spinner-border spinner-border-sm me-1" data-bind="visible: paymentHistoryLoading"></span>
                         <i class="bi bi-arrow-clockwise" data-bind="visible: !paymentHistoryLoading()"></i>
@@ -174,7 +174,7 @@
                         <div class="spinner-border text-primary"></div>
                     </div>
                     <div class="text-center text-muted py-4" data-bind="visible: !paymentHistoryLoading() && paymentHistory().length === 0">
-                        Odeme kaydi yok.
+                        Ödeme kaydı yok.
                     </div>
                     <div class="table-responsive" data-bind="visible: !paymentHistoryLoading() && paymentHistory().length > 0">
                         <table class="table table-hover table-sm align-middle mb-0">
@@ -183,7 +183,7 @@
                                     <th>Tarih</th>
                                     <th>Firma</th>
                                     <th>Tip</th>
-                                    <th>Yontem</th>
+                                    <th>Yöntem</th>
                                     <th class="text-end">Tutar</th>
                                     <th>Durum</th>
                                     <th class="text-end" style="width:240px;"></th>
@@ -197,11 +197,11 @@
                                     <td class="small" data-bind="text: paymentMethod || provider || '-'"></td>
                                     <td class="small text-end fw-semibold" data-bind="text: $parent.formatAmount($data)"></td>
                                     <td>
-                                        <span class="small fw-semibold" data-bind="css: $parent.statusClass($data), text: status || '-'"></span>
-                                        <div class="small text-danger" data-bind="visible: errorMessage, text: errorMessage"></div>
+                                        <span class="small fw-semibold" data-bind="css: $parent.statusClass($data), text: $parent.paymentStatusText($data)"></span>
+                                        <div class="small text-danger" data-bind="visible: $parent.paymentErrorText($data), text: $parent.paymentErrorText($data)"></div>
                                     </td>
                                     <td class="text-end text-nowrap">
-                                        <button class="btn btn-outline-info btn-sm py-0 px-2 me-1" title="Zaman cizelgesi" data-bind="click: $parent.openTimeline">
+                                        <button class="btn btn-outline-info btn-sm py-0 px-2 me-1" title="Zaman çizelgesi" data-bind="click: $parent.openTimeline">
                                             <i class="bi bi-clock-history"></i>
                                         </button>
                                         <button class="btn btn-outline-secondary btn-sm py-0 px-2 me-1" title="Dekont" data-bind="visible: canDownloadReceipt, click: $parent.downloadReceipt">
@@ -210,10 +210,10 @@
                                         <button class="btn btn-outline-secondary btn-sm py-0 px-2 me-1" title="Havale dekontu" data-bind="visible: canDownloadHavaleReceipt, click: $parent.downloadHavaleReceipt">
                                             <i class="bi bi-paperclip"></i>
                                         </button>
-                                        <button class="btn btn-outline-warning btn-sm py-0 px-2 me-1" title="Iade" data-bind="visible: statusId === 2 && amount > 0, click: $parent.refundPayment">
+                                        <button class="btn btn-outline-warning btn-sm py-0 px-2 me-1" title="İade" data-bind="visible: statusId === 2 && amount > 0, click: $parent.refundPayment">
                                             <i class="bi bi-arrow-counterclockwise"></i>
                                         </button>
-                                        <button class="btn btn-outline-danger btn-sm py-0 px-2" title="Iptal" data-bind="visible: statusId === 1, click: $parent.cancelPayment">
+                                        <button class="btn btn-outline-danger btn-sm py-0 px-2" title="İptal" data-bind="visible: statusId === 1, click: $parent.cancelPayment">
                                             <i class="bi bi-x-lg"></i>
                                         </button>
                                     </td>
@@ -227,7 +227,7 @@
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-2 d-flex align-items-center justify-content-between">
-                    <h6 class="mb-0"><i class="bi bi-shuffle me-2"></i>Mutabakat Ozeti</h6>
+                    <h6 class="mb-0"><i class="bi bi-shuffle me-2"></i>Mutabakat Özeti</h6>
                     <button class="btn btn-outline-primary btn-sm" data-bind="click: loadReconciliation, disable: reconciliationLoading">
                         <span class="spinner-border spinner-border-sm me-1" data-bind="visible: reconciliationLoading"></span>
                         <i class="bi bi-arrow-clockwise" data-bind="visible: !reconciliationLoading()"></i>
@@ -240,29 +240,29 @@
                     <div data-bind="visible: reconciliation">
                         <!-- ko with: reconciliation -->
                         <div class="row g-2 small">
-                            <div class="col-6"><div class="text-muted">Kayit</div><div class="fw-bold" data-bind="text: totals.count"></div></div>
-                            <div class="col-6"><div class="text-muted">Basarili</div><div class="fw-bold text-success" data-bind="text: totals.successfulAmount.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' TL'"></div></div>
+                            <div class="col-6"><div class="text-muted">Kayıt</div><div class="fw-bold" data-bind="text: totals.count"></div></div>
+                            <div class="col-6"><div class="text-muted">Başarılı</div><div class="fw-bold text-success" data-bind="text: totals.successfulAmount.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' TL'"></div></div>
                             <div class="col-6"><div class="text-muted">Bekleyen</div><div class="fw-bold text-warning" data-bind="text: totals.pendingAmount.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' TL'"></div></div>
-                            <div class="col-6"><div class="text-muted">Iade</div><div class="fw-bold text-info" data-bind="text: totals.refundedAmount.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' TL'"></div></div>
+                            <div class="col-6"><div class="text-muted">İade</div><div class="fw-bold text-info" data-bind="text: totals.refundedAmount.toLocaleString('tr-TR', {minimumFractionDigits:2}) + ' TL'"></div></div>
                         </div>
                         <hr />
                         <div class="small">
-                            <div class="d-flex justify-content-between"><span>Provider refsiz basarili</span><strong data-bind="text: anomalies.successfulWithoutProviderRef.length"></strong></div>
-                            <div class="d-flex justify-content-between"><span>24 saati asan bekleyen</span><strong data-bind="text: anomalies.pendingOlderThan24Hours.length"></strong></div>
-                            <div class="d-flex justify-content-between"><span>Hatasiz basarisiz</span><strong data-bind="text: anomalies.failedWithoutError.length"></strong></div>
+                            <div class="d-flex justify-content-between"><span>Provider ref'i olmayan başarılı</span><strong data-bind="text: anomalies.successfulWithoutProviderRef.length"></strong></div>
+                            <div class="d-flex justify-content-between"><span>24 saati aşan bekleyen</span><strong data-bind="text: anomalies.pendingOlderThan24Hours.length"></strong></div>
+                            <div class="d-flex justify-content-between"><span>Hatasız başarısız</span><strong data-bind="text: anomalies.failedWithoutError.length"></strong></div>
                             <div class="d-flex justify-content-between"><span>Tekrarlanan provider ref</span><strong data-bind="text: anomalies.duplicateProviderReferences.length"></strong></div>
                         </div>
                         <!-- /ko -->
                     </div>
                     <div class="text-muted small" data-bind="visible: !reconciliation() && !reconciliationLoading()">
-                        Mutabakat ozeti henuz yuklenmedi.
+                        Mutabakat özeti henüz yüklenmedi.
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Saglayici Ekleme/Duzenleme Modal -->
+    <!-- Sağlayıcı Ekleme/Düzenleme Modal -->
     <div class="modal fade" id="paymentModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -273,7 +273,7 @@
                 <div class="modal-body">
                     <div class="row g-2 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label small">Saglayici *</label>
+                            <label class="form-label small">Sağlayıcı *</label>
                             <select class="form-select form-select-sm" data-bind="value: form.providerTypeId">
                                 <option value="1">Iyzico</option>
                                 <option value="2">PayTR</option>
@@ -302,11 +302,11 @@
                         <div class="row g-2">
                             <div class="col-md-6 mb-2">
                                 <label class="form-label small">API Key *</label>
-                                <input class="form-control form-control-sm" data-bind="value: form.iyzicoApiKey" placeholder="sandbox-..." />
+                                <input class="form-control form-control-sm" data-bind="textInput: form.iyzicoApiKey" placeholder="sandbox-..." />
                             </div>
                             <div class="col-md-6 mb-2">
                                 <label class="form-label small">Secret Key *</label>
-                                <input type="password" class="form-control form-control-sm" data-bind="value: form.iyzicoSecretKey" placeholder="sandbox-..." />
+                                <input type="password" class="form-control form-control-sm" data-bind="textInput: form.iyzicoSecretKey" placeholder="sandbox-..." />
                             </div>
                         </div>
                     </div>
@@ -317,15 +317,15 @@
                         <div class="row g-2">
                             <div class="col-md-4 mb-2">
                                 <label class="form-label small">Merchant ID *</label>
-                                <input class="form-control form-control-sm" data-bind="value: form.payTrMerchantId" />
+                                <input class="form-control form-control-sm" data-bind="textInput: form.payTrMerchantId" />
                             </div>
                             <div class="col-md-4 mb-2">
                                 <label class="form-label small">Merchant Key *</label>
-                                <input type="password" class="form-control form-control-sm" data-bind="value: form.payTrMerchantKey" />
+                                <input type="password" class="form-control form-control-sm" data-bind="textInput: form.payTrMerchantKey" />
                             </div>
                             <div class="col-md-4 mb-2">
                                 <label class="form-label small">Merchant Salt *</label>
-                                <input type="password" class="form-control form-control-sm" data-bind="value: form.payTrMerchantSalt" />
+                                <input type="password" class="form-control form-control-sm" data-bind="textInput: form.payTrMerchantSalt" />
                             </div>
                         </div>
                     </div>
@@ -336,25 +336,25 @@
                         <div class="row g-2">
                             <div class="col-md-6 mb-2">
                                 <label class="form-label small">Client Code *</label>
-                                <input class="form-control form-control-sm" data-bind="value: form.paramClientCode" />
+                                <input class="form-control form-control-sm" data-bind="textInput: form.paramClientCode" />
                             </div>
                             <div class="col-md-6 mb-2">
                                 <label class="form-label small">GUID *</label>
-                                <input class="form-control form-control-sm" data-bind="value: form.paramGuid" />
+                                <input class="form-control form-control-sm" data-bind="textInput: form.paramGuid" />
                             </div>
                             <div class="col-md-6 mb-2">
                                 <label class="form-label small">Username *</label>
-                                <input class="form-control form-control-sm" data-bind="value: form.paramClientUsername" />
+                                <input class="form-control form-control-sm" data-bind="textInput: form.paramClientUsername" />
                             </div>
                             <div class="col-md-6 mb-2">
                                 <label class="form-label small">Password *</label>
-                                <input type="password" class="form-control form-control-sm" data-bind="value: form.paramClientPassword" />
+                                <input type="password" class="form-control form-control-sm" data-bind="textInput: form.paramClientPassword" />
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer py-2">
-                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
                     <button class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
@@ -370,10 +370,10 @@
             <div class="modal-content">
                 <div class="modal-body text-center py-4">
                     <i class="bi bi-exclamation-triangle text-danger fs-1 d-block mb-2"></i>
-                    <p>Bu yapilandirmayi silmek istediginize emin misiniz?</p>
+                    <p>Bu yapılandırmayı silmek istediğinize emin misiniz?</p>
                 </div>
                 <div class="modal-footer py-2 justify-content-center">
-                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
                     <button class="btn btn-danger btn-sm" data-bind="click: executeDelete">Sil</button>
                 </div>
             </div>
@@ -385,7 +385,7 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header py-2">
-                    <h6 class="modal-title"><i class="bi bi-clock-history me-1"></i>Odeme Zaman Cizelgesi</h6>
+                    <h6 class="modal-title"><i class="bi bi-clock-history me-1"></i>Ödeme Zaman Çizelgesi</h6>
                     <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -409,7 +409,7 @@
                         </div>
                     </div>
                     <!-- /ko -->
-                    <div class="text-muted small" data-bind="visible: !timeline()">Zaman cizelgesi bulunamadi.</div>
+                    <div class="text-muted small" data-bind="visible: !timeline()">Zaman çizelgesi bulunamadı.</div>
                 </div>
             </div>
         </div>

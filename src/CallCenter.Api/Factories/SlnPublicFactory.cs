@@ -413,7 +413,7 @@ public class SlnPublicFactory : ISlnPublicFactory
             .ThenBy(b => b.Name)
             .Select(b => new
             {
-                b.Id, b.Name, b.Address, b.City, b.District,
+                b.Id, b.Name, Slug = b.Slug ?? "", b.Address, b.City, b.District,
                 b.Phone, b.IsHeadquarter, b.Latitude, b.Longitude,
                 b.PhotoUrl, b.CoverImageUrl, b.GalleryImagesJson, b.WorkingHoursJson
             })

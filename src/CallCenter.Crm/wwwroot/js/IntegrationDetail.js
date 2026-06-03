@@ -47,7 +47,7 @@ function IntegrationDetailViewModel() {
             self.editForm.contactSyncDirectionId(String(data.contactSyncDirectionId || 0));
             self.isLoading(false);
         }).fail(function () {
-            toastr.error('Baglanti detayi yuklenemedi');
+            toastr.error('Bağlantı detayı yüklenemedi');
             self.isLoading(false);
         });
     };
@@ -65,14 +65,14 @@ function IntegrationDetailViewModel() {
             method: 'POST'
         }).done(function (result) {
             if (result.success) {
-                toastr.success('Baglanti basarili' + (result.platformInfo ? ': ' + result.platformInfo : ''));
+                toastr.success('Bağlantı başarılı' + (result.platformInfo ? ': ' + result.platformInfo : ''));
             } else {
-                toastr.error('Baglanti basarisiz: ' + (result.error || 'Bilinmeyen hata'));
+                toastr.error('Bağlantı başarısız: ' + (result.error || 'Bilinmeyen hata'));
             }
             self.isTesting(false);
             self.loadConnection();
         }).fail(function () {
-            toastr.error('Test sirasinda hata olustu');
+            toastr.error('Test sırasında hata oluştu');
             self.isTesting(false);
         });
     };
@@ -86,11 +86,11 @@ function IntegrationDetailViewModel() {
             contentType: 'application/json',
             data: JSON.stringify({ isActive: !current.isActive })
         }).done(function () {
-            toastr.success(current.isActive ? 'Baglanti pasife alindi' : 'Baglanti aktif edildi');
+            toastr.success(current.isActive ? 'Bağlantı pasife alindi' : 'Bağlantı aktif edildi');
             self.loadConnection();
             self.isSaving(false);
         }).fail(function () {
-            toastr.error('Guncelleme basarisiz');
+            toastr.error('Güncelleme başarısız');
             self.isSaving(false);
         });
     };
@@ -111,7 +111,7 @@ function IntegrationDetailViewModel() {
             self.loadConnection();
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.message || 'Kaydetme basarisiz');
+            toastr.error(xhr.responseJSON?.message || 'Kaydetme başarısız');
             self.isSaving(false);
         });
     };
@@ -143,29 +143,29 @@ function IntegrationDetailViewModel() {
             })
         }).done(function () {
             webhookModal.hide();
-            toastr.success('Webhook olusturuldu');
+            toastr.success('Webhook oluşturuldu');
             self.loadConnection();
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.message || 'Webhook olusturulamadi');
+            toastr.error(xhr.responseJSON?.message || 'Webhook oluşturulamadı');
             self.isSaving(false);
         });
     };
 
     self.testWebhook = function (wh) {
-        toastr.info('Test webhook gonderiliyor...');
+        toastr.info('Test webhook gönderiliyor...');
         $.ajax({
             url: '/proxy/integrations/webhooks/' + wh.uid + '/test',
             method: 'POST'
         }).done(function () {
-            toastr.success('Test webhook gonderildi');
+            toastr.success('Test webhook gönderildi');
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.message || 'Test basarisiz');
+            toastr.error(xhr.responseJSON?.message || 'Test başarısız');
         });
     };
 
     self.removeWebhook = function (wh) {
-        confirmModal('Webhook Sil', wh.name + ' webhook\'unu silmek istediginize emin misiniz?', function () {
+        confirmModal('Webhook Sil', wh.name + ' webhook\'unu silmek istediğinize emin misiniz?', function () {
             $.ajax({
                 url: '/proxy/integrations/webhooks/' + wh.uid,
                 method: 'DELETE'
@@ -206,13 +206,13 @@ function IntegrationDetailViewModel() {
             apiKeyCreatedModal.show();
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.message || 'API Key olusturulamadi');
+            toastr.error(xhr.responseJSON?.message || 'API Key oluşturulamadı');
             self.isSaving(false);
         });
     };
 
     self.revokeApiKey = function (key) {
-        confirmModal('API Key Iptal', key.name + ' API key\'ini iptal etmek istediginize emin misiniz?', function () {
+        confirmModal('API Anahtarı İptali', key.name + ' API key\'ini iptal etmek istediğinize emin misiniz?', function () {
             $.ajax({
                 url: '/proxy/integrations/api-keys/' + key.uid,
                 method: 'DELETE'
@@ -220,7 +220,7 @@ function IntegrationDetailViewModel() {
                 toastr.success('API key iptal edildi');
                 self.loadConnection();
             }).fail(function () {
-                toastr.error('Iptal edilemedi');
+                toastr.error('İptal edilemedi');
             });
         });
     };

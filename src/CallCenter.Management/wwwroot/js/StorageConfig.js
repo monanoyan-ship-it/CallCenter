@@ -3,7 +3,7 @@ function StorageConfigViewModel() {
     self.items = ko.observableArray([]);
     self.isLoading = ko.observable(false);
     self.isSaving = ko.observable(false);
-    self.formTitle = ko.observable('Yeni Yapilandirma');
+    self.formTitle = ko.observable('Yeni Yapılandırma');
     self.deleteId = null;
 
     self.form = {
@@ -32,7 +32,7 @@ function StorageConfigViewModel() {
         self.form.isActive(true);
     };
 
-    self.openCreate = function() { self.resetForm(); self.formTitle('Yeni Yapilandirma'); new bootstrap.Modal('#storageModal').show(); };
+    self.openCreate = function() { self.resetForm(); self.formTitle('Yeni Yapılandırma'); new bootstrap.Modal('#storageModal').show(); };
 
     self.openEdit = function(item) {
         self.form.id(item.id);
@@ -44,7 +44,7 @@ function StorageConfigViewModel() {
         self.form.bucketName('');
         self.form.region('');
         self.form.isActive(item.isActive !== false);
-        self.formTitle('Yapilandirma Duzenle');
+        self.formTitle('Yapılandırma Düzenle');
         new bootstrap.Modal('#storageModal').show();
     };
 
@@ -68,19 +68,19 @@ function StorageConfigViewModel() {
                 toastr.success('Kaydedildi.'); bootstrap.Modal.getInstance(document.getElementById('storageModal')).hide();
                 self.loadData();
             },
-            error: function() { toastr.error('Kaydetme hatasi.'); }
+            error: function() { toastr.error('Kaydetme hatası.'); }
         }).always(function() { self.isSaving(false); });
     };
 
     self.testConnection = function(item) {
-        toastr.info('Test baslatildi...');
+        toastr.info('Test başlatıldı...');
         $.ajax({
             url: '/proxy/CloudStorage/configs/' + item.id + '/test', method: 'POST',
             success: function(data) {
-                if (data && data.success) toastr.success('Baglanti basarili!');
+                if (data && data.success) toastr.success('Bağlantı başarılı!');
                 else toastr.warning('Test sonucu: ' + (data.message || 'Bilinmeyen'));
             },
-            error: function() { toastr.error('Baglanti testi basarisiz.'); }
+            error: function() { toastr.error('Bağlantı testi başarısız.'); }
         });
     };
 
@@ -90,7 +90,7 @@ function StorageConfigViewModel() {
         $.ajax({
             url: '/proxy/CloudStorage/configs/' + self.deleteId, method: 'DELETE',
             success: function() { toastr.success('Silindi.'); bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide(); self.loadData(); },
-            error: function() { toastr.error('Silme hatasi.'); }
+            error: function() { toastr.error('Silme hatası.'); }
         });
     };
 

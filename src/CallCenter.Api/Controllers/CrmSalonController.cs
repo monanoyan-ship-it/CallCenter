@@ -72,7 +72,14 @@ public class CrmSalonController : ControllerBase
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        return Ok(await _clients.CreateClientAsync(dto, customerId, GetBranchId() ?? branchId));
+        try
+        {
+            return Ok(await _clients.CreateClientAsync(dto, customerId, GetBranchId() ?? branchId));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpGet("branches")]
@@ -749,8 +756,17 @@ public class CrmSalonController : ControllerBase
 
     private int? GetBranchId()
     {
+        if (IsSalonOwner()) return null;
+
         var value = User.FindFirst("BranchId")?.Value;
         return int.TryParse(value, out var branchId) && branchId > 0 ? branchId : null;
+    }
+
+    private bool IsSalonOwner()
+    {
+        if (User.IsInRole("Admin")) return true;
+        var value = User.FindFirst("CustomerRoleId")?.Value;
+        return int.TryParse(value, out var roleId) && roleId == SalonRoles.Ids.SalonOwner;
     }
 
     private (int? BranchId, ActionResult? Error) ResolveMutationBranchTarget(int? requestedBranchId, bool allBranches)

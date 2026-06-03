@@ -2,7 +2,7 @@
     <div class="d-flex align-items-center justify-content-between mb-3">
         <div></div>
         <button class="btn btn-primary btn-sm" data-bind="click: openCreate">
-            <i class="bi bi-plus-lg me-1"></i>Yeni Yapilandirma
+            <i class="bi bi-plus-lg me-1"></i>Yeni Yapılandırma
         </button>
     </div>
 
@@ -11,14 +11,14 @@
         <div class="card-body p-0">
             <div class="text-center py-5" data-bind="visible: isLoading"><div class="spinner-border text-primary"></div></div>
             <div class="text-center text-muted py-5" data-bind="visible: !isLoading() && items().length === 0">
-                <i class="bi bi-cloud fs-1 d-block mb-2 opacity-25"></i>Yapilandirma bulunamadi
+                <i class="bi bi-cloud fs-1 d-block mb-2 opacity-25"></i>Yapılandırma bulunamadı
             </div>
             <div data-bind="visible: !isLoading() && items().length > 0">
                 <div class="table-responsive">
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>Saglayici</th>
+                                <th>Sağlayıcı</th>
                                 <th>Temel Yol</th>
                                 <th>Firma</th>
                                 <th>Durum</th>
@@ -33,7 +33,7 @@
                                 <td><span class="badge" data-bind="text: isActive ? 'Aktif' : 'Pasif', css: isActive ? 'bg-success' : 'bg-danger'"></span></td>
                                 <td>
                                     <button class="btn btn-outline-info btn-sm me-1" title="Test" data-bind="click: $parent.testConnection"><i class="bi bi-plug"></i></button>
-                                    <button class="btn btn-outline-secondary btn-sm me-1" title="Duzenle" data-bind="click: $parent.openEdit"><i class="bi bi-pencil"></i></button>
+                                    <button class="btn btn-outline-secondary btn-sm me-1" title="Düzenle" data-bind="click: $parent.openEdit"><i class="bi bi-pencil"></i></button>
                                     <button class="btn btn-outline-danger btn-sm" title="Sil" data-bind="click: $parent.confirmDelete"><i class="bi bi-trash"></i></button>
                                 </td>
                             </tr>
@@ -55,7 +55,7 @@
                 <div class="modal-body">
                     <div class="row g-2">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label small">Saglayici *</label>
+                            <label class="form-label small">Sağlayıcı *</label>
                             <select class="form-select form-select-sm" data-bind="value: form.providerTypeId">
                                 <option value="4">Amazon S3</option>
                                 <option value="5">MinIO</option>
@@ -66,31 +66,31 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label small">Temel Yol</label>
-                            <input class="form-control form-control-sm" data-bind="value: form.basePath" />
+                            <input class="form-control form-control-sm" data-bind="textInput: form.basePath" />
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small">Endpoint</label>
-                        <input class="form-control form-control-sm" data-bind="value: form.endpoint" />
+                        <input class="form-control form-control-sm" data-bind="textInput: form.endpoint" />
                     </div>
                     <div class="row g-2">
                         <div class="col-md-6 mb-3">
                             <label class="form-label small">Access Key</label>
-                            <input class="form-control form-control-sm" data-bind="value: form.accessKey" />
+                            <input class="form-control form-control-sm" data-bind="textInput: form.accessKey" />
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label small">Secret Key</label>
-                            <input type="password" class="form-control form-control-sm" data-bind="value: form.secretKey" />
+                            <input type="password" class="form-control form-control-sm" data-bind="textInput: form.secretKey" />
                         </div>
                     </div>
                     <div class="row g-2">
                         <div class="col-md-6 mb-3">
                             <label class="form-label small">Bucket</label>
-                            <input class="form-control form-control-sm" data-bind="value: form.bucketName" />
+                            <input class="form-control form-control-sm" data-bind="textInput: form.bucketName" />
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label small">Region</label>
-                            <input class="form-control form-control-sm" data-bind="value: form.region" />
+                            <input class="form-control form-control-sm" data-bind="textInput: form.region" />
                         </div>
                     </div>
                     <div class="form-check mb-3">
@@ -99,7 +99,7 @@
                     </div>
                 </div>
                 <div class="modal-footer py-2">
-                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
                     <button class="btn btn-primary btn-sm" data-bind="click: save, disable: isSaving">
                         <span data-bind="visible: isSaving" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-check-lg me-1" data-bind="visible: !isSaving()"></i>Kaydet
@@ -115,10 +115,10 @@
             <div class="modal-content">
                 <div class="modal-body text-center py-4">
                     <i class="bi bi-exclamation-triangle text-danger fs-1 d-block mb-2"></i>
-                    <p>Bu yapilandirmayi silmek istediginize emin misiniz?</p>
+                    <p>Bu yapılandırmayı silmek istediğinize emin misiniz?</p>
                 </div>
                 <div class="modal-footer py-2 justify-content-center">
-                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Iptal</button>
+                    <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
                     <button class="btn btn-danger btn-sm" data-bind="click: executeDelete">Sil</button>
                 </div>
             </div>

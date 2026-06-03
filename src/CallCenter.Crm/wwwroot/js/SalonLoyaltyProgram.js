@@ -101,13 +101,21 @@ function SalonLoyaltyProgramViewModel() {
     };
 
     self.removeProgram = function (program) {
-        if (typeof confirmModal === 'function') {
-            confirmModal(t('crm.salon.loyalty.program.confirm_delete', 'Bu program silinsin mi?'), function () {
-                doDelete(program.id);
-            });
-        } else if (window.confirm(t('crm.salon.loyalty.program.confirm_delete', 'Bu program silinsin mi?'))) {
-            doDelete(program.id);
+        if (typeof confirmModal !== 'function') {
+            toastr.error(t('crm.common.confirm_unavailable', 'Onay penceresi açılamadı.'));
+            return;
         }
+
+        confirmModal(
+            t('crm.common.confirm', 'Onayla'),
+            t('crm.salon.loyalty.program.confirm_delete', 'Bu program silinsin mi?'),
+            function () {
+                doDelete(program.id);
+            },
+            {
+                confirmText: t('crm.common.delete', 'Sil'),
+                confirmClass: 'btn-danger'
+            });
     };
 
     function doDelete(id) {

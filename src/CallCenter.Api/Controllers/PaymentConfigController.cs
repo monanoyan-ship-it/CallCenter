@@ -14,85 +14,85 @@ public class PaymentConfigController : ControllerBase
 
     public PaymentConfigController(IPaymentConfigFactory factory) => _factory = factory;
 
-    /// <summary>Tum odeme yapilandirmalarini listele</summary>
+    /// <summary>Tüm ödeme yapılandırmalarını listele</summary>
     [HttpGet]
     public async Task<ActionResult<List<PaymentConfigListDto>>> GetAll()
     {
         return Ok(await _factory.GetAllAsync());
     }
 
-    /// <summary>Yapilandirma detayi (credential'lar maskelenmis)</summary>
+    /// <summary>Yapılandırma detayı (credential'lar maskelenmiş)</summary>
     [HttpGet("{id:int}")]
     public async Task<ActionResult<PaymentConfigDetailDto>> GetById(int id)
     {
         var dto = await _factory.GetByIdAsync(id);
-        if (dto == null) return NotFound(new { message = "Yapilandirma bulunamadi." });
+        if (dto == null) return NotFound(new { message = "Yapılandırma bulunamadı." });
         return Ok(dto);
     }
 
-    /// <summary>Aktif yapilandirma</summary>
+    /// <summary>Aktif yapılandırma</summary>
     [HttpGet("active")]
     public async Task<ActionResult<PaymentConfigDetailDto>> GetActive()
     {
         var dto = await _factory.GetActiveAsync();
-        if (dto == null) return NotFound(new { message = "Aktif odeme yapilandirmasi bulunamadi." });
+        if (dto == null) return NotFound(new { message = "Aktif ödeme yapılandırması bulunamadı." });
         return Ok(dto);
     }
 
-    /// <summary>Havale banka bilgileri (Salon/Public erisimi icin AllowAnonymous olabilir)</summary>
+    /// <summary>Havale banka bilgileri (Salon/Public erişimi için AllowAnonymous olabilir)</summary>
     [HttpGet("bank-info")]
     [AllowAnonymous]
     public async Task<ActionResult<PaymentBankInfoDto>> GetBankInfo()
     {
         var dto = await _factory.GetBankInfoAsync();
-        if (dto == null) return NotFound(new { message = "Banka bilgisi tanimlanmamis." });
+        if (dto == null) return NotFound(new { message = "Banka bilgisi tanımlanmamış." });
         return Ok(dto);
     }
 
-    /// <summary>Desteklenen odeme provider'lari</summary>
+    /// <summary>Desteklenen ödeme provider'ları</summary>
     [HttpGet("providers")]
     public ActionResult<List<PaymentProviderInfoDto>> GetProviders()
     {
         return Ok(_factory.GetAvailableProviders());
     }
 
-    /// <summary>Yeni yapilandirma olustur</summary>
+    /// <summary>Yeni yapılandırma oluştur</summary>
     [HttpPost]
     public async Task<ActionResult> Create([FromBody] PaymentConfigSaveDto dto)
     {
         var (success, id, error) = await _factory.CreateAsync(dto);
         if (!success) return BadRequest(new { message = error });
-        return Ok(new { id, message = "Odeme yapilandirmasi olusturuldu." });
+        return Ok(new { id, message = "Ödeme yapılandırması oluşturuldu." });
     }
 
-    /// <summary>Yapilandirma guncelle</summary>
+    /// <summary>Yapılandırma güncelle</summary>
     [HttpPut("{id:int}")]
     public async Task<ActionResult> Update(int id, [FromBody] PaymentConfigSaveDto dto)
     {
         var (success, error) = await _factory.UpdateAsync(id, dto);
         if (!success) return BadRequest(new { message = error });
-        return Ok(new { message = "Yapilandirma guncellendi." });
+        return Ok(new { message = "Yapılandırma güncellendi." });
     }
 
-    /// <summary>Yapilandirma sil</summary>
+    /// <summary>Yapılandırma sil</summary>
     [HttpDelete("{id:int}")]
     public async Task<ActionResult> Delete(int id)
     {
         var (success, error) = await _factory.DeleteAsync(id);
         if (!success) return BadRequest(new { message = error });
-        return Ok(new { message = "Yapilandirma silindi." });
+        return Ok(new { message = "Yapılandırma silindi." });
     }
 
-    /// <summary>Hizli aktif yap: bu config aktif olur, diger tum config'ler pasif olur</summary>
+    /// <summary>Hızlı aktif yap: bu config aktif olur, diğer tüm config'ler pasif olur</summary>
     [HttpPut("{id:int}/activate")]
     public async Task<ActionResult> Activate(int id)
     {
         var (success, error) = await _factory.ActivateAsync(id);
         if (!success) return BadRequest(new { message = error });
-        return Ok(new { message = "Odeme yapilandirmasi aktif edildi." });
+        return Ok(new { message = "Ödeme yapılandırması aktif edildi." });
     }
 
-    /// <summary>Baglanti testi</summary>
+    /// <summary>Bağlantı testi</summary>
     [HttpPost("{id:int}/test")]
     public async Task<ActionResult<PaymentConfigTestResultDto>> TestConnection(int id, CancellationToken ct)
     {

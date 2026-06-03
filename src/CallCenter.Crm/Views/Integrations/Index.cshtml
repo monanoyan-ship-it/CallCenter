@@ -12,7 +12,7 @@
                         <i class="bi bi-plug-fill text-primary"></i>
                     </div>
                     <div>
-                        <div class="text-muted small">Toplam Baglanti</div>
+                        <div class="text-muted small">Toplam Bağlantı</div>
                         <div class="fw-bold fs-5" data-bind="text: connections().length">0</div>
                     </div>
                 </div>
@@ -73,11 +73,11 @@
                     <h6 class="mb-1" data-bind="text: systemName"></h6>
                     <p class="text-muted small mb-3" data-bind="text: description"></p>
                     <!-- ko if: isConnected -->
-                    <span class="badge bg-success-subtle text-success mb-2"><i class="bi bi-check-circle me-1"></i>Bagli</span>
+                    <span class="badge bg-success-subtle text-success mb-2"><i class="bi bi-check-circle me-1"></i>Bağlı</span>
                     <!-- /ko -->
                     <!-- ko ifnot: isConnected -->
                     <a class="btn btn-outline-primary btn-sm" data-bind="attr: { href: '/Integrations/Connect/' + systemName }">
-                        <i class="bi bi-plus-lg me-1"></i>Baglan
+                        <i class="bi bi-plus-lg me-1"></i>Bağlan
                     </a>
                     <!-- /ko -->
                 </div>
@@ -87,10 +87,10 @@
 
     <!-- Connections Table -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h6 class="text-muted mb-0"><i class="bi bi-link-45deg me-1"></i>Baglantilar</h6>
+        <h6 class="text-muted mb-0"><i class="bi bi-link-45deg me-1"></i>Bağlantılar</h6>
         <div class="input-group" style="max-width: 280px;">
             <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-            <input type="text" class="form-control form-control-sm" placeholder="Baglanti ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
+            <input type="text" class="form-control form-control-sm" placeholder="Bağlantı ara..." data-bind="value: searchQuery, valueUpdate: 'afterkeydown'" />
         </div>
     </div>
 
@@ -101,7 +101,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>Platform</th>
-                            <th>Baglanti Adi</th>
+                            <th>Bağlantı Adi</th>
                             <th>Durum</th>
                             <th>Son Senkronizasyon</th>
                             <th>Webhook</th>
@@ -125,7 +125,7 @@
                                 <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i>Aktif</span>
                                 <!-- /ko -->
                                 <!-- ko if: isActive && !isConnected -->
-                                <span class="badge bg-warning-subtle text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Baglanti Yok</span>
+                                <span class="badge bg-warning-subtle text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Bağlantı Yok</span>
                                 <!-- /ko -->
                                 <!-- ko ifnot: isActive -->
                                 <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-pause-circle me-1"></i>Pasif</span>
@@ -165,8 +165,8 @@
             <!-- ko if: connections().length === 0 -->
             <div class="text-center text-muted py-5">
                 <i class="bi bi-plug" style="font-size: 2.5rem;"></i>
-                <p class="mt-2 small">Henuz entegrasyon baglantisi eklenmemis</p>
-                <p class="small">Yukaridaki platform kartlarindan birini secin</p>
+                <p class="mt-2 small">Henüz entegrasyon bağlantısi eklenmemiş</p>
+                <p class="small">Yukaridaki platform kartlarindan birini seçin</p>
             </div>
             <!-- /ko -->
         </div>

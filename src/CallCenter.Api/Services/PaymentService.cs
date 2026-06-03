@@ -433,7 +433,7 @@ public class PaymentService
 
             tx.StatusId = PaymentStatuses.Ids.Iptal;
             tx.CompletedAt = DateTime.UtcNow;
-            tx.ErrorMessage = "Yeni odeme denemesi baslatildigi icin iptal edildi.";
+            tx.ErrorMessage = "Yeni ödeme denemesi başlatıldığı için iptal edildi.";
             tx.Notes = AddNoteEvent(tx.Notes, "CheckoutSuperseded", tx.ErrorMessage);
         }
     }
@@ -921,7 +921,7 @@ public class PaymentService
             return PaymentResult.Fail("Yalnizca bekleyen islemler iptal edilebilir.");
 
         tx.StatusId = PaymentStatuses.Ids.Basarisiz;
-        tx.ErrorMessage = string.IsNullOrWhiteSpace(reason) ? "Islem admin tarafindan iptal edildi." : reason.Trim();
+        tx.ErrorMessage = string.IsNullOrWhiteSpace(reason) ? "İşlem admin tarafından iptal edildi." : reason.Trim();
         tx.CompletedAt = DateTime.UtcNow;
         tx.Notes = AddNoteEvent(tx.Notes, "AdminPaymentCancelled", tx.ErrorMessage);
 

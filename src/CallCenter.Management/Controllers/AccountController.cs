@@ -26,6 +26,7 @@ public class AccountController : MgmtBaseController
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Login(string username, string password, bool rememberMe = false)
     {
         using var client = CreateApiClient();
@@ -89,6 +90,7 @@ public class AccountController : MgmtBaseController
     public IActionResult ForgotPassword() => View();
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ForgotPassword(string username)
     {
         using var client = CreateApiClient();
@@ -111,6 +113,7 @@ public class AccountController : MgmtBaseController
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ResetPassword(string token, string newPassword, string confirmPassword)
     {
         ViewBag.Token = token;

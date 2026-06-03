@@ -105,7 +105,7 @@ public class SlnFormulaCreateDto
     public string? ApplicationNotes { get; set; }
 }
 
-// â•â•â• SlnTreatmentRecord â•â•â•
+// SlnTreatmentRecord
 public class SlnTreatmentRecordDto
 {
     public int Id { get; set; }
@@ -185,6 +185,7 @@ public class SlnServiceDto
     public bool RequiresPatchTest { get; set; }
     public string? PrerequisiteNotes { get; set; }
     public bool IsActive { get; set; }
+    public int SessionCount { get; set; } = 1;
     public List<SlnServiceResourceRequirementDto> ResourceRequirements { get; set; } = [];
 }
 
@@ -204,6 +205,7 @@ public class SlnServiceCreateDto
     public bool RequiresConsultation { get; set; }
     public bool RequiresPatchTest { get; set; }
     public string? PrerequisiteNotes { get; set; }
+    public int SessionCount { get; set; } = 1;
     public List<SlnServiceResourceRequirementCreateDto> ResourceRequirements { get; set; } = [];
 }
 

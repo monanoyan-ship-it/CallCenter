@@ -10,6 +10,7 @@ public class ProxyController : CrmBaseController
     public async Task<IActionResult> Get(string path)
     {
         if (!TryNormalizePath(path, out var safePath)) return ForbidProxyPath();
+        if (RequireProxyScope(safePath) is { } denied) return denied;
         using var client = CreateApiClient();
         var query = HttpContext.Request.QueryString;
         var response = await client.GetAsync($"api/{safePath}{query}");
@@ -20,6 +21,7 @@ public class ProxyController : CrmBaseController
     public async Task<IActionResult> Post(string path)
     {
         if (!TryNormalizePath(path, out var safePath)) return ForbidProxyPath();
+        if (RequireProxyScope(safePath) is { } denied) return denied;
         if (!ProxyCsrfGuard.IsSafeOrSameOrigin(Request)) return ForbidCsrf();
         using var client = CreateApiClient();
         using var reader = new StreamReader(Request.Body);
@@ -33,6 +35,7 @@ public class ProxyController : CrmBaseController
     public async Task<IActionResult> Put(string path)
     {
         if (!TryNormalizePath(path, out var safePath)) return ForbidProxyPath();
+        if (RequireProxyScope(safePath) is { } denied) return denied;
         if (!ProxyCsrfGuard.IsSafeOrSameOrigin(Request)) return ForbidCsrf();
         using var client = CreateApiClient();
         using var reader = new StreamReader(Request.Body);
@@ -46,6 +49,7 @@ public class ProxyController : CrmBaseController
     public async Task<IActionResult> Delete(string path)
     {
         if (!TryNormalizePath(path, out var safePath)) return ForbidProxyPath();
+        if (RequireProxyScope(safePath) is { } denied) return denied;
         if (!ProxyCsrfGuard.IsSafeOrSameOrigin(Request)) return ForbidCsrf();
         using var client = CreateApiClient();
         var response = await client.DeleteAsync($"api/{safePath}{Request.QueryString}");
@@ -54,6 +58,28 @@ public class ProxyController : CrmBaseController
 
     private static bool TryNormalizePath(string path, out string safePath)
         => ProxyPathPolicy.TryNormalize(path, ProxyPathSurface.Crm, out safePath);
+
+    private IActionResult? RequireProxyScope(string safePath)
+    {
+        if (safePath.Equals("crm/entitlements", StringComparison.OrdinalIgnoreCase)
+            || safePath.Equals("crm/modules", StringComparison.OrdinalIgnoreCase)
+            || safePath.StartsWith("payments/", StringComparison.OrdinalIgnoreCase)
+            || safePath.StartsWith("portal/", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        if (safePath.StartsWith("crm/salon/", StringComparison.OrdinalIgnoreCase))
+            return RequireSalonCrmScope();
+
+        if (safePath.StartsWith("crm/", StringComparison.OrdinalIgnoreCase)
+            || safePath.StartsWith("integrations/", StringComparison.OrdinalIgnoreCase))
+        {
+            return RequireCoreOrCallCenterCrmScope();
+        }
+
+        return null;
+    }
 
     private static IActionResult ForbidProxyPath()
         => new ObjectResult(new { message = "Proxy path not allowed." }) { StatusCode = StatusCodes.Status403Forbidden };

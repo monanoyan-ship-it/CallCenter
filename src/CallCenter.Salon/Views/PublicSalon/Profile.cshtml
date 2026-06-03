@@ -441,11 +441,11 @@
 
                     <!-- Çalışma Saatleri -->
                     <div class="card border-0 shadow-sm mb-3">
-                        <div class="card-header bg-white fw-semibold small"><i class="bi bi-share me-2"></i><t key="salon.profile.distribution.title">Paylasim ve QR</t></div>
+                        <div class="card-header bg-white fw-semibold small"><i class="bi bi-share me-2"></i><t key="salon.profile.distribution.title_label">Paylaşım ve QR</t></div>
                         <div class="card-body small">
                             <div class="d-grid gap-2">
                                 <button type="button" class="btn btn-outline-primary btn-sm" data-bind="click: shareProfile">
-                                    <i class="bi bi-share me-1"></i><t key="salon.profile.distribution.share">Profili Paylas</t>
+                                    <i class="bi bi-share me-1"></i><t key="salon.profile.distribution.share_label">Profili Paylaş</t>
                                 </button>
                                 <button type="button" class="btn btn-outline-secondary btn-sm" data-bind="click: copyBookingLink">
                                     <i class="bi bi-link-45deg me-1"></i><t key="salon.profile.distribution.copy_booking">Randevu Linkini Kopyala</t>
@@ -454,7 +454,7 @@
                             <div class="text-center mt-3">
                                 <img class="img-fluid border rounded p-2 bg-white" style="max-width:160px;"
                                      data-bind="attr: { src: qrCodeUrl, alt: t('salon.profile.distribution.qr_alt', 'Randevu QR') }" />
-                                <div class="small text-muted mt-1"><t key="salon.profile.distribution.qr_hint">Instagram, Google ve masaustu afisleri icin</t></div>
+                                <div class="small text-muted mt-1"><t key="salon.profile.distribution.qr_hint_label">Instagram, Google ve masaüstü afişleri için</t></div>
                             </div>
                             <label class="form-label small mt-3"><t key="salon.profile.distribution.widget">Web site widget kodu</t></label>
                             <textarea class="form-control form-control-sm" rows="3" readonly data-bind="value: widgetCode, click: copyWidgetCode"></textarea>
@@ -543,16 +543,16 @@
                     <div class="row g-2">
                         <div class="col-12">
                             <label class="form-label small"><t key="salon.book.fullname">Ad Soyad *</t></label>
-                            <input type="text" class="form-control form-control-sm" data-bind="value: waitlist.fullName" />
+                            <input type="text" class="form-control form-control-sm" data-bind="textInput: waitlist.fullName" />
                         </div>
                         <div class="col-7">
                             <label class="form-label small"><t key="salon.book.phone">Telefon *</t></label>
-                            <input type="tel" class="form-control form-control-sm" placeholder="5XX XXX XX XX" data-bind="value: waitlist.phone" />
+                            <input type="tel" class="form-control form-control-sm" placeholder="5XX XXX XX XX" data-bind="textInput: waitlist.phone" />
                         </div>
                         <div class="col-5">
                             <label class="form-label small"><t key="salon.book.waitlist.time_preference">Saat Tercihi</t></label>
                             <select class="form-select form-select-sm" data-bind="value: waitlist.timeSlot">
-                                <option value="Farketmez"><t key="salon.book.waitlist.any_time">Farketmez</t></option>
+                                <option value="Farketmez"><t key="salon.book.waitlist.any_time_label">Fark etmez</t></option>
                                 <option value="Sabah"><t key="salon.book.waitlist.morning">Sabah</t></option>
                                 <option value="Ogle"><t key="salon.book.waitlist.noon">Öğle</t></option>
                                 <option value="Aksam"><t key="salon.book.waitlist.evening">Akşam</t></option>
@@ -568,7 +568,7 @@
                         </div>
                         <div class="col-12">
                             <label class="form-label small"><t key="salon.book.notes">Notlar (isteğe bağlı)</t></label>
-                            <textarea class="form-control form-control-sm" rows="2" data-bind="value: waitlist.notes"></textarea>
+                            <textarea class="form-control form-control-sm" rows="2" data-bind="textInput: waitlist.notes"></textarea>
                         </div>
                     </div>
                 </div>
@@ -617,6 +617,9 @@
                     </div>
                     <!-- /ko -->
                     <div id="membership-checkout-container" class="mt-3" style="display:none;" data-bind="visible: membershipCheckoutActive"></div>
+                    <button type="button" class="btn btn-outline-secondary w-100 mb-2" data-bs-dismiss="modal" data-bind="visible: !membershipCheckoutActive()">
+                        <t key="salon.book.waitlist.cancel">Vazgeç</t>
+                    </button>
                     <button class="btn btn-book w-100" data-bind="visible: !membershipCheckoutActive(), click: submitSignup, disable: isSubmitting">
                         <span data-bind="visible: isSubmitting" class="spinner-border spinner-border-sm me-1"></span>
                         <i class="bi bi-check-lg me-1" data-bind="visible: !isSubmitting()"></i>

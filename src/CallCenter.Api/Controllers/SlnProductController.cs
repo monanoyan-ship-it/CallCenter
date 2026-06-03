@@ -248,11 +248,11 @@ public class SlnProductController : ControllerBase
     [RequireSalonPage("Suppliers")]
     public async Task<ActionResult<SlnSupplierOrderDto>> CreateSupplierOrder([FromBody] SlnSupplierOrderCreateDto dto)
     {
-        var userId = GetUserId();
+        var personnelId = GetPersonnelId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error, order) = await _productFactory.CreateSupplierOrderAsync(dto, userId, customerId);
+        var (success, error, order) = await _productFactory.CreateSupplierOrderAsync(dto, personnelId, customerId);
         return success && order != null ? Ok(order) : BadRequest(error);
     }
 
@@ -261,11 +261,11 @@ public class SlnProductController : ControllerBase
     [RequireSalonPage("Suppliers")]
     public async Task<ActionResult> UpdateSupplierOrderStatus(int id, [FromBody] SlnSupplierOrderStatusUpdateDto dto)
     {
-        var userId = GetUserId();
+        var personnelId = GetPersonnelId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
-        var (success, error) = await _productFactory.UpdateSupplierOrderStatusAsync(id, dto, userId, customerId, ResolveBranchId(dto.BranchId));
+        var (success, error) = await _productFactory.UpdateSupplierOrderStatusAsync(id, dto, personnelId, customerId, ResolveBranchId(dto.BranchId));
         return success ? Ok() : BadRequest(error);
     }
 
@@ -323,7 +323,7 @@ public class SlnProductController : ControllerBase
     [RequireSalonPage("Products")]
     public async Task<ActionResult> AddStockMovement(int id, [FromBody] SlnStockMovementRequest req, [FromQuery] int? branchId)
     {
-        var userId = GetUserId();
+        var personnelId = GetPersonnelId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
@@ -331,7 +331,7 @@ public class SlnProductController : ControllerBase
         if (target.Error != null) return target.Error;
 
         var (success, error) = await _productFactory.AddStockMovementAsync(
-            id, req.MovementTypeId, req.Quantity, req.UnitPrice, req.SupplierId, req.Notes, userId, customerId, target.BranchId);
+            id, req.MovementTypeId, req.Quantity, req.UnitPrice, req.SupplierId, req.Notes, personnelId, customerId, target.BranchId);
 
         return success ? Ok() : BadRequest(error);
     }
@@ -341,7 +341,7 @@ public class SlnProductController : ControllerBase
     [RequireSalonPage("Products")]
     public async Task<ActionResult> TransferStock(int id, [FromBody] SlnStockTransferRequest req, [FromQuery] int? branchId)
     {
-        var userId = GetUserId();
+        var personnelId = GetPersonnelId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
@@ -349,7 +349,7 @@ public class SlnProductController : ControllerBase
         if (target.Error != null) return target.Error;
 
         var (success, error) = await _productFactory.TransferStockAsync(
-            id, target.BranchId, req.ToBranchId, req.Quantity, req.Notes, userId, customerId);
+            id, target.BranchId, req.ToBranchId, req.Quantity, req.Notes, personnelId, customerId);
 
         return success ? Ok() : BadRequest(error);
     }
@@ -359,7 +359,7 @@ public class SlnProductController : ControllerBase
     [RequireSalonPage("Products")]
     public async Task<ActionResult> AdjustStockCount(int id, [FromBody] SlnStockCountRequest req, [FromQuery] int? branchId)
     {
-        var userId = GetUserId();
+        var personnelId = GetPersonnelId();
         var customerId = GetCustomerId();
         if (customerId == 0) return Unauthorized();
 
@@ -367,13 +367,16 @@ public class SlnProductController : ControllerBase
         if (target.Error != null) return target.Error;
 
         var (success, error) = await _productFactory.AdjustStockCountAsync(
-            id, target.BranchId, req.CountedQuantity, req.Notes, userId, customerId);
+            id, target.BranchId, req.CountedQuantity, req.Notes, personnelId, customerId);
 
         return success ? Ok() : BadRequest(error);
     }
 
     private int GetUserId()
         => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+
+    private int GetPersonnelId()
+        => int.Parse(User.FindFirst("CustomerPersonnelId")?.Value ?? "0");
 
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
@@ -384,13 +387,22 @@ public class SlnProductController : ControllerBase
         return int.TryParse(claim, out var id) && id > 0 ? id : null;
     }
 
+    private int GetCustomerRoleId()
+    {
+        var claim = User.FindFirst("CustomerRoleId")?.Value;
+        return int.TryParse(claim, out var roleId) ? roleId : SalonRoles.Ids.SalonOwner;
+    }
+
+    private int? GetBranchScopeId()
+        => GetCustomerRoleId() == SalonRoles.Ids.SalonOwner ? null : GetBranchId();
+
     private int? ResolveBranchId(int? requestedBranchId)
-        => GetBranchId() ?? requestedBranchId;
+        => GetBranchScopeId() ?? requestedBranchId;
 
     private (int? BranchId, ActionResult? Error) ResolveMutationBranchTarget(int? requestedBranchId, bool allBranches)
     {
-        var claimBranchId = GetBranchId();
-        if (claimBranchId.HasValue) return (claimBranchId.Value, null);
+        var branchScopeId = GetBranchScopeId();
+        if (branchScopeId.HasValue) return (branchScopeId.Value, null);
         if (allBranches) return (null, null);
         if (requestedBranchId.HasValue && requestedBranchId.Value > 0) return (requestedBranchId.Value, null);
         return (null, BadRequest(BranchTargetRequiredMessage));

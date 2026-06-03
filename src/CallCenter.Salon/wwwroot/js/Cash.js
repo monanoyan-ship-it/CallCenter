@@ -222,9 +222,9 @@ function CashViewModel() {
         }).done(function () {
             openRegisterModal.hide();
             self.loadRegisters();
-            toastr.success(slnJsT('salon.cash.js.kasa_acildi', 'Kasa acildi'));
+            toastr.success(slnJsT('salon.cash.js.register_opened', 'Kasa açıldı'));
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || slnJsT('salon.cash.js.kasa_acilamadi', 'Kasa acilamadi'));
+            toastr.error(xhr.responseJSON?.error || slnJsT('salon.cash.js.register_open_failed', 'Kasa açılamadı'));
         }).always(function () {
             self.isSaving(false);
         });

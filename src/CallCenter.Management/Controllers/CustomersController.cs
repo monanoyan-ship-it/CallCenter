@@ -6,13 +6,13 @@ public class CustomersController : MgmtBaseController
 {
     public IActionResult Index()
     {
-        ViewData["Title"] = "Musteriler";
+        ViewData["Title"] = "Müşteriler";
         return View();
     }
 
     public IActionResult Detail(int id)
     {
-        ViewData["Title"] = "Musteri Detay";
+        ViewData["Title"] = "Müşteri Detay";
         ViewData["CustomerId"] = id;
         return View();
     }
