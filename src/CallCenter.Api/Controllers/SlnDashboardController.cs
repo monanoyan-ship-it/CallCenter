@@ -22,6 +22,28 @@ public class SlnDashboardController : ControllerBase
         return Ok(await _factory.GetDashboardAsync(customerId, GetBranchId(), GetRoleId(), GetPersonnelId()));
     }
 
+    // Hizmet personeli kendi hakedisi (ciro + prim). Default donem: bu ayin 1'i -> bugun (UTC).
+    [HttpGet("my-earnings")]
+    public async Task<ActionResult> GetMyEarnings([FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate)
+    {
+        var customerId = GetCustomerId();
+        if (customerId == 0) return Unauthorized();
+
+        var (startUtc, endUtc) = ResolveRange(startDate, endDate);
+        return Ok(await _factory.GetMyEarningsAsync(customerId, GetPersonnelId(), startUtc, endUtc, GetBranchId()));
+    }
+
+    private static (DateTime StartUtc, DateTime EndUtc) ResolveRange(DateTime? startDate, DateTime? endDate)
+    {
+        var todayUtc = DateTime.UtcNow.Date;
+        var start = startDate?.Date ?? new DateTime(todayUtc.Year, todayUtc.Month, 1);
+        var endInclusive = endDate?.Date ?? todayUtc;
+        var startUtc = DateTime.SpecifyKind(start, DateTimeKind.Utc);
+        // Bitis tarihi dahil olsun diye +1 gun (exclusive ust sinir)
+        var endUtc = DateTime.SpecifyKind(endInclusive, DateTimeKind.Utc).AddDays(1);
+        return (startUtc, endUtc);
+    }
+
     private int GetCustomerId()
         => int.Parse(User.FindFirst("CustomerId")?.Value ?? "0");
 

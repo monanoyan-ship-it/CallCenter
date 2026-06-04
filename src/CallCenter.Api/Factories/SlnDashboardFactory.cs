@@ -1,6 +1,7 @@
 using CallCenter.Api.EntityServices.Interfaces;
 using CallCenter.Api.Factories.Interfaces;
 using CallCenter.Api.Services.Interfaces;
+using CallCenter.Shared.Entities;
 using CallCenter.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,6 +20,8 @@ public class SlnDashboardFactory : ISlnDashboardFactory
     private readonly ServicePricingFactory _pricingFactory;
     private readonly ISubscriptionFactory _subscriptionFactory;
     private readonly ISlnStockBalanceService _stockBalances;
+    private readonly ISlnInvoiceItemEntityService _invoiceItems;
+    private readonly ISlnPersonnelCommissionEntityService _commissions;
 
     public SlnDashboardFactory(
         ISlnClientEntityService clients,
@@ -31,7 +34,9 @@ public class SlnDashboardFactory : ISlnDashboardFactory
         ISlnBranchEntityService branches,
         ServicePricingFactory pricingFactory,
         ISubscriptionFactory subscriptionFactory,
-        ISlnStockBalanceService stockBalances)
+        ISlnStockBalanceService stockBalances,
+        ISlnInvoiceItemEntityService invoiceItems,
+        ISlnPersonnelCommissionEntityService commissions)
     {
         _clients = clients;
         _appointments = appointments;
@@ -44,6 +49,8 @@ public class SlnDashboardFactory : ISlnDashboardFactory
         _pricingFactory = pricingFactory;
         _subscriptionFactory = subscriptionFactory;
         _stockBalances = stockBalances;
+        _invoiceItems = invoiceItems;
+        _commissions = commissions;
     }
 
     public async Task<object> GetDashboardAsync(int customerId, int? branchId = null, int roleId = 0, int personnelId = 0)
@@ -299,4 +306,79 @@ public class SlnDashboardFactory : ISlnDashboardFactory
 
     private static decimal ResolveStockFallback(int? branchId, decimal productTotalStock)
         => branchId.HasValue ? 0m : productTotalStock;
+
+    // ═══ Hizmet personeli: kendi hakedisi (ciro + prim) ═══
+    public async Task<object> GetMyEarningsAsync(int customerId, int personnelId, DateTime startUtc, DateTime endUtc, int? branchId = null)
+    {
+        // personnelId yoksa bos doner (self-scoped; veri sizmaz)
+        if (personnelId <= 0)
+            return new
+            {
+                startDate = startUtc,
+                endDate = endUtc,
+                totalRevenue = 0m,
+                totalCommission = 0m,
+                hasCommission = false,
+                lines = Array.Empty<object>()
+            };
+
+        // Kendi fatura kalemleri (staff-revenue ile ayni: StatusId != 3 = iade/iptal haric)
+        var query = _invoiceItems.GetAllQueryable()
+            .Include(i => i.Invoice)
+            .Include(i => i.Service)
+            .Include(i => i.Product)
+            .Where(i => i.PersonnelId == personnelId
+                     && i.Invoice != null
+                     && i.Invoice.CustomerId == customerId
+                     && i.Invoice.InvoiceDate >= startUtc
+                     && i.Invoice.InvoiceDate < endUtc
+                     && i.Invoice.StatusId != 3);
+
+        if (branchId.HasValue)
+            query = query.Where(i => i.Invoice!.BranchId == branchId.Value);
+
+        var items = await query
+            .OrderByDescending(i => i.Invoice!.InvoiceDate)
+            .ToListAsync();
+
+        // Prim tanimlari (bordro ile ayni cozumleme: en-ozelden genele)
+        var commissions = await _commissions.GetAllQueryable()
+            .Where(c => c.PersonnelId == personnelId)
+            .ToListAsync();
+
+        var lines = items.Select(i =>
+        {
+            var isProduct = i.ProductId.HasValue;
+            return new
+            {
+                date = i.Invoice!.InvoiceDate,
+                isProduct,
+                name = isProduct ? (i.Product?.Name ?? "-") : (i.Service?.Name ?? "-"),
+                quantity = i.Quantity,
+                lineTotal = i.LineTotal,
+                commission = ResolveCommission(i, commissions)
+            };
+        }).ToList();
+
+        return new
+        {
+            startDate = startUtc,
+            endDate = endUtc,
+            totalRevenue = lines.Sum(l => l.lineTotal),
+            totalCommission = lines.Sum(l => l.commission),
+            hasCommission = commissions.Count > 0,
+            lines
+        };
+    }
+
+    /// <summary>Bordro (PortalFactory.CalculateCommission) ile AYNI prim cozumlemesi: en ozel kural once.</summary>
+    private static decimal ResolveCommission(SlnInvoiceItem item, List<SlnPersonnelCommission> commissions)
+    {
+        var rule = commissions.FirstOrDefault(c => c.ServiceId == item.ServiceId && c.ProductId == item.ProductId)
+                ?? commissions.FirstOrDefault(c => c.ServiceId == item.ServiceId && c.ProductId == null)
+                ?? commissions.FirstOrDefault(c => c.ProductId == item.ProductId && c.ServiceId == null)
+                ?? commissions.FirstOrDefault(c => c.ServiceId == null && c.ProductId == null);
+        if (rule == null) return 0m;
+        return rule.IsPercentage ? item.LineTotal * rule.Rate / 100 : rule.Rate * item.Quantity;
+    }
 }

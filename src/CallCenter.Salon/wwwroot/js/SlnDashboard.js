@@ -13,6 +13,10 @@
     function fmtMoney(n) {
         return (Number(n) || 0).toLocaleString(DASH_LOCALE, { maximumFractionDigits: 2 });
     }
+    function fmtDate(iso) {
+        var s = String(iso || '').substring(0, 10).split('-');
+        return s.length === 3 ? s[2] + '.' + s[1] + '.' + s[0] : (iso || '-');
+    }
     function tmpl(text, values) {
         return String(text || '').replace(/\{(\w+)\}/g, function (_, key) {
             return values && values[key] != null ? values[key] : '';
@@ -203,6 +207,38 @@
             }
         }
 
+        // "Hakedişim" karti: tarih araligi (default bu ay) + ozet + hareketler (yalnizca bir kez)
+        var apptRow = apptCol && apptCol.closest('.row');
+        if (apptRow && !document.getElementById('myEarningsRow')) {
+            var now = new Date();
+            var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+            var firstDay = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-01';
+            var today = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+
+            apptRow.insertAdjacentHTML('afterend',
+                '<div class="row g-3 mt-1" id="myEarningsRow"><div class="col-12">' +
+                '<div class="card border-0 shadow-sm">' +
+                '<div class="card-header bg-white border-0 fw-semibold d-flex flex-wrap align-items-center justify-content-between gap-2">' +
+                '<span><i class="bi bi-cash-coin me-2 text-success"></i>' + escapeHtml(dashT('salon.dashboard.earnings.title', 'Hakedişim')) + '</span>' +
+                '<div class="d-flex align-items-center gap-2">' +
+                '<input type="date" id="earnStart" class="form-control form-control-sm" style="width:auto" value="' + firstDay + '">' +
+                '<span class="text-muted">–</span>' +
+                '<input type="date" id="earnEnd" class="form-control form-control-sm" style="width:auto" value="' + today + '">' +
+                '<button id="earnApply" type="button" class="btn btn-sm btn-primary">' + escapeHtml(dashT('salon.dashboard.earnings.apply', 'Uygula')) + '</button>' +
+                '</div></div>' +
+                '<div class="card-body">' +
+                '<div class="d-flex flex-wrap gap-4 mb-3">' +
+                '<div><div class="text-muted small">' + escapeHtml(dashT('salon.dashboard.earnings.total_revenue', 'Toplam Ciro')) + '</div><div class="fw-bold fs-5" id="earnRevenue">-</div></div>' +
+                '<div><div class="text-muted small">' + escapeHtml(dashT('salon.dashboard.earnings.total_commission', 'Toplam Prim')) + '</div><div class="fw-bold fs-5 text-success" id="earnCommission">-</div></div>' +
+                '</div>' +
+                '<div id="earnList"><p class="text-muted small mb-0">' + escapeHtml(dashT('salon.common.loading', 'Yükleniyor...')) + '</p></div>' +
+                '</div></div></div></div>');
+
+            var btn = document.getElementById('earnApply');
+            if (btn) btn.addEventListener('click', loadMyEarnings);
+            loadMyEarnings();
+        }
+
         // Bilgilendirme bandi (yalnizca bir kez)
         if (!document.getElementById('personalScopeNote')) {
             var anchor = document.querySelector('.row.g-3.mb-4');
@@ -214,6 +250,60 @@
                     '</span></div>');
             }
         }
+    }
+
+    // Hakedisim: secili tarih araligi icin kendi ciro + prim ozeti ve hareket listesi
+    function loadMyEarnings() {
+        var s = document.getElementById('earnStart');
+        var e = document.getElementById('earnEnd');
+        var list = document.getElementById('earnList');
+        if (!s || !e || !list) return;
+        list.innerHTML = '<p class="text-muted small mb-0">' + escapeHtml(dashT('salon.common.loading', 'Yükleniyor...')) + '</p>';
+
+        $.get('/proxy/sln-dashboard/my-earnings', { startDate: s.value, endDate: e.value }, function (d) {
+            var rev = document.getElementById('earnRevenue');
+            var com = document.getElementById('earnCommission');
+            if (rev) rev.textContent = fmtMoney(d.totalRevenue) + ' ₺';
+            if (com) com.textContent = d.hasCommission ? (fmtMoney(d.totalCommission) + ' ₺') : '—';
+
+            var lines = d.lines || [];
+            if (!lines.length) {
+                list.innerHTML = '<p class="text-muted small mb-0">' + escapeHtml(dashT('salon.dashboard.earnings.no_records', 'Bu aralıkta işlem yok.')) + '</p>';
+                return;
+            }
+
+            var rows = lines.map(function (l) {
+                var typeLabel = l.isProduct
+                    ? dashT('salon.dashboard.earnings.type_product', 'Ürün')
+                    : dashT('salon.dashboard.earnings.type_service', 'Hizmet');
+                var typeCss = l.isProduct ? 'bg-info-subtle text-info-emphasis' : 'bg-primary-subtle text-primary-emphasis';
+                return '<tr>' +
+                    '<td class="small">' + fmtDate(l.date) + '</td>' +
+                    '<td><span class="badge ' + typeCss + '">' + escapeHtml(typeLabel) + '</span></td>' +
+                    '<td class="small">' + escapeHtml(l.name) + '</td>' +
+                    '<td class="small text-end">' + fmt(l.quantity) + '</td>' +
+                    '<td class="small text-end">' + fmtMoney(l.lineTotal) + ' ₺</td>' +
+                    '<td class="small text-end fw-semibold text-success">' + (d.hasCommission ? (fmtMoney(l.commission) + ' ₺') : '—') + '</td>' +
+                    '</tr>';
+            }).join('');
+
+            var hint = d.hasCommission ? '' :
+                '<div class="alert alert-warning py-1 px-2 small mb-2">' +
+                escapeHtml(dashT('salon.dashboard.earnings.no_commission_hint', 'Prim tanımlı değil — yalnızca ciro gösteriliyor.')) + '</div>';
+
+            list.innerHTML = hint +
+                '<div class="table-responsive"><table class="table table-sm align-middle mb-0">' +
+                '<thead><tr>' +
+                '<th class="small">' + escapeHtml(dashT('salon.dashboard.earnings.col_date', 'Tarih')) + '</th>' +
+                '<th class="small">' + escapeHtml(dashT('salon.dashboard.earnings.col_type', 'Tür')) + '</th>' +
+                '<th class="small">' + escapeHtml(dashT('salon.dashboard.earnings.col_name', 'İşlem')) + '</th>' +
+                '<th class="small text-end">' + escapeHtml(dashT('salon.dashboard.earnings.col_qty', 'Adet')) + '</th>' +
+                '<th class="small text-end">' + escapeHtml(dashT('salon.dashboard.earnings.col_amount', 'Tutar')) + '</th>' +
+                '<th class="small text-end">' + escapeHtml(dashT('salon.dashboard.earnings.col_commission', 'Prim')) + '</th>' +
+                '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+        }).fail(function () {
+            list.innerHTML = '<p class="text-danger small mb-0">' + escapeHtml(dashT('salon.common.error', 'Hata')) + '</p>';
+        });
     }
 
     function loadDashboard() {
