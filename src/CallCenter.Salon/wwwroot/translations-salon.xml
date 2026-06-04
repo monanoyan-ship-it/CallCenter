@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Translations ExportDate="2026-04-13">
   <Keys>
+    <Key Id="salon.waitlist.scope.label" Module="waitlist" Description="Waitlist scope selector"><Value Lang="tr">Bekleme listesi kapsamı</Value><Value Lang="en">Waitlist scope</Value></Key>
+    <Key Id="salon.waitlist.scope.active" Module="waitlist" Description="Active waitlist records"><Value Lang="tr">Aktif</Value><Value Lang="en">Active</Value></Key>
+    <Key Id="salon.waitlist.scope.archive" Module="waitlist" Description="Archived waitlist records"><Value Lang="tr">Arşiv</Value><Value Lang="en">Archive</Value></Key>
+    <Key Id="salon.waitlist.scope.all" Module="waitlist" Description="All waitlist records"><Value Lang="tr">Tümü</Value><Value Lang="en">All</Value></Key>
     <Key Id="salon.book.branch.label" Module="book" Description="Public booking branch selector label"><Value Lang="tr">Randevu şubesi</Value><Value Lang="en">Appointment branch</Value><Value Lang="de">Terminfiliale</Value><Value Lang="ar">فرع الموعد</Value><Value Lang="ru">Филиал записи</Value></Key>
     <Key Id="salon.book.branch.hint" Module="book" Description="Public booking branch selector hint"><Value Lang="tr">Randevu almak istediğiniz şubeyi seçin. Hizmet ve saatler seçilen şubeye göre gösterilir.</Value><Value Lang="en">Choose the branch for your appointment. Services and available times are shown for the selected branch.</Value><Value Lang="de">Wählen Sie die Filiale für Ihren Termin. Leistungen und freie Zeiten werden für die ausgewählte Filiale angezeigt.</Value><Value Lang="ar">اختر الفرع الذي تريد حجز الموعد فيه. تظهر الخدمات والأوقات المتاحة حسب الفرع المحدد.</Value><Value Lang="ru">Выберите филиал для записи. Услуги и свободное время показываются для выбранного филиала.</Value></Key>
     <!-- ═══ COMMON ═══ -->

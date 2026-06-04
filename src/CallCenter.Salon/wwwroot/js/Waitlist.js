@@ -86,6 +86,7 @@ function WaitlistViewModel() {
     self.services = ko.observableArray([]);
     self.staff = ko.observableArray([]);
     self.searchQuery = ko.observable('');
+    self.waitlistScope = ko.observable('active');
     self.isSaving = ko.observable(false);
 
     self.form = {
@@ -159,13 +160,16 @@ function WaitlistViewModel() {
     var formModal;
 
     self.loadWaitlist = function () {
-        // Tum kayitlari getir (date filter UI tarafinda yapilir, terminal olmayan aksiyon bekleyenleri goster)
-        $.ajax({ url: '/proxy/sln-waitlist?scope=active', method: 'GET' }).done(function (data) {
+        var scope = self.waitlistScope() || 'active';
+        $.ajax({ url: '/proxy/sln-waitlist?scope=' + encodeURIComponent(scope), method: 'GET' }).done(function (data) {
             var items = data.items || data || [];
-            // Aksiyon bekleyenler: 1=Bekliyor, 2=Bildirildi, 3=Randevu Alindi. Terminal: 4=Iptal, 5=Gerceklesti.
-            self.waitlistEntries(items.filter(function (e) { return e.statusId === 1 || e.statusId === 2 || e.statusId === 3; }));
+            self.waitlistEntries(items);
         });
     };
+
+    self.waitlistScope.subscribe(function () {
+        self.loadWaitlist();
+    });
 
     self.loadLookups = function () {
         $.ajax({ url: '/proxy/sln-clients', method: 'GET' }).done(function (data) {
@@ -227,11 +231,6 @@ function WaitlistViewModel() {
     self.notifyEntry = function (entry) {
         $.ajax({ url: '/proxy/sln-waitlist/' + entry.id + '/status/2', method: 'PUT' })
             .done(function () { self.loadWaitlist(); toastr.success(slnJsT('salon.waitlist.js.musteri_bilgilendirildi', 'Müşteri bilgilendirildi')); });
-    };
-
-    self.appointmentMade = function (entry) {
-        $.ajax({ url: '/proxy/sln-waitlist/' + entry.id + '/status/3', method: 'PUT' })
-            .done(function () { self.loadWaitlist(); toastr.success(slnJsT('salon.waitlist.js.randevu_alindi_olarak_isaretlendi', 'Randevu alindi olarak isaretlendi')); });
     };
 
     self.markCompleted = function (entry) {
@@ -304,27 +303,23 @@ function WaitlistViewModel() {
         }
         self.isConverting(true);
         var startTime = self.convertForm.date() + 'T' + self.convertForm.time() + ':00Z';
-        var apptPayload = {
-            slnClientId: self.convertForm.slnClientId(),
+        var convertPayload = {
             personnelId: parseInt(self.convertForm.personnelId()),
             branchId: self.resolveFormBranchId(self.convertForm.personnelId()),
-            serviceIds: [self.convertForm.serviceId()],
             startTime: startTime,
             notes: self.convertForm.notes() || null
         };
         $.ajax({
-            url: '/proxy/sln-appointments', method: 'POST',
-            contentType: 'application/json', data: JSON.stringify(apptPayload)
+            url: '/proxy/sln-waitlist/' + self.convertCtx.entryId() + '/convert',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(convertPayload)
         }).done(function () {
-            // Bekleme kaydini "Randevu Alindi" olarak isaretle
-            $.ajax({ url: '/proxy/sln-waitlist/' + self.convertCtx.entryId() + '/status/3', method: 'PUT' })
-                .always(function () {
-                    self.isConverting(false);
-                    convertModal.hide();
-                    self.loadWaitlist();
-                    self.loadTodayAppointments();
-                    toastr.success(slnJsT('salon.waitlist.js.randevu_olusturuldu_bekleme_kaydi_guncellendi', 'Randevu oluşturuldu, bekleme kaydi güncellendi'));
-                });
+            self.isConverting(false);
+            convertModal.hide();
+            self.loadWaitlist();
+            self.loadTodayAppointments();
+            toastr.success(slnJsT('salon.waitlist.js.randevu_olusturuldu_bekleme_kaydi_guncellendi', 'Randevu oluşturuldu, bekleme kaydi güncellendi'));
         }).fail(function (xhr) {
             self.isConverting(false);
             var err = (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) || xhr.responseText || slnJsT('salon.waitlist.js.randevu_olusturulamadi', 'Randevu oluşturulamadı');

@@ -55,7 +55,7 @@ public class SlnWaitlistFactoryTests : IDisposable
     }
 
     [Fact]
-    public async Task UpdateStatusAsync_AllowsLifecycleAndPreservesNotifiedAt()
+    public async Task UpdateStatusAsync_AllowsNotifyAndPreservesNotifiedAt()
     {
         await SeedWaitlistEntryAsync(SlnWaitlistStatuses.Ids.Waiting);
         var factory = CreateFactory();
@@ -73,9 +73,31 @@ public class SlnWaitlistFactoryTests : IDisposable
             .Select(w => w.NotifiedAt)
             .SingleAsync();
         secondNotifiedAt.Should().Be(notifiedAt);
+    }
 
-        (await factory.UpdateStatusAsync(10, SlnWaitlistStatuses.Ids.AppointmentBooked, 1)).Success.Should().BeTrue();
-        (await factory.UpdateStatusAsync(10, SlnWaitlistStatuses.Ids.Completed, 1)).Success.Should().BeTrue();
+    [Fact]
+    public async Task UpdateStatusAsync_RejectsManualAppointmentBookedWithoutAppointmentLink()
+    {
+        await SeedWaitlistEntryAsync(SlnWaitlistStatuses.Ids.Notified);
+        var factory = CreateFactory();
+
+        var (success, error) = await factory.UpdateStatusAsync(10, SlnWaitlistStatuses.Ids.AppointmentBooked, 1);
+
+        success.Should().BeFalse();
+        error.Should().Be("Randevu alindi durumu sadece randevuya donustur akisiyle verilebilir");
+        (await GetStatusAsync()).Should().Be(SlnWaitlistStatuses.Ids.Notified);
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_AllowsCompletedForLinkedAppointmentBookedEntry()
+    {
+        await SeedWaitlistEntryAsync(SlnWaitlistStatuses.Ids.AppointmentBooked, slnAppointmentId: 900);
+        var factory = CreateFactory();
+
+        var (success, error) = await factory.UpdateStatusAsync(10, SlnWaitlistStatuses.Ids.Completed, 1);
+
+        success.Should().BeTrue();
+        error.Should().BeNull();
         (await GetStatusAsync()).Should().Be(SlnWaitlistStatuses.Ids.Completed);
     }
 
@@ -454,7 +476,7 @@ public class SlnWaitlistFactoryTests : IDisposable
         _db.ChangeTracker.Clear();
     }
 
-    private async Task SeedWaitlistEntryAsync(int statusId)
+    private async Task SeedWaitlistEntryAsync(int statusId, int? slnAppointmentId = null)
     {
         _db.Customers.Add(new Customer
         {
@@ -471,7 +493,8 @@ public class SlnWaitlistFactoryTests : IDisposable
             SlnClientId = 20,
             ServiceId = 30,
             PreferredDate = DateTime.UtcNow.Date,
-            StatusId = statusId
+            StatusId = statusId,
+            SlnAppointmentId = slnAppointmentId
         });
         await _db.SaveChangesAsync();
         _db.ChangeTracker.Clear();

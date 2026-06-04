@@ -248,6 +248,12 @@ public class SlnWaitlistFactory : ISlnWaitlistFactory
             return (false, "Gecersiz bekleme listesi durumu");
         if (!SlnWaitlistStatuses.CanTransition(entry.StatusId, statusId))
             return (false, "Bu bekleme listesi durum gecisi yapilamaz");
+        if (statusId == SlnWaitlistStatuses.Ids.AppointmentBooked && !entry.SlnAppointmentId.HasValue)
+            return (false, "Randevu alindi durumu sadece randevuya donustur akisiyle verilebilir");
+        if (entry.StatusId == SlnWaitlistStatuses.Ids.AppointmentBooked
+            && statusId == SlnWaitlistStatuses.Ids.Completed
+            && !entry.SlnAppointmentId.HasValue)
+            return (false, "Randevu baglantisi olmayan bekleme kaydi tamamlanamaz");
         if (entry.StatusId == statusId)
             return (true, null);
 
