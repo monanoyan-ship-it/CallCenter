@@ -115,9 +115,9 @@ public class SlnDashboardFactory : ISlnDashboardFactory
             };
         }
 
-        // Toplam musteri (firma bazli)
+        // Toplam musteri (firma bazli; bagini kopardiysa IsActive=false sayilmaz)
         var totalClients = await _clients.GetAllQueryable()
-            .CountAsync(c => c.CustomerId == customerId && !c.IsBlacklisted);
+            .CountAsync(c => c.CustomerId == customerId && c.IsActive && !c.IsBlacklisted);
 
         // Bugunun cirosu — odenmis (StatusId=2) adisyonlar
         var revQuery = _invoices.GetAllQueryable()
@@ -181,7 +181,7 @@ public class SlnDashboardFactory : ISlnDashboardFactory
         var today = DateTime.UtcNow.Date;
         var weekEnd = today.AddDays(7);
         var clientsWithBd = await _clients.GetAllQueryable()
-            .Where(c => c.CustomerId == customerId && c.BirthDate.HasValue)
+            .Where(c => c.CustomerId == customerId && c.IsActive && c.BirthDate.HasValue)
             .Select(c => new { c.Id, c.FullName, c.BirthDate })
             .ToListAsync();
 

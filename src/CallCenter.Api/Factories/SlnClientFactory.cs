@@ -48,8 +48,9 @@ public class SlnClientFactory : ISlnClientFactory
 
     public async Task<object> GetClientsAsync(int customerId, string? search, int? branchId = null, int page = 1, int pageSize = 50)
     {
+        // IsActive=false => musteri salonla bagini kopardi (LeaveSalon). Arama/listede gosterme.
         var query = _clients.GetAllQueryable()
-            .Where(c => c.CustomerId == customerId);
+            .Where(c => c.CustomerId == customerId && c.IsActive);
         query = SalonBranchScope.ApplyToClients(query, branchId);
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -116,8 +117,9 @@ public class SlnClientFactory : ISlnClientFactory
 
     public async Task<SlnClientDetailDto?> GetClientDetailAsync(int clientId, int customerId, int? branchId = null)
     {
+        // Bagini kopardiysa (IsActive=false) salon kartina erisemez.
         var query = _clients.GetAllQueryable()
-            .Where(c => c.Id == clientId && c.CustomerId == customerId);
+            .Where(c => c.Id == clientId && c.CustomerId == customerId && c.IsActive);
         query = SalonBranchScope.ApplyToClients(query, branchId);
 
         var client = await query
@@ -358,7 +360,7 @@ public class SlnClientFactory : ISlnClientFactory
     public async Task<SlnClientSuggestionsDto> GetSuggestionsAsync(int customerId, int? branchId = null)
     {
         var query = _clients.GetAllQueryable()
-            .Where(c => c.CustomerId == customerId);
+            .Where(c => c.CustomerId == customerId && c.IsActive);
         query = SalonBranchScope.ApplyToClients(query, branchId);
 
         var clients = await query
