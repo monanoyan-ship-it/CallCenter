@@ -9,6 +9,7 @@ function SalesViewModel() {
     self.products = ko.observableArray([]);
     self.clientList = ko.observableArray([]);
     self.staffList = ko.observableArray([]);
+    self.personnelPrices = ko.observableArray([]);
     self.recipes = ko.observableArray([]);
     self.packageDefinitions = ko.observableArray([]);
     self.clientPackages = ko.observableArray([]);
@@ -113,6 +114,38 @@ function SalesViewModel() {
         var value = parseFloat(typeof item.editPrice === 'function' ? item.editPrice() : item.editPrice);
         return isNaN(value) ? item.unitPrice : value;
     }
+
+    function resolvePersonnelServicePrice(serviceId, personnelId) {
+        var sid = parseInt(serviceId, 10) || 0;
+        var pid = parseInt(personnelId || self.selectedPersonnelId(), 10) || 0;
+        if (!sid || !pid) return null;
+
+        var price = self.personnelPrices().find(function (p) {
+            return parseInt(p.personnelId, 10) === pid && parseInt(p.serviceId, 10) === sid;
+        });
+        return price ? (parseFloat(price.price) || 0) : null;
+    }
+
+    function applyPersonnelPriceToItem(item, personnelId) {
+        if (!item || !item.serviceId || item.forceSessionSale === true || item.usePackageSession === true || item.serviceSessionPlanId || item.loyaltyRewardId) return;
+        self.ensureBenefitFields(item);
+        if (item.manualPrice && item.manualPrice()) return;
+
+        var standardPrice = parseFloat(item.standardPrice);
+        if (isNaN(standardPrice)) standardPrice = parseFloat(item.unitPrice) || 0;
+
+        var personnelPrice = resolvePersonnelServicePrice(item.serviceId, personnelId);
+        var effectivePrice = personnelPrice !== null ? personnelPrice : standardPrice;
+        item.unitPrice = effectivePrice;
+        item.editPrice(effectivePrice);
+    }
+
+    self.applyPersonnelPricesToCart = function () {
+        var personnelId = self.selectedPersonnelId();
+        self.cartItems().forEach(function (item) {
+            applyPersonnelPriceToItem(item, personnelId);
+        });
+    };
 
     function createMaterialUsage(source) {
         source = source || {};
@@ -253,6 +286,7 @@ function SalesViewModel() {
 
     self.ensureBenefitFields = function (item) {
         if (typeof item.benefitText !== 'function') item.benefitText = ko.observable(item.benefitText || null);
+        if (typeof item.manualPrice !== 'function') item.manualPrice = ko.observable(item.manualPrice === true);
         if (!('membershipId' in item)) item.membershipId = null;
         if (!('useMembershipBenefit' in item)) item.useMembershipBenefit = false;
         if (!('clientPackageId' in item)) item.clientPackageId = null;
@@ -270,7 +304,19 @@ function SalesViewModel() {
         item.usePackageSession = false;
         item.packageRemainingSessions = null;
         item.benefitText(null);
-        if (resetPrice !== false) item.editPrice(item.unitPrice);
+        if (resetPrice !== false && !(item.manualPrice && item.manualPrice())) item.editPrice(item.unitPrice);
+    };
+
+    self.markManualPrice = function (item) {
+        self.ensureBenefitFields(item);
+        item.manualPrice(true);
+        item.membershipId = null;
+        item.useMembershipBenefit = false;
+        item.clientPackageId = null;
+        item.usePackageSession = false;
+        item.packageRemainingSessions = null;
+        item.benefitText(null);
+        return true;
     };
 
     // Musteri secildiginde uyelik kontrolu
@@ -282,6 +328,11 @@ function SalesViewModel() {
         self.loyaltyPointsToRedeem(0);
         if (!newClientId || self.cartItems().length === 0) return;
         self.applyClientBenefits();
+    });
+
+    self.selectedPersonnelId.subscribe(function () {
+        self.applyPersonnelPricesToCart();
+        self.applyMembershipBenefits();
     });
 
     self.applyMembershipBenefits = function () {
@@ -348,7 +399,7 @@ function SalesViewModel() {
             item.membershipId = null;
             item.useMembershipBenefit = false;
             item.benefitText(null);
-            item.editPrice(item.unitPrice);
+            if (!(item.manualPrice && item.manualPrice())) item.editPrice(item.unitPrice);
             self.setSessionSaleHint(item);
         });
 
@@ -362,6 +413,10 @@ function SalesViewModel() {
             self.cartItems().forEach(function (item) {
                 if (item.usePackageSession === true) return;
                 self.ensureBenefitFields(item);
+                if (item.manualPrice && item.manualPrice()) {
+                    self.setSessionSaleHint(item);
+                    return;
+                }
                 var benefit = benefits.find(function (b) { return b.serviceId === item.serviceId; });
                 if (!benefit) {
                     self.setSessionSaleHint(item);
@@ -534,6 +589,7 @@ function SalesViewModel() {
             name: def.name || def.serviceName,
             unitPrice: def.price || 0,
             editPrice: ko.observable(def.price || 0),
+            manualPrice: ko.observable(false),
             quantity: ko.observable(1),
             benefitText: ko.observable(
                 slnJsT('salon.sales.loyalty_package_sale_hint', 'Ödeme alındığında müşteriye {count} seanslık sadakat paketi açılır.')
@@ -583,6 +639,12 @@ function SalesViewModel() {
         });
         self.loadProducts();
         self.loadLoyaltyConfig();
+        $.ajax({ url: '/proxy/sln-personnel-prices', method: 'GET' }).done(function (data) {
+            self.personnelPrices(normalizeList(data));
+            self.applyPersonnelPricesToCart();
+        }).fail(function () {
+            self.personnelPrices([]);
+        });
         $.ajax({ url: '/proxy/sln-clients?pageSize=1000', method: 'GET' }).done(function (data) {
             self.clientList(data.items || data);
         });
@@ -626,6 +688,7 @@ function SalesViewModel() {
             name: (plan.serviceName || 'Hizmet') + ' (Plan Seansı #' + ((parseInt(plan.usedSessions, 10) || 0) + 1) + ')',
             quantity: ko.observable(1),
             editPrice: ko.observable(0),
+            manualPrice: ko.observable(false),
             unitPrice: 0,
             discountAmount: ko.observable(0),
             membershipId: null,
@@ -682,6 +745,7 @@ function SalesViewModel() {
             name: (reward.rewardServiceName || 'Ödül') + ' (Sadakat Ödülü)',
             quantity: ko.observable(1),
             editPrice: ko.observable(0),
+            manualPrice: ko.observable(false),
             unitPrice: 0,
             discountAmount: ko.observable(0),
             membershipId: null,
@@ -751,13 +815,17 @@ function SalesViewModel() {
                     existing.quantity(newQuantity);
                     scaleMaterialUsages(existing, oldQuantity, newQuantity);
                 } else {
+                    var recipePrice = resolvePersonnelServicePrice(item.serviceId);
+                    var recipeStandardPrice = item.servicePrice || 0;
                     var recipeCartItem = {
                         serviceId: item.serviceId,
                         forceSessionSale: false,
                         name: item.serviceName,
                         sessionCount: self.serviceSessionCountForService(item.serviceId),
-                        unitPrice: item.servicePrice,
-                        editPrice: ko.observable(item.servicePrice),
+                        standardPrice: recipeStandardPrice,
+                        unitPrice: recipePrice !== null ? recipePrice : recipeStandardPrice,
+                        editPrice: ko.observable(recipePrice !== null ? recipePrice : recipeStandardPrice),
+                        manualPrice: ko.observable(false),
                         quantity: ko.observable(1),
                         benefitText: ko.observable(null),
                         materialUsages: ko.observableArray([])
@@ -788,13 +856,18 @@ function SalesViewModel() {
             self.applyMembershipBenefits();
             return;
         }
+        var serviceStandardPrice = service.price || 0;
+        var servicePersonnelPrice = resolvePersonnelServicePrice(service.id);
+        var serviceEffectivePrice = servicePersonnelPrice !== null ? servicePersonnelPrice : serviceStandardPrice;
         var cartItem = {
             serviceId: service.id,
             forceSessionSale: false,
             name: service.name,
             sessionCount: self.serviceSessionCountForService(service),
-            unitPrice: service.price,
-            editPrice: ko.observable(service.price),
+            standardPrice: serviceStandardPrice,
+            unitPrice: serviceEffectivePrice,
+            editPrice: ko.observable(serviceEffectivePrice),
+            manualPrice: ko.observable(false),
             quantity: ko.observable(1),
             benefitText: ko.observable(null),
             materialUsages: ko.observableArray([])
@@ -832,6 +905,7 @@ function SalesViewModel() {
             name: product.name,
             unitPrice: product.salePrice || 0,
             editPrice: ko.observable(product.salePrice || 0),
+            manualPrice: ko.observable(false),
             quantity: ko.observable(1),
             stockQuantity: stock,
             benefitText: ko.observable(null),
@@ -1101,12 +1175,17 @@ function SalesViewModel() {
             services.forEach(function (s) {
                 var svc = self.allServices().find(function (sv) { return sv.id === (s.slnServiceId || s.serviceId); });
                 if (svc) {
+                    var apptStandardPrice = svc.price || 0;
+                    var apptPersonnelPrice = resolvePersonnelServicePrice(svc.id, appt.personnelId);
+                    var apptEffectivePrice = apptPersonnelPrice !== null ? apptPersonnelPrice : apptStandardPrice;
                     var apptItem = {
                         serviceId: svc.id,
                         forceSessionSale: false,
                         name: svc.name,
-                        unitPrice: svc.price,
-                        editPrice: ko.observable(svc.price),
+                        standardPrice: apptStandardPrice,
+                        unitPrice: apptEffectivePrice,
+                        editPrice: ko.observable(apptEffectivePrice),
+                        manualPrice: ko.observable(false),
                         quantity: ko.observable(1),
                         benefitText: ko.observable(null),
                         materialUsages: ko.observableArray([])
@@ -1119,12 +1198,17 @@ function SalesViewModel() {
             appt.serviceNames.forEach(function (svcName) {
                 var svc = self.allServices().find(function (sv) { return sv.name === svcName; });
                 if (svc) {
+                    var namedStandardPrice = svc.price || 0;
+                    var namedPersonnelPrice = resolvePersonnelServicePrice(svc.id, appt.personnelId);
+                    var namedEffectivePrice = namedPersonnelPrice !== null ? namedPersonnelPrice : namedStandardPrice;
                     var namedApptItem = {
                         serviceId: svc.id,
                         forceSessionSale: false,
                         name: svc.name,
-                        unitPrice: svc.price,
-                        editPrice: ko.observable(svc.price),
+                        standardPrice: namedStandardPrice,
+                        unitPrice: namedEffectivePrice,
+                        editPrice: ko.observable(namedEffectivePrice),
+                        manualPrice: ko.observable(false),
                         quantity: ko.observable(1),
                         benefitText: ko.observable(null),
                         materialUsages: ko.observableArray([])
@@ -1169,6 +1253,13 @@ function SalesViewModel() {
 
                     var allFree = true;
                     self.cartItems().forEach(function (item) {
+                        self.ensureBenefitFields(item);
+                        if (item.manualPrice && item.manualPrice()) {
+                            self.setSessionSaleHint(item);
+                            allFree = false;
+                            return;
+                        }
+
                         var b = benefits.find(function (x) { return x.serviceId === item.serviceId; });
                         if (!b) { allFree = false; return; }
 

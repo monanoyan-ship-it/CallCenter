@@ -64,7 +64,13 @@
             opts.headers = Object.assign({ 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' }, opts.headers || {});
             return fetch('/public-proxy/' + path, opts).then(function(r) {
                 if (r.status === 401) { logout(); return; }
-                return parseJsonSafe(r);
+                return parseJsonSafe(r).then(function(data) {
+                    if (!r.ok) {
+                        var message = (data && (data.message || data.error)) || salonT('salon.panel.error.request_failed', 'Istek basarisiz.');
+                        throw new Error(message);
+                    }
+                    return data;
+                });
             });
         }
 
@@ -502,7 +508,23 @@
                     billingDistrict: document.getElementById('billingDistrict').value || null,
                     billingPostalCode: document.getElementById('billingPostalCode').value || null
                 })
-            }).then(function() { showToast(salonT('salon.panel.billing.saved', 'Fatura bilgileri güncellendi.'), true); });
+            }).then(function(data) {
+                if (data) {
+                    document.getElementById('billingType').value = data.billingType || 1;
+                    document.getElementById('billingFullName').value = data.billingFullName || data.fullName || '';
+                    document.getElementById('billingCompanyName').value = data.billingCompanyName || '';
+                    document.getElementById('billingTaxOffice').value = data.billingTaxOffice || '';
+                    document.getElementById('billingTaxNumber').value = data.billingTaxNumber || '';
+                    document.getElementById('billingAddress').value = data.billingAddress || '';
+                    document.getElementById('billingCity').value = data.billingCity || '';
+                    document.getElementById('billingDistrict').value = data.billingDistrict || '';
+                    document.getElementById('billingPostalCode').value = data.billingPostalCode || '';
+                    toggleBillingType();
+                }
+                showToast(salonT('salon.panel.billing.saved', 'Fatura bilgileri güncellendi.'), true);
+            }).catch(function(error) {
+                showToast((error && error.message) || salonT('salon.panel.billing.save_failed', 'Fatura bilgileri kaydedilemedi.'), false);
+            });
         }
 
         function loadPaymentHistory() {

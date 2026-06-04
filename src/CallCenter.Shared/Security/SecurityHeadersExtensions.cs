@@ -20,7 +20,7 @@ public static class SecurityHeadersExtensions
                 headers.TryAdd("Content-Security-Policy",
                     "default-src 'self'; " +
                     "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; " +
-                    "img-src 'self' data: blob: https:; " +
+                    "img-src 'self' data: blob: https: http://localhost:* https://localhost:* http://127.0.0.1:* https://127.0.0.1:*; " +
                     "font-src 'self' data:; " +
                     "style-src 'self' 'unsafe-inline' https://unpkg.com; " +
                     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://maps.googleapis.com https://static.cloudflareinsights.com https://unpkg.com https://*.iyzipay.com https://*.iyzico.com; " +

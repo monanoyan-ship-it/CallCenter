@@ -785,6 +785,10 @@ Codex 2026-06-03 devam: Full test suite PASS. Çalışan uygulama process lock'l
 
 Codex 2026-06-03 devam: Son client detail branch/text fixlerinden sonra full suite tekrar PASS. `dotnet test tests\CallCenter.Tests\CallCenter.Tests.csproj --no-restore -o .codex-build\tests-all-after-client-detail-fixes -p:UseSharedCompilation=false -m:1` -> 348/348 PASS. API + Salon canlı retest için restart bekleniyor.
 
+Codex 2026-06-03 post-commit gate PASS/PARTIAL. Commit `bfbac12` sonrasi full test suite ayri output ile tekrar kosuldu: `dotnet test tests\CallCenter.Tests\CallCenter.Tests.csproj --no-restore -o .codex-build\tests-after-checkpoint -p:UseSharedCompilation=false -m:1` -> 352/352 PASS. Ayrica process lock'a takilmamak icin ayri output klasorleriyle proje buildleri kosuldu ve hepsi 0 error PASS: API (`.codex-build\api-after-checkpoint`), Salon (`.codex-build\salon-after-checkpoint`), CRM (`.codex-build\crm-after-checkpoint`), Management (`.codex-build\management-after-checkpoint`). Browser click-test devami BLOCKED: Chrome extension secili profilde kurulu gorunmuyor ve native host registry kaydi eksik raporlandi; bu nedenle canli tiklamali smoke bu turda kosulamadi.
+
+Codex 2026-06-03 migration design-time PASS/PARTIAL. `dotnet ef migrations list --no-build --project src\CallCenter.Data --startup-project src\CallCenter.Api` PASS ve migration listesi `20260531221820_AddSalonServiceSessionTracking` son kaydina kadar okundu. Standart `dotnet ef migrations list` ve normal `dotnet build src\CallCenter.Api\CallCenter.Api.csproj` bu turda kod hatasindan degil calisan `CallCenter.Api (2792)` ve `Microsoft Visual Studio Insiders (23212)` process lock'undan dolayi bin kopyalama asamasinda fail oldu. Uygulamalar kapaliyken build'li EF listesi tekrar kosulabilir; design-time factory ve migration discovery `--no-build` ile calisiyor.
+
 ### 10.2. Deploy (gcloud)
 - [ ] API: `--update-env-vars` (asla `--set-env-vars`)
 - [ ] Salon: Dockerfile geçici değiştirildi → deploy → **hemen API Dockerfile'a geri alındı**

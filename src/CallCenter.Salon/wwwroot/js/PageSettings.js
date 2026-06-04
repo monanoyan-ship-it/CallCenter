@@ -229,6 +229,7 @@ function PageSettingsViewModel() {
             if (type === 'logo') self.logoUrl(result.url);
             else if (type === 'cover') self.coverImageUrl(result.url);
             else if (type === 'favicon') self.faviconUrl(result.url);
+            self.save({ silent: true });
             toastr.success(slnJsT('salon.pagesettings.js.image_uploaded', 'Görsel yüklendi.'));
         }).fail(function (xhr) {
             toastr.error(xhr.responseJSON?.message || slnJsT('salon.pagesettings.js.upload_error', 'Yükleme hatası.'));
@@ -271,7 +272,10 @@ function PageSettingsViewModel() {
                     toastr.error(file.name + slnJsT('salon.pagesettings.js.file_upload_failed_suffix', ' yüklenemedi.'));
                 }).always(function () {
                     remaining--;
-                    if (remaining <= 0) toastr.success(slnJsT('salon.pagesettings.js.gallery_images_uploaded', 'Galeri görselleri yüklendi.'));
+                    if (remaining <= 0) {
+                        toastr.success(slnJsT('salon.pagesettings.js.gallery_images_uploaded', 'Galeri görselleri yüklendi.'));
+                        self.save({ silent: true });
+                    }
                 });
             })(files[i]);
         }
@@ -309,6 +313,7 @@ function PageSettingsViewModel() {
             contentType: false
         }).done(function (result) {
             self.banners()[index].url(result.url);
+            self.save({ silent: true });
             toastr.success(slnJsT('salon.pagesettings.js.image_uploaded', 'Görsel yüklendi.'));
         }).fail(function (xhr) {
             toastr.error(xhr.responseJSON?.message || slnJsT('salon.pagesettings.js.upload_error', 'Yükleme hatası.'));
@@ -318,7 +323,8 @@ function PageSettingsViewModel() {
     };
 
     // ═══ Kaydet ═══
-    self.save = function () {
+    self.save = function (options) {
+        options = options || {};
         var sectionOrder = self.sections().map(function (s) { return s.key; });
 
         var bannersData = self.banners().map(function (b) {
@@ -354,9 +360,12 @@ function PageSettingsViewModel() {
             contentType: 'application/json',
             data: JSON.stringify(payload)
         }).done(function () {
-            toastr.success(slnJsT('salon.pagesettings.js.saved', 'Sayfa ayarları kaydedildi.'));
+            if (!options.silent)
+                toastr.success(slnJsT('salon.pagesettings.js.saved', 'Sayfa ayarları kaydedildi.'));
         }).fail(function () {
-            toastr.error(slnJsT('salon.pagesettings.js.save_error', 'Kaydetme hatası.'));
+            toastr.error(options.silent
+                ? slnJsT('salon.pagesettings.js.image_save_error', 'Görsel yüklendi ancak sayfa ayarlarına kaydedilemedi.')
+                : slnJsT('salon.pagesettings.js.save_error', 'Kaydetme hatası.'));
         }).always(function () { self.isSaving(false); });
     };
 

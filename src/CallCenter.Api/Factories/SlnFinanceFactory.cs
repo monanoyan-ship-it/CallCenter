@@ -720,7 +720,8 @@ public class SlnFinanceFactory : ISlnFinanceFactory
                 dto.SlnAppointmentId.Value,
                 3,
                 customerId,
-                branchId);
+                branchId,
+                skipRecipeStockConsumption: true);
             if (!statusSuccess)
                 return (null, statusError ?? "Randevu tamamlanamadi");
         }

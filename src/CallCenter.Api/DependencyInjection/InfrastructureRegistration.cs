@@ -16,6 +16,7 @@ public static class InfrastructureRegistration
     {
         // UnitOfWork
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddHttpContextAccessor();
 
         // Singleton utilities
         services.AddSingleton<AesEncryptionService>();

@@ -65,6 +65,25 @@ public class SlnAppointmentFactoryTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateStatusAsync_WhenInvoiceAlreadyHandlesMaterials_SkipsAppointmentRecipeStock()
+    {
+        SeedRecipeAppointment();
+        _db.ChangeTracker.Clear();
+
+        var factory = CreateFactory();
+
+        var (success, error, _) = await factory.UpdateStatusAsync(30, 3, 1, skipRecipeStockConsumption: true);
+
+        success.Should().BeTrue(error);
+        var appointment = await _db.SlnAppointments.SingleAsync(a => a.Id == 30);
+        appointment.StatusId.Should().Be(3);
+        var branchStock = await _db.SlnProductBranchStocks.SingleAsync(s => s.ProductId == 20 && s.BranchId == 3);
+        branchStock.StockQuantity.Should().Be(10m);
+        (await _db.SlnStockMovements.CountAsync(m => m.Notes != null && m.Notes.StartsWith("Randevu:30")))
+            .Should().Be(0);
+    }
+
+    [Fact]
     public async Task AppointmentIdActions_RespectBranchScope()
     {
         SeedRecipeAppointment();
@@ -142,6 +161,67 @@ public class SlnAppointmentFactoryTests : IDisposable
         var appointments = await factory.GetAppointmentsAsync(1, null, null, branchId: 3, slnClientId: 10);
 
         appointments.Select(a => a.Id).Should().Equal(30);
+    }
+
+    [Fact]
+    public async Task CreateAppointmentAsync_OwnerScope_AllowsClientFromAnotherBranch()
+    {
+        SeedSlotScopeData();
+        _db.SlnClients.Add(new SlnClient
+        {
+            Id = 10,
+            CustomerId = 1,
+            BranchId = 3,
+            FullName = "Merkez Musteri",
+            IsActive = true
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        var factory = CreateFactory();
+        var dto = new SlnAppointmentCreateDto
+        {
+            SlnClientId = 10,
+            PersonnelId = 14,
+            BranchId = 4,
+            ServiceIds = [7],
+            StartTime = DateTime.UtcNow.AddDays(1)
+        };
+
+        var (appointment, error) = await factory.CreateAppointmentAsync(dto, userId: 11, customerId: 1);
+
+        appointment.Should().NotBeNull(error);
+        appointment!.BranchId.Should().Be(4);
+    }
+
+    [Fact]
+    public async Task CreateAppointmentAsync_BranchScope_RejectsClientFromAnotherBranch()
+    {
+        SeedSlotScopeData();
+        _db.SlnClients.Add(new SlnClient
+        {
+            Id = 10,
+            CustomerId = 1,
+            BranchId = 3,
+            FullName = "Merkez Musteri",
+            IsActive = true
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        var factory = CreateFactory();
+        var dto = new SlnAppointmentCreateDto
+        {
+            SlnClientId = 10,
+            PersonnelId = 14,
+            ServiceIds = [7],
+            StartTime = DateTime.UtcNow.AddDays(1)
+        };
+
+        var (appointment, error) = await factory.CreateAppointmentAsync(dto, userId: 11, customerId: 1, branchId: 4);
+
+        appointment.Should().BeNull();
+        error.Should().Be("Secilen musteri bu sube icin uygun degil");
     }
 
     [Fact]

@@ -52,6 +52,9 @@ bld/
 .codex/
 .codex-*/
 
+## Local API uploads
+src/CallCenter.Api/Data/Uploads/
+
 ## Landing libman (restored via libman restore)
 src/CallCenter.Landing/wwwroot/lib/
 

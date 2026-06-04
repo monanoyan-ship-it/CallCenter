@@ -51,6 +51,16 @@ function AppointmentsViewModel() {
         return parsed > 0 ? parsed : null;
     }
 
+    function getAjaxErrorMessage(xhr, fallback) {
+        if (xhr && xhr.responseJSON && (xhr.responseJSON.error || xhr.responseJSON.message)) {
+            return xhr.responseJSON.error || xhr.responseJSON.message;
+        }
+        if (xhr && typeof xhr.responseText === 'string' && xhr.responseText.trim()) {
+            return xhr.responseText.trim();
+        }
+        return fallback;
+    }
+
     self.getPersonnelBranchId = function (personnelId) {
         var id = toOptionalInt(personnelId);
         if (!id) return null;
@@ -460,7 +470,7 @@ function AppointmentsViewModel() {
             toastr.success(self.isEditing() ? appointmentT('salon.appointments.updated', 'Randevu güncellendi') : appointmentT('salon.appointments.created', 'Randevu eklendi'));
             self.isSaving(false);
         }).fail(function (xhr) {
-            toastr.error(xhr.responseJSON?.error || appointmentT('salon.common.error.generic', 'Bir hata oluştu'));
+            toastr.error(getAjaxErrorMessage(xhr, appointmentT('salon.common.error.generic', 'Bir hata oluştu')));
             self.isSaving(false);
         });
     };

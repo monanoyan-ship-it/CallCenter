@@ -181,7 +181,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
                 .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter);
             effectiveBranchId = hq?.Id;
         }
-        if (effectiveBranchId.HasValue && client.BranchId.HasValue && client.BranchId.Value != effectiveBranchId.Value)
+        if (branchId.HasValue && effectiveBranchId.HasValue && client.BranchId.HasValue && client.BranchId.Value != effectiveBranchId.Value)
             return (null, "Secilen musteri bu sube icin uygun degil");
 
         var resourceConflict = await FindResourceConflictAsync(customerId, effectiveBranchId, resolved.ServiceIds, dto.StartTime, endTime);
@@ -276,7 +276,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
                 .FirstOrDefaultAsync(b => b.CustomerId == customerId && b.IsHeadquarter);
             effectiveBranchId = hq?.Id;
         }
-        if (effectiveBranchId.HasValue && client.BranchId.HasValue && client.BranchId.Value != effectiveBranchId.Value)
+        if (branchId.HasValue && effectiveBranchId.HasValue && client.BranchId.HasValue && client.BranchId.Value != effectiveBranchId.Value)
             return (false, "Secilen musteri bu sube icin uygun degil");
 
         var resourceConflict = await FindResourceConflictAsync(customerId, effectiveBranchId, resolved.ServiceIds, dto.StartTime, endTime, appointmentId);
@@ -301,7 +301,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
         return (true, null);
     }
 
-    public async Task<(bool Success, string? Error, decimal Penalty)> UpdateStatusAsync(int appointmentId, int statusId, int customerId, int? branchId = null)
+    public async Task<(bool Success, string? Error, decimal Penalty)> UpdateStatusAsync(int appointmentId, int statusId, int customerId, int? branchId = null, bool skipRecipeStockConsumption = false)
     {
         var appointment = await ApplyBranchScope(IncludeAll(_appointments.GetAllQueryable()), branchId)
             .FirstOrDefaultAsync(a => a.Id == appointmentId && a.CustomerId == customerId);
@@ -365,7 +365,7 @@ public class SlnAppointmentFactory : ISlnAppointmentFactory
             }
         }
 
-        if (statusId == 3)
+        if (statusId == 3 && !skipRecipeStockConsumption)
         {
             var (stockOk, stockError) = await ConsumeRecipeStockForCompletedAppointmentAsync(appointment);
             if (!stockOk) return (false, stockError, penalty);

@@ -11,6 +11,7 @@ using CallCenter.Data;
 using CallCenter.Shared.Enums;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -254,6 +255,13 @@ app.Use(async (context, next) =>
     await next();
 });
 app.UseCors("AllowBlazor");
+var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "Data", "Uploads");
+Directory.CreateDirectory(uploadsPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads"
+});
 
 // HTTPS redirect production icin.
 // Local development HTTP portu token kaybi olmadan kullanabilsin.

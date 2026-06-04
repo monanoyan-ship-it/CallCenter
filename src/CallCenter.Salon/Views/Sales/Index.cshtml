@@ -202,7 +202,7 @@
                             <div class="d-flex align-items-center gap-1" style="font-size:.75rem;">
                                 <span class="text-muted" data-bind="text: quantity() + ' x'"></span>
                                 <input type="number" class="form-control form-control-sm py-0 text-end" style="width:65px; font-size:.75rem;"
-                                       step="0.01" min="0" data-bind="value: editPrice" />
+                                       step="0.01" min="0" data-bind="value: editPrice, valueUpdate: 'input', event: { input: function() { $parent.markManualPrice($data); return true; } }" />
                                 <span class="text-muted">TL</span>
                             </div>
                             <div class="small text-success" data-bind="visible: benefitText && benefitText(), text: benefitText"></div>
