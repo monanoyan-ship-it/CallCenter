@@ -255,13 +255,18 @@ app.Use(async (context, next) =>
     await next();
 });
 app.UseCors("AllowBlazor");
-var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "Data", "Uploads");
-Directory.CreateDirectory(uploadsPath);
-app.UseStaticFiles(new StaticFileOptions
+// Yerel dosya yukleme fallback'i yalnizca Development'ta kullanilir (prod'da GcsUploadService -> GCS).
+// Cloud Run non-root 'app' kullanicisi /app altinda klasor olusturamaz; bu blok prod'da gereksiz ve startup'i cokertir.
+if (app.Environment.IsDevelopment())
 {
-    FileProvider = new PhysicalFileProvider(uploadsPath),
-    RequestPath = "/uploads"
-});
+    var uploadsPath = Path.Combine(app.Environment.ContentRootPath, "Data", "Uploads");
+    Directory.CreateDirectory(uploadsPath);
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(uploadsPath),
+        RequestPath = "/uploads"
+    });
+}
 
 // HTTPS redirect production icin.
 // Local development HTTP portu token kaybi olmadan kullanabilsin.
