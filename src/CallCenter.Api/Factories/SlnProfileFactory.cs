@@ -178,11 +178,25 @@ public class SlnProfileFactory : ISlnProfileFactory
         profile.ShowMap = dto.ShowMap;
         profile.SectionOrderJson = dto.SectionOrderJson;
         profile.BannersJson = dto.BannersJson;
-        profile.LogoUrl = dto.LogoUrl;
-        profile.CoverImageUrl = dto.CoverImageUrl;
         profile.FaviconUrl = dto.FaviconUrl;
-        profile.GalleryImagesJson = dto.GalleryImagesJson;
         profile.UpdatedAt = DateTime.UtcNow;
+
+        if (dto.BranchId.HasValue)
+        {
+            var branch = await _branches.GetAllQueryable()
+                .FirstOrDefaultAsync(b => b.Id == dto.BranchId.Value && b.CustomerId == customerId);
+            if (branch == null) return (false, "Sube bulunamadi.");
+
+            branch.PhotoUrl = dto.LogoUrl;
+            branch.CoverImageUrl = dto.CoverImageUrl;
+            branch.GalleryImagesJson = dto.GalleryImagesJson;
+        }
+        else
+        {
+            profile.LogoUrl = dto.LogoUrl;
+            profile.CoverImageUrl = dto.CoverImageUrl;
+            profile.GalleryImagesJson = dto.GalleryImagesJson;
+        }
 
         await _uow.SaveChangesAsync();
         return (true, null);

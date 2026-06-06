@@ -716,6 +716,7 @@ public class SlnSalonProfileUpdateDto
 
 public class SlnPageSettingsDto
 {
+    public int? BranchId { get; set; }
     public bool ShowServices { get; set; } = true;
     public bool ShowMemberships { get; set; } = true;
     public bool ShowBooking { get; set; } = true;

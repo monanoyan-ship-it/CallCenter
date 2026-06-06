@@ -11,6 +11,7 @@ function PageSettingsViewModel() {
     self.isPublished = ko.observable(false);
     self.banners = ko.observableArray([]);
     self.publicBranches = ko.observableArray([]);
+    self.branches = ko.observableArray([]);
 
     // Gorseller
     self.logoUrl = ko.observable('');
@@ -49,6 +50,44 @@ function PageSettingsViewModel() {
     self.hasPublicBranchLinks = ko.computed(function () {
         return self.publicBranches().length > 0;
     });
+
+    function getSelectedBranchId() {
+        var value = window.slnGetBranch ? window.slnGetBranch() : '';
+        var branchId = parseInt(value, 10);
+        return branchId || null;
+    }
+
+    function parseGalleryJson(value) {
+        if (!value) return [];
+        try {
+            var parsed = JSON.parse(value);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function getSelectedBranch() {
+        var branchId = getSelectedBranchId();
+        if (!branchId) return null;
+        return self.branches().find(function (branch) { return branch.id === branchId; }) || null;
+    }
+
+    function applySelectedBranchMedia() {
+        var branch = getSelectedBranch();
+        if (!branch) {
+            if (getSelectedBranchId()) return;
+            self.logoUrl('');
+            self.coverImageUrl('');
+            self.galleryImages([]);
+            return;
+        }
+
+        self.slug(branch.slug || self.slug());
+        self.logoUrl(branch.photoUrl || '');
+        self.coverImageUrl(branch.coverImageUrl || '');
+        self.galleryImages(parseGalleryJson(branch.galleryImagesJson));
+    }
 
     self.copyText = function (value, successMessage) {
         if (!value) return;
@@ -103,9 +142,23 @@ function PageSettingsViewModel() {
         };
 
         $.get('/proxy/sln-branches').done(function (branches) {
-            var mapped = (branches || []).filter(function (branch) {
+            var activeBranches = (branches || []).filter(function (branch) {
                 return branch && branch.slug && branch.isActive !== false;
-            }).map(function (branch) {
+            });
+            self.branches(activeBranches.map(function (branch) {
+                return {
+                    id: branch.id,
+                    name: branch.name || branch.slug,
+                    slug: branch.slug,
+                    isHeadquarter: !!branch.isHeadquarter,
+                    photoUrl: branch.photoUrl || '',
+                    coverImageUrl: branch.coverImageUrl || '',
+                    galleryImagesJson: branch.galleryImagesJson || null
+                };
+            }));
+            applySelectedBranchMedia();
+
+            var mapped = activeBranches.map(function (branch) {
                 var baseUrl = window.location.origin + '/salon/' + branch.slug;
                 return {
                     name: branch.name || branch.slug,
@@ -130,15 +183,9 @@ function PageSettingsViewModel() {
             self.slug(data.slug || '');
             self.isPublished(data.isPublished || false);
 
-            // Gorseller
-            self.logoUrl(data.logoUrl || '');
-            self.coverImageUrl(data.coverImageUrl || '');
+            // Favicon profil geneline ait kalir; logo, kapak ve galeri secili subeye aittir.
             self.faviconUrl(data.faviconUrl || '');
-
-            // Galeri
-            if (data.galleryImagesJson) {
-                try { self.galleryImages(JSON.parse(data.galleryImagesJson)); } catch (e) {}
-            }
+            applySelectedBranchMedia();
 
             // Bannerlar
             if (data.bannersJson) {
@@ -215,12 +262,24 @@ function PageSettingsViewModel() {
         if (!file) return;
         if (file.size > 5 * 1024 * 1024) { toastr.warning(slnJsT('salon.pagesettings.js.file_too_large', 'Dosya 5 MB’dan büyük olamaz.')); return; }
 
+        if (!getSelectedBranchId()) {
+            toastr.warning(slnJsT('salon.pagesettings.branch_required', 'Şube seçin.'));
+            event.target.value = '';
+            return;
+        }
+
         var formData = new FormData();
         formData.append('file', file);
 
+        var branchUploadTypes = { logo: 'branch-photo', cover: 'branch-cover' };
+        var uploadUrl = '/proxy/sln-profile/upload-image?type=' + type;
+        if (branchUploadTypes[type]) {
+            uploadUrl = '/proxy/sln-branches/upload-image?type=' + branchUploadTypes[type];
+        }
+
         toastr.info(slnJsT('salon.pagesettings.js.yukleniyor', 'Yukleniyor...'));
         $.ajax({
-            url: '/proxy/sln-profile/upload-image?type=' + type,
+            url: uploadUrl,
             method: 'POST',
             data: formData,
             processData: false,
@@ -249,6 +308,11 @@ function PageSettingsViewModel() {
     self.uploadGalleryImages = function (data, event) {
         var files = event.target.files;
         if (!files || files.length === 0) return;
+        if (!getSelectedBranchId()) {
+            toastr.warning(slnJsT('salon.pagesettings.branch_required', 'Şube seçin.'));
+            event.target.value = '';
+            return;
+        }
 
         var remaining = files.length;
         toastr.info(files.length + slnJsT('salon.pagesettings.js.images_uploading', ' görsel yükleniyor...'));
@@ -261,7 +325,7 @@ function PageSettingsViewModel() {
                 formData.append('file', file);
 
                 $.ajax({
-                    url: '/proxy/sln-profile/upload-image?type=gallery',
+                    url: '/proxy/sln-branches/upload-image?type=branch-gallery',
                     method: 'POST',
                     data: formData,
                     processData: false,
@@ -299,6 +363,11 @@ function PageSettingsViewModel() {
     self.uploadBanner = function (index, event) {
         var file = event.target.files[0];
         if (!file) return;
+        if (!getSelectedBranchId()) {
+            toastr.warning(slnJsT('salon.pagesettings.branch_required', 'Şube seçin.'));
+            event.target.value = '';
+            return;
+        }
         if (file.size > 5 * 1024 * 1024) { toastr.warning(slnJsT('salon.pagesettings.js.file_too_large', 'Dosya 5 MB dan büyük olamaz.')); return; }
 
         var formData = new FormData();
@@ -325,6 +394,11 @@ function PageSettingsViewModel() {
     // ═══ Kaydet ═══
     self.save = function (options) {
         options = options || {};
+        if (!getSelectedBranchId()) {
+            toastr.warning(slnJsT('salon.pagesettings.branch_required', 'Şube seçin.'));
+            return;
+        }
+
         var sectionOrder = self.sections().map(function (s) { return s.key; });
 
         var bannersData = self.banners().map(function (b) {
@@ -332,6 +406,7 @@ function PageSettingsViewModel() {
         }).filter(function (b) { return b.url; });
 
         var payload = {
+            branchId: getSelectedBranchId(),
             showServices: true,
             showMemberships: true,
             showBooking: true,
@@ -360,6 +435,12 @@ function PageSettingsViewModel() {
             contentType: 'application/json',
             data: JSON.stringify(payload)
         }).done(function () {
+            var branch = getSelectedBranch();
+            if (branch) {
+                branch.photoUrl = self.logoUrl() || '';
+                branch.coverImageUrl = self.coverImageUrl() || '';
+                branch.galleryImagesJson = self.galleryImages().length > 0 ? JSON.stringify(self.galleryImages()) : null;
+            }
             if (!options.silent)
                 toastr.success(slnJsT('salon.pagesettings.js.saved', 'Sayfa ayarları kaydedildi.'));
         }).fail(function () {

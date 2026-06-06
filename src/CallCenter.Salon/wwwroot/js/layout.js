@@ -67,22 +67,41 @@
         window.location.reload();
     }
 
+    function requiresExplicitBranch() {
+        return /^\/PageSettings(?:\/|$)/i.test(window.location.pathname || '');
+    }
+
     function buildBranchSelector(branches) {
         var container = document.getElementById('branchSelector');
-        if (!container || branches.length <= 1) return;
+        var branchRequired = requiresExplicitBranch();
+        if (!container || (!branchRequired && branches.length <= 1)) return;
 
         var currentBranch = getStoredBranch();
+        if (currentBranch && !branches.some(function (branch) { return String(branch.id) === currentBranch; })) {
+            currentBranch = '';
+            setStoredBranch('');
+        }
+
         var select = document.createElement('select');
         select.className = 'form-select form-select-sm';
         select.style.width = 'auto';
         select.style.minWidth = '150px';
         select.setAttribute('data-branch-select', '1');
 
-        var allOption = document.createElement('option');
-        allOption.value = '';
-        allOption.textContent = window.salonT('salon.common.all_branches', 'Tum Subeler');
-        if (!currentBranch) allOption.selected = true;
-        select.appendChild(allOption);
+        if (branchRequired) {
+            var placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = window.salonT('salon.common.select_branch', 'Şube seç');
+            placeholder.disabled = true;
+            if (!currentBranch) placeholder.selected = true;
+            select.appendChild(placeholder);
+        } else {
+            var allOption = document.createElement('option');
+            allOption.value = '';
+            allOption.textContent = window.salonT('salon.common.all_branches', 'Tum Subeler');
+            if (!currentBranch) allOption.selected = true;
+            select.appendChild(allOption);
+        }
 
         branches.forEach(function (branch) {
             var option = document.createElement('option');
