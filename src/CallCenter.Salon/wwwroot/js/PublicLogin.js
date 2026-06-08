@@ -1,4 +1,8 @@
 (function () {
+    function cleanActionText(value) {
+        return (value || '').trim().replace(/;+$/, '').trim();
+    }
+
     function init() {
         var form = document.getElementById('login-form');
         var button = document.getElementById('loginBtn');
@@ -20,7 +24,7 @@
             button.disabled = true;
             errorBox.classList.add('d-none');
             var textNode = button.querySelector('.btn-text');
-            if (textNode) textNode.textContent = button.getAttribute('data-loading-text') || textNode.textContent;
+            if (textNode) textNode.textContent = cleanActionText(button.getAttribute('data-loading-text') || textNode.textContent);
 
             try {
                 var response = await fetch('/public-proxy/platform/login', {
@@ -46,7 +50,7 @@
             } finally {
                 button.disabled = false;
                 var idleText = button.getAttribute('data-idle-text');
-                if (textNode && idleText) textNode.textContent = idleText;
+                if (textNode && idleText) textNode.textContent = cleanActionText(idleText);
             }
         });
     }

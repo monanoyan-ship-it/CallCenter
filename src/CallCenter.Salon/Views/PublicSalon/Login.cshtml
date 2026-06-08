@@ -5,6 +5,11 @@
     var returnUrl = Context.Request.Query["returnUrl"].ToString();
     var isBookingReturn = returnUrl.Contains("/book", StringComparison.OrdinalIgnoreCase);
     string T(string key, string fallback) => Translation.T(key, fallback);
+    string ActionT(string key, string fallback) => T(key, fallback).Trim().TrimEnd(';').Trim();
+    var loginButtonText = isBookingReturn
+        ? ActionT("salon.login.booking_btn", "Randevuya devam et")
+        : ActionT("salon.login.btn", "Giriş Yap");
+    var loginLoadingText = T("salon.publicsalon.auto.giris_yapiliyor", "Giriş yapılıyor...");
 }
 <!DOCTYPE html>
 <html lang="@pageLang">
@@ -63,9 +68,9 @@
             </div>
             <div id="error-msg" class="alert alert-danger py-1 small d-none"></div>
             <button class="btn btn-primary w-100" id="loginBtn" type="button"
-                    data-idle-text="@T("salon.publicsalon.auto.giris_yap", "Giriş Yap")"
-                    data-loading-text="@T("salon.publicsalon.auto.giris_yapiliyor", "Giriş yapılıyor...")">
-                <i class="bi bi-box-arrow-in-right me-1"></i><span class="btn-text"><t key="salon.login.btn">Sign In</t></span>
+                    data-idle-text="@loginButtonText"
+                    data-loading-text="@loginLoadingText">
+                <i class="bi bi-box-arrow-in-right me-1"></i><span class="btn-text">@loginButtonText</span>
             </button>
             <div class="d-flex justify-content-between mt-3 small">
                 <a href="/user/forgot-password" class="text-decoration-none text-muted"><t key="salon.account.forgot_link">Şifremi unuttum</t></a>
