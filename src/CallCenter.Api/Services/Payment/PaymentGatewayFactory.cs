@@ -27,7 +27,7 @@ public class PaymentGatewayFactory
         return config.ProviderTypeId switch
         {
             PaymentProviders.Ids.Iyzico => new IyzicoGateway(GetIyzicoCredentials(credentialsJson, config.IsSandbox)),
-            PaymentProviders.Ids.PayTR => CreatePayTrGateway(credentialsJson),
+            PaymentProviders.Ids.PayTR => CreatePayTrGateway(credentialsJson, config.IsSandbox),
             PaymentProviders.Ids.Param => CreateParamGateway(credentialsJson),
             _ => throw new NotSupportedException(
                 $"PaymentProvider {config.ProviderTypeId} desteklenmiyor. " +
@@ -115,10 +115,11 @@ public class PaymentGatewayFactory
         return creds;
     }
 
-    private static PayTrGateway CreatePayTrGateway(string json)
+    private static PayTrGateway CreatePayTrGateway(string json, bool isSandbox)
     {
         var creds = JsonSerializer.Deserialize<PayTrCredentials>(json, JsonOpts)
             ?? throw new InvalidOperationException("PayTR credential bilgileri okunamadı");
+        creds.IsSandbox = isSandbox;
         return new PayTrGateway(creds);
     }
 

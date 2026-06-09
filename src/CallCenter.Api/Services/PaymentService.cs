@@ -72,6 +72,52 @@ public class PaymentService
         link.SlnClientId ??= slnClientId;
     }
 
+    private async Task<CheckoutFormResult> InitHostedCheckoutAsync(
+        PlatformPaymentConfig config,
+        CheckoutFormRequest req,
+        bool allowMarketplaceSplit = true)
+    {
+        var gateway = _gatewayFactory.Create(config);
+
+        if (gateway is IyzicoGateway iyzicoGw)
+            return await iyzicoGw.InitCheckoutFormAsync(req);
+
+        if (gateway is PayTrGateway)
+        {
+            if (!allowMarketplaceSplit
+                || !string.IsNullOrWhiteSpace(req.SubMerchantKey)
+                || req.SubMerchantPrice.HasValue)
+                return CheckoutFormResult.Fail("Bu tahsilat pazaryeri/hak edis ayrimi gerektiriyor. PayTR icin bu akis ayri gelistirilmeli.");
+
+            var paymentReq = new PaymentRequest
+            {
+                Amount = req.Amount,
+                Currency = req.Currency,
+                ConversationId = req.ConversationId,
+                CallbackUrl = req.CallbackUrl,
+                BuyerName = req.BuyerName,
+                BuyerEmail = req.BuyerEmail,
+                BuyerIp = req.BuyerIp,
+                Description = req.Description
+            };
+
+            var result = await gateway.InitiatePaymentAsync(paymentReq);
+            if (!result.Success)
+                return CheckoutFormResult.Fail(result.Error ?? "PayTR odeme formu olusturulamadi.");
+
+            var html = result.HtmlContent ?? result.RedirectUrl;
+            if (string.IsNullOrWhiteSpace(html))
+                return CheckoutFormResult.Fail("PayTR odeme formu bos dondu.");
+
+            return CheckoutFormResult.Ok(html, result.ProviderTransactionId ?? req.ConversationId);
+        }
+
+        if (gateway is ParamGateway)
+            return CheckoutFormResult.Fail("Param public checkout icin 3D odeme akisi ayri gelistirilmeli. Simdilik hosted checkout'ta Iyzico veya PayTR kullanin.");
+
+        return CheckoutFormResult.Fail("Desteklenmeyen odeme saglayici.");
+    }
+
     private static int GetEffectiveSubscriptionIntervalMonths(SubscriptionPlan? plan)
     {
         var interval = plan?.IntervalMonths ?? 0;
@@ -177,10 +223,6 @@ public class PaymentService
         var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == customerId);
         if (customer == null) return CheckoutFormResult.Fail("Musteri bulunamadi.");
 
-        var gateway = _gatewayFactory.Create(config);
-        if (gateway is not IyzicoGateway iyzicoGw)
-            return CheckoutFormResult.Fail("Checkout form sadece Iyzico destekler.");
-
         PaymentTransaction tx;
         try
         {
@@ -209,7 +251,7 @@ public class PaymentService
                 Description = $"CorpLynk tahakkuk odemesi - {preview.Lines.Count} kalem"
             };
 
-            var result = await iyzicoGw.InitCheckoutFormAsync(req);
+            var result = await InitHostedCheckoutAsync(config, req);
             if (result.Success)
             {
                 tx.ProviderTransactionId = result.Token;
@@ -1283,10 +1325,6 @@ public class PaymentService
 
         try
         {
-            var gateway = _gatewayFactory.Create(config);
-            if (gateway is not IyzicoGateway iyzicoGw)
-                return CheckoutFormResult.Fail("Checkout form sadece Iyzico destekler.");
-
             var platformUser = await _db.PlatformUsers.FindAsync(platformUserId);
             var buyerName = !string.IsNullOrWhiteSpace(platformUser?.FullName)
                 ? platformUser.FullName
@@ -1313,7 +1351,7 @@ public class PaymentService
                 SubMerchantPrice = split.UseSplit ? split.SubMerchantPrice : null
             };
 
-            var result = await iyzicoGw.InitCheckoutFormAsync(req);
+            var result = await InitHostedCheckoutAsync(config, req);
             if (result.Success)
             {
                 tx.ProviderTransactionId = result.Token;
@@ -1876,10 +1914,6 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
 
         try
         {
-            var gateway = _gatewayFactory.Create(config);
-            if (gateway is not IyzicoGateway iyzicoGw)
-                return CheckoutFormResult.Fail("Checkout form sadece Iyzico destekler.");
-
             var customer = subscription?.Customer ?? await _db.Customers.FindAsync(customerId);
             var req = new CheckoutFormRequest
             {
@@ -1893,7 +1927,7 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
                 Description = $"{group.Description} - {daysUntilBilling} gunluk kist hesap"
             };
 
-            var result = await iyzicoGw.InitCheckoutFormAsync(req);
+            var result = await InitHostedCheckoutAsync(config, req);
             if (result.Success)
             {
                 tx.ProviderTransactionId = result.Token;
@@ -1945,10 +1979,6 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
 
         try
         {
-            var gateway = _gatewayFactory.Create(config);
-            if (gateway is not IyzicoGateway iyzicoGw)
-                return CheckoutFormResult.Fail("Checkout form sadece Iyzico destekler.");
-
             var req = new CheckoutFormRequest
             {
                 Amount = amount,
@@ -1961,7 +1991,7 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
                 Description = $"Abonelik {unpaidPeriod.Year}/{unpaidPeriod.Month:D2}"
             };
 
-            var result = await iyzicoGw.InitCheckoutFormAsync(req);
+            var result = await InitHostedCheckoutAsync(config, req);
 
             if (result.Success)
             {
@@ -2196,6 +2226,266 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
         }
     }
 
+    public async Task<(bool Accepted, string Message)> HandlePayTrCallbackAsync(
+        string merchantOid,
+        string status,
+        string totalAmount,
+        string? paymentAmount,
+        string? currency,
+        string hash,
+        string? failedReasonCode,
+        string? failedReasonMsg)
+    {
+        var config = await _db.PlatformPaymentConfigs
+            .Where(c => c.ProviderTypeId == PaymentProviders.Ids.PayTR && c.IsActive)
+            .OrderByDescending(c => c.UpdatedAt ?? c.CreatedAt)
+            .ThenByDescending(c => c.Id)
+            .FirstOrDefaultAsync();
+        if (config == null)
+            return (false, "Aktif PayTR odeme yapilandirmasi bulunamadi.");
+
+        if (_gatewayFactory.Create(config) is not PayTrGateway payTrGateway)
+            return (false, "PayTR gateway olusturulamadi.");
+
+        if (!payTrGateway.VerifyCallbackHash(merchantOid, status, totalAmount, hash))
+            return (false, "PAYTR notification failed: bad hash");
+
+        var tx = await _db.PaymentTransactions
+            .Include(t => t.Lines)
+            .FirstOrDefaultAsync(t => t.ProviderTransactionId == merchantOid);
+        if (tx == null)
+            return (false, "PayTR callback icin eslesen islem bulunamadi.");
+
+        if (tx.StatusId == PaymentStatuses.Ids.Basarili)
+            return (true, "Duplicate successful callback ignored.");
+
+        if (tx.StatusId != PaymentStatuses.Ids.Beklemede)
+            return (true, "Duplicate terminal callback ignored.");
+
+        if (!string.Equals(status, "success", StringComparison.OrdinalIgnoreCase))
+        {
+            tx.StatusId = PaymentStatuses.Ids.Basarisiz;
+            tx.ErrorMessage = string.IsNullOrWhiteSpace(failedReasonMsg)
+                ? $"PayTR odeme basarisiz. Kod={failedReasonCode ?? "-"}"
+                : failedReasonMsg;
+            tx.CompletedAt = DateTime.UtcNow;
+            tx.Notes = AddNoteEvent(tx.Notes, "PayTrCallbackFailed", tx.ErrorMessage);
+            await _db.SaveChangesAsync();
+            return (true, "PayTR failed callback applied.");
+        }
+
+        var amountFromProvider = ParsePayTrAmount(paymentAmount) ?? ParsePayTrAmount(totalAmount);
+        var verifyResult = PaymentVerifyResult.Ok(
+            merchantOid,
+            merchantOid,
+            amountFromProvider,
+            NormalizePayTrCurrency(currency));
+
+        var paymentResult = await CompleteVerifiedProviderCheckoutAsync(tx, verifyResult, "PayTrCallbackSucceeded");
+        return (paymentResult.Success, paymentResult.Success ? "PayTR success callback applied." : paymentResult.Error ?? "PayTR callback basarisiz.");
+    }
+
+    private async Task<PaymentResult> CompleteVerifiedProviderCheckoutAsync(
+        PaymentTransaction tx,
+        PaymentVerifyResult verifyResult,
+        string successEventName)
+    {
+        if (!verifyResult.Success)
+        {
+            tx.StatusId = PaymentStatuses.Ids.Basarisiz;
+            tx.ErrorMessage = verifyResult.Error;
+            tx.CompletedAt = DateTime.UtcNow;
+            tx.Notes = AddNoteEvent(tx.Notes, "ProviderCallbackFailed", verifyResult.Error ?? "Checkout dogrulamasi basarisiz.");
+            await _db.SaveChangesAsync();
+            _logger.LogWarning("Checkout odeme basarisiz: TxUid={TxUid}, Hata={Error}", tx.Uid, verifyResult.Error);
+            return PaymentResult.Fail(verifyResult.Error ?? "Odeme basarisiz");
+        }
+
+        if (verifyResult.PaidAmount.HasValue
+            && Math.Round(verifyResult.PaidAmount.Value, 2, MidpointRounding.AwayFromZero) != Math.Round(tx.Amount, 2, MidpointRounding.AwayFromZero))
+        {
+            tx.StatusId = PaymentStatuses.Ids.Basarisiz;
+            tx.ErrorMessage = $"Odeme tutari uyusmuyor. Beklenen {tx.Amount:N2} {tx.Currency}, saglayici {verifyResult.PaidAmount.Value:N2} {verifyResult.Currency ?? tx.Currency}.";
+            tx.Notes = AddNoteEvent(tx.Notes, "ProviderAmountMismatch", tx.ErrorMessage);
+            await _db.SaveChangesAsync();
+            return PaymentResult.Fail("Odeme tutari dogrulanamadi.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(verifyResult.Currency)
+            && !string.Equals(verifyResult.Currency, tx.Currency, StringComparison.OrdinalIgnoreCase))
+        {
+            tx.StatusId = PaymentStatuses.Ids.Basarisiz;
+            tx.ErrorMessage = $"Odeme para birimi uyusmuyor. Beklenen {tx.Currency}, saglayici {verifyResult.Currency}.";
+            tx.Notes = AddNoteEvent(tx.Notes, "ProviderCurrencyMismatch", tx.ErrorMessage);
+            await _db.SaveChangesAsync();
+            return PaymentResult.Fail("Odeme para birimi dogrulanamadi.");
+        }
+
+        tx.StatusId = PaymentStatuses.Ids.Basarili;
+        tx.ProviderPaymentId = verifyResult.ProviderPaymentId;
+        tx.CompletedAt = DateTime.UtcNow;
+        tx.Notes = AddNoteEvent(tx.Notes, successEventName, "Checkout callback dogrulamasi basarili.");
+
+        if ((tx.BillingPeriodId.HasValue || tx.Lines.Count > 0) && !tx.CustomerId.HasValue)
+        {
+            tx.StatusId = PaymentStatuses.Ids.Basarisiz;
+            tx.ErrorMessage = "Odeme isleminin musteri baglantisi yok.";
+            tx.Notes = AddNoteEvent(tx.Notes, "MissingCustomerId", tx.ErrorMessage);
+            await _db.SaveChangesAsync();
+            return PaymentResult.Fail("Odeme musteri baglantisi dogrulanamadi.");
+        }
+
+        if (tx.BillingPeriodId.HasValue && tx.CustomerId.HasValue)
+        {
+            var period = await _db.CustomerBillingPeriods
+                .FirstOrDefaultAsync(p => p.Id == tx.BillingPeriodId.Value && p.CustomerId == tx.CustomerId.Value);
+            if (period != null && !period.IsPaid && period.StatusId != BillingPeriodStatuses.Ids.Paid)
+            {
+                period.StatusId = BillingPeriodStatuses.Ids.Paid;
+                period.IsPaid = true;
+                period.PaidAt = DateTime.UtcNow;
+                period.PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti;
+                await ActivateSalonSubscriptionAfterPlatformPaymentAsync(period, tx.Amount);
+            }
+        }
+
+        if (tx.Lines.Count > 0)
+        {
+            var linePeriodIds = tx.Lines
+                .Where(l => l.BillingPeriodId.HasValue)
+                .Select(l => l.BillingPeriodId!.Value)
+                .Distinct()
+                .ToList();
+
+            if (linePeriodIds.Count > 0)
+            {
+                var periods = await _db.CustomerBillingPeriods
+                    .Where(p => p.CustomerId == tx.CustomerId!.Value && linePeriodIds.Contains(p.Id))
+                    .ToDictionaryAsync(p => p.Id);
+
+                var applied = 0;
+                foreach (var line in tx.Lines.Where(l => l.BillingPeriodId.HasValue))
+                {
+                    if (!periods.TryGetValue(line.BillingPeriodId!.Value, out var period))
+                        continue;
+                    if (period.IsPaid || period.StatusId == BillingPeriodStatuses.Ids.Paid)
+                        continue;
+
+                    period.StatusId = BillingPeriodStatuses.Ids.Paid;
+                    period.IsPaid = true;
+                    period.PaidAt = DateTime.UtcNow;
+                    period.PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti;
+                    await ActivateSalonSubscriptionAfterPlatformPaymentAsync(period, line.Amount);
+                    applied++;
+                }
+
+                tx.Notes = AddNoteEvent(tx.Notes, "BillingLinesApplied", $"{applied} tahakkuk kalemi kapatildi.");
+            }
+        }
+
+        if (tx.PaymentTypeId == PaymentTypes.Ids.ModulSatinAlma && TryReadPackageGroupId(tx.Notes) is int pgId)
+        {
+            var moduleIds = SalonModuleGroups.GetModuleIds(pgId);
+            var group = SalonModuleGroups.GetById(pgId);
+            var monthlyPrice = await GetActivePackagePriceAsync(pgId) ?? group?.MonthlyPrice;
+            foreach (var moduleId in moduleIds)
+            {
+                var cpm = await _db.CustomerPortalModules
+                    .FirstOrDefaultAsync(m => m.CustomerId == tx.CustomerId && m.ModuleId == moduleId);
+                if (cpm != null)
+                {
+                    cpm.IsActive = true;
+                    cpm.ActivatedAt = DateTime.UtcNow;
+                    cpm.DeactivatedAt = null;
+                    cpm.MonthlyPrice = monthlyPrice;
+                }
+                else
+                {
+                    _db.CustomerPortalModules.Add(new CustomerPortalModule
+                    {
+                        CustomerId = tx.CustomerId!.Value,
+                        ModuleId = moduleId,
+                        IsActive = true,
+                        ActivatedAt = DateTime.UtcNow,
+                        MonthlyPrice = monthlyPrice
+                    });
+                }
+            }
+
+            if (pgId == SalonModuleGroups.Ids.LoyaltyMarketing && tx.CustomerId.HasValue)
+                await ActivateCrmModulesForSalonPackageAsync(tx.CustomerId.Value, moduleIds);
+        }
+
+        if (tx.PaymentTypeId == PaymentTypes.Ids.UyelikOdemesi && TryReadMembershipPlanId(tx.Notes).HasValue)
+            await ActivateSalonCustomerMembershipAfterPaymentAsync(tx);
+
+        if (tx.PaymentTypeId == PaymentTypes.Ids.SalonAdisyon && tx.Notes?.StartsWith("PayAppointment:") == true)
+        {
+            var firstSep = tx.Notes.IndexOfAny(new[] { '|', '\n' });
+            var head = firstSep >= 0 ? tx.Notes.Substring(0, firstSep) : tx.Notes;
+            if (int.TryParse(head.Substring("PayAppointment:".Length), out var aptId))
+            {
+                var apt = await _db.SlnAppointments.FirstOrDefaultAsync(a => a.Id == aptId);
+                if (apt != null)
+                {
+                    apt.IsPrepaid = true;
+                    apt.UpdatedAt = DateTime.UtcNow;
+                    tx.Notes = AddNoteEvent(tx.Notes, "AppointmentPaymentApplied",
+                        $"AppointmentId={aptId} salon adisyonu olarak isleme alindi.");
+                }
+            }
+        }
+
+        if (tx.PaymentTypeId == PaymentTypes.Ids.RandevuOnOdemesi && tx.Notes?.StartsWith("Appointment:") == true)
+        {
+            var parts = tx.Notes.Split('|');
+            if (parts.Length > 0 && int.TryParse(parts[0].Replace("Appointment:", ""), out var aptId))
+            {
+                var apt = await _db.SlnAppointments
+                    .Include(a => a.SlnClient)
+                    .FirstOrDefaultAsync(a => a.Id == aptId);
+                if (apt != null && apt.StatusId == 6)
+                {
+                    apt.StatusId = 2;
+                    apt.IsPrepaid = true;
+                    apt.PrepaidAmount = tx.Amount;
+                    apt.PaymentTransactionId = tx.Id;
+                }
+
+                if (tx.PlatformUserId == null && apt?.SlnClient?.Phone != null)
+                {
+                    var phoneVariants = PhoneHelper.GetLookupVariants(apt.SlnClient.Phone);
+                    if (phoneVariants.Count > 0)
+                    {
+                        var pu = await _db.PlatformUsers.FirstOrDefaultAsync(u => phoneVariants.Contains(u.Phone));
+                        if (pu != null) tx.PlatformUserId = pu.Id;
+                    }
+                }
+
+                if (tx.PlatformUserId.HasValue && tx.CustomerId.HasValue && apt?.SlnClient != null)
+                    await EnsurePlatformUserSalonLinkAsync(tx.PlatformUserId.Value, tx.CustomerId.Value, apt.SlnClient.Id);
+            }
+        }
+
+        await _db.SaveChangesAsync();
+        if (tx.PaymentTypeId == PaymentTypes.Ids.ModulSatinAlma && tx.CustomerId.HasValue)
+            await RefreshSalonSubscriptionDisplayMonthlySafeAsync(tx.CustomerId.Value);
+        _logger.LogInformation("Checkout odeme basarili: TxUid={TxUid}, PaymentId={PaymentId}", tx.Uid, verifyResult.ProviderPaymentId);
+        return PaymentResult.Ok(tx.Uid, verifyResult.ProviderTransactionId);
+    }
+
+    private static decimal? ParsePayTrAmount(string? value)
+    {
+        if (!long.TryParse(value, out var minorUnits) || minorUnits < 0)
+            return null;
+        return Math.Round(minorUnits / 100m, 2, MidpointRounding.AwayFromZero);
+    }
+
+    private static string? NormalizePayTrCurrency(string? currency)
+        => string.Equals(currency, "TL", StringComparison.OrdinalIgnoreCase)
+            ? "TRY"
+            : string.IsNullOrWhiteSpace(currency) ? null : currency.Trim().ToUpperInvariant();
+
     /// <summary>Online randevu depozitosu icin Iyzico Checkout Form baslatir (3DS).</summary>
     public async Task<CheckoutFormResult> InitBookingDepositCheckoutAsync(
         int customerId, int appointmentId, string slug, decimal amount,
@@ -2219,10 +2509,6 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
 
         try
         {
-            var gateway = _gatewayFactory.Create(config);
-            if (gateway is not IyzicoGateway iyzicoGw)
-                return CheckoutFormResult.Fail("Checkout form sadece Iyzico destekler.");
-
             // PS.6 — Booking-time deposit PLATFORM geliridir, sub-merchant split YOK.
             // (Karar journal #361: booking depozitosu doğrudan corplynk iyzico hesabına gider.)
             var req = new CheckoutFormRequest
@@ -2237,7 +2523,7 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
                 Description = $"Randevu Depozitosu - {amount:N2} TL"
             };
 
-            var result = await iyzicoGw.InitCheckoutFormAsync(req);
+            var result = await InitHostedCheckoutAsync(config, req);
             if (result.Success)
             {
                 tx.ProviderTransactionId = result.Token;

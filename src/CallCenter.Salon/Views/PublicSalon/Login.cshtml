@@ -5,11 +5,11 @@
     var returnUrl = Context.Request.Query["returnUrl"].ToString();
     var isBookingReturn = returnUrl.Contains("/book", StringComparison.OrdinalIgnoreCase);
     string T(string key, string fallback) => Translation.T(key, fallback);
-    string ActionT(string key, string fallback) => T(key, fallback).Trim().TrimEnd(';').Trim();
+    string ActionT(string key, string fallback) => T(key, fallback).Trim().TrimEnd(';', '\'', '’', '‘', '"').Trim();
     var loginButtonText = isBookingReturn
         ? ActionT("salon.login.booking_btn", "Randevuya devam et")
         : ActionT("salon.login.btn", "Giriş Yap");
-    var loginLoadingText = T("salon.publicsalon.auto.giris_yapiliyor", "Giriş yapılıyor...");
+    var loginLoadingText = ActionT("salon.publicsalon.auto.giris_yapiliyor", "Giriş yapılıyor...");
 }
 <!DOCTYPE html>
 <html lang="@pageLang">

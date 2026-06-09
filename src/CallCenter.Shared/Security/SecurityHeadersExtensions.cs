@@ -23,10 +23,10 @@ public static class SecurityHeadersExtensions
                     "img-src 'self' data: blob: https: http://localhost:* https://localhost:* http://127.0.0.1:* https://127.0.0.1:*; " +
                     "font-src 'self' data:; " +
                     "style-src 'self' 'unsafe-inline' https://unpkg.com; " +
-                    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://maps.googleapis.com https://static.cloudflareinsights.com https://unpkg.com https://*.iyzipay.com https://*.iyzico.com; " +
-                    "connect-src 'self' http://localhost:* https://localhost:* ws://localhost:* wss://localhost:* https://*.corplynk.com https://maps.googleapis.com https://*.iyzipay.com https://*.iyzico.com; " +
-                    "frame-src 'self' https://*.iyzipay.com https://*.iyzico.com; " +
-                    "form-action 'self' https://*.iyzipay.com https://*.iyzico.com");
+                    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://maps.googleapis.com https://static.cloudflareinsights.com https://unpkg.com https://*.iyzipay.com https://*.iyzico.com https://www.paytr.com https://*.paytr.com; " +
+                    "connect-src 'self' http://localhost:* https://localhost:* ws://localhost:* wss://localhost:* https://*.corplynk.com https://maps.googleapis.com https://*.iyzipay.com https://*.iyzico.com https://www.paytr.com https://*.paytr.com; " +
+                    "frame-src 'self' https://*.iyzipay.com https://*.iyzico.com https://www.paytr.com https://*.paytr.com; " +
+                    "form-action 'self' https://*.iyzipay.com https://*.iyzico.com https://www.paytr.com https://*.paytr.com");
                 return Task.CompletedTask;
             });
 

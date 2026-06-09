@@ -288,6 +288,61 @@ public class PaymentController : ControllerBase
         return Content(html, "text/html; charset=utf-8");
     }
 
+    /// <summary>PayTR iFrame server-to-server bildirim endpointi. PayTR panelindeki Bildirim URL buraya ayarlanir.</summary>
+    [HttpPost("paytr-callback")]
+    [AllowAnonymous]
+    public async Task<ActionResult> PayTrCallback(
+        [FromForm(Name = "merchant_oid")] string? merchantOid,
+        [FromForm(Name = "status")] string? status,
+        [FromForm(Name = "total_amount")] string? totalAmount,
+        [FromForm(Name = "payment_amount")] string? paymentAmount,
+        [FromForm(Name = "currency")] string? currency,
+        [FromForm(Name = "hash")] string? hash,
+        [FromForm(Name = "failed_reason_code")] string? failedReasonCode,
+        [FromForm(Name = "failed_reason_msg")] string? failedReasonMsg)
+    {
+        if (string.IsNullOrWhiteSpace(merchantOid)
+            || string.IsNullOrWhiteSpace(status)
+            || string.IsNullOrWhiteSpace(totalAmount)
+            || string.IsNullOrWhiteSpace(hash))
+            return BadRequest("PAYTR notification failed: missing fields");
+
+        var result = await _paymentService.HandlePayTrCallbackAsync(
+            merchantOid,
+            status,
+            totalAmount,
+            paymentAmount,
+            currency,
+            hash,
+            failedReasonCode,
+            failedReasonMsg);
+
+        if (!result.Accepted)
+            return BadRequest(result.Message);
+
+        return Content("OK", "text/plain; charset=utf-8");
+    }
+
+    /// <summary>PayTR iframe ok/fail return sayfasi. Siparisi onaylamaz; sonucu ust pencereye/uygulamaya tasir.</summary>
+    [HttpGet("paytr-return")]
+    [AllowAnonymous]
+    public async Task<ActionResult> PayTrReturn([FromQuery(Name = "merchant_oid")] string? merchantOid, [FromQuery] string? status)
+    {
+        if (string.IsNullOrWhiteSpace(merchantOid))
+            return BadRequest("merchant_oid eksik.");
+
+        var tx = await _paymentService.GetTransactionByTokenAsync(merchantOid);
+        var success = tx?.StatusId == PaymentStatuses.Ids.Basarili;
+        var error = success
+            ? null
+            : tx?.ErrorMessage ?? (string.Equals(status, "success", StringComparison.OrdinalIgnoreCase)
+                ? "Odeme sonucu henuz isleniyor. Birazdan tekrar kontrol edin."
+                : "Odeme basarisiz veya iptal edildi.");
+        var topLevelReturn = await BuildIyzicoTopLevelReturnUrlAsync(merchantOid, success, error);
+        var html = BuildIyzicoCallbackHtmlPage(success, error, merchantOid, topLevelReturn);
+        return Content(html, "text/html; charset=utf-8");
+    }
+
     /// <summary>
     /// PS.9 — iyzico webhook server-to-server async event handler. Sub-merchant
     /// settlement, refund, balance-funded, marketplace gibi event-leri yakalar

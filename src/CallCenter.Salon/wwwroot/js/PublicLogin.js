@@ -1,6 +1,6 @@
 (function () {
     function cleanActionText(value) {
-        return (value || '').trim().replace(/;+$/, '').trim();
+        return (value || '').trim().replace(/[\s;'’‘"“”]+$/g, '').trim();
     }
 
     function init() {

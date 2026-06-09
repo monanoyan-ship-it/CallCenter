@@ -12,6 +12,7 @@ namespace CallCenter.Api.Factories;
 
 public class TranslationFactory : ITranslationFactory
 {
+    private const string OutputSanitizerVersion = "clean-punct-v1";
     private readonly ITranslationKeyEntityService _translationEs;
     private readonly ITranslationService _translationService;
     private readonly IUnitOfWork _uow;
@@ -73,7 +74,7 @@ public class TranslationFactory : ITranslationFactory
 
         var ticks = snapshot?.MaxUpdatedAt?.ToUniversalTime().Ticks ?? 0;
         var count = snapshot?.Count ?? 0;
-        return $"{languageCode.ToLowerInvariant()}:{module ?? "all"}:{platformId?.ToString() ?? "all"}:{count}:{ticks}";
+        return $"{languageCode.ToLowerInvariant()}:{module ?? "all"}:{platformId?.ToString() ?? "all"}:{count}:{ticks}:{OutputSanitizerVersion}";
     }
 
     public async Task<byte[]> ExportXmlAsync()

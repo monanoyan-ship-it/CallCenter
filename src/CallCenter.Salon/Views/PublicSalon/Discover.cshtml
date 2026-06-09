@@ -47,7 +47,13 @@
                 <h5 class="mb-0 fw-bold"><i class="bi bi-scissors me-2"></i>CorpLynk <span style="color:#ce93d8;"><t key="salon.public.discover.auto.salon">Salon</t></span></h5>
                 <div class="d-flex align-items-center gap-2">
                     <span class="small"><t key="salon.discover.tagline">Yakındaki salonları keşfet</t></span>
-                    <a href="/user/login" class="btn btn-sm btn-outline-light"><i class="bi bi-box-arrow-in-right me-1"></i><t key="salon.discover.login">Giriş Yap</t></a>
+                    <a href="/user/login"
+                       class="btn btn-sm btn-outline-light"
+                       data-platform-auth-link
+                       data-signed-out-text="@T("salon.discover.login", "Giriş Yap")"
+                       data-signed-in-text="@T("salon.panel.tabs.profile", "Profilim")">
+                        <i class="bi bi-box-arrow-in-right me-1" data-platform-auth-icon></i><span data-platform-auth-label><t key="salon.discover.login">Giriş Yap</t></span>
+                    </a>
                 </div>
                 <div style="margin-left:8px;">
                     @await Html.PartialAsync("_LanguageMenu", "dark")
@@ -145,6 +151,7 @@
 
     <script src="/lib/knockout/knockout-latest.min.js"></script>
     <script src="~/lib/leaflet/leaflet.js" asp-append-version="true"></script>
+    <script src="~/js/PublicAuthCommon.js" asp-append-version="true"></script>
     <script src="~/js/PublicDiscover.js" asp-append-version="true"></script>
 </body>
 </html>

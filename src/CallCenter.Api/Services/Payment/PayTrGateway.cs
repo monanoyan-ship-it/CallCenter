@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Globalization;
 using CallCenter.Shared.Enums;
 using CallCenter.Shared.Interfaces;
 
@@ -30,9 +31,12 @@ public class PayTrGateway : IPaymentGateway
         try
         {
             var merchantOid = request.ConversationId;
-            var paymentAmount = ((int)(request.Amount * 100)).ToString(); // Kurus cinsinden
+            var paymentAmount = ((int)Math.Round(request.Amount * 100m, MidpointRounding.AwayFromZero)).ToString(CultureInfo.InvariantCulture);
+            var basketPrice = request.Amount.ToString("F2", CultureInfo.InvariantCulture);
             var userBasket = Convert.ToBase64String(Encoding.UTF8.GetBytes(
-                $"[[\"Hizmet\", \"{request.Amount:F2}\", 1]]"));
+                JsonSerializer.Serialize(new object[] { new object[] { request.Description ?? "CorpLynk hizmet", basketPrice, 1 } })));
+            var currency = NormalizeCurrency(request.Currency);
+            var testMode = _credentials.IsSandbox ? "1" : "0";
 
             var hashStr = string.Join("",
                 _credentials.MerchantId,
@@ -43,11 +47,12 @@ public class PayTrGateway : IPaymentGateway
                 userBasket,
                 "0", // no_installment
                 "0", // max_installment
-                request.Currency ?? "TL",
-                "1"  // test_mode
+                currency,
+                testMode
             );
 
-            var paytrToken = ComputeHmac(hashStr, _credentials.MerchantKey + _credentials.MerchantSalt);
+            var paytrToken = ComputeHmac(hashStr + _credentials.MerchantSalt, _credentials.MerchantKey);
+            var returnBaseUrl = NormalizeReturnBaseUrl(request.CallbackUrl);
 
             var formData = new Dictionary<string, string>
             {
@@ -58,16 +63,17 @@ public class PayTrGateway : IPaymentGateway
                 ["payment_amount"] = paymentAmount,
                 ["paytr_token"] = paytrToken,
                 ["user_basket"] = userBasket,
-                ["debug_on"] = "1",
+                ["debug_on"] = _credentials.IsSandbox ? "1" : "0",
                 ["no_installment"] = "0",
                 ["max_installment"] = "0",
                 ["user_name"] = request.BuyerName ?? "Customer",
-                ["user_phone"] = request.BuyerPhone ?? "",
-                ["merchant_ok_url"] = request.CallbackUrl ?? "https://corplynk.com/payment/success",
-                ["merchant_fail_url"] = request.CallbackUrl ?? "https://corplynk.com/payment/fail",
+                ["user_address"] = "Türkiye",
+                ["user_phone"] = string.IsNullOrWhiteSpace(request.BuyerPhone) ? "5000000000" : request.BuyerPhone,
+                ["merchant_ok_url"] = BuildReturnUrl(returnBaseUrl, merchantOid, success: true),
+                ["merchant_fail_url"] = BuildReturnUrl(returnBaseUrl, merchantOid, success: false),
                 ["timeout_limit"] = "30",
-                ["currency"] = request.Currency ?? "TL",
-                ["test_mode"] = "1",
+                ["currency"] = currency,
+                ["test_mode"] = testMode,
                 ["lang"] = "tr"
             };
 
@@ -160,6 +166,41 @@ public class PayTrGateway : IPaymentGateway
         using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(key));
         var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
         return Convert.ToBase64String(hash);
+    }
+
+    public bool VerifyCallbackHash(string merchantOid, string status, string totalAmount, string receivedHash)
+    {
+        if (string.IsNullOrWhiteSpace(merchantOid)
+            || string.IsNullOrWhiteSpace(status)
+            || string.IsNullOrWhiteSpace(totalAmount)
+            || string.IsNullOrWhiteSpace(receivedHash))
+            return false;
+
+        var expected = ComputeHmac(merchantOid + _credentials.MerchantSalt + status + totalAmount, _credentials.MerchantKey);
+        var expectedBytes = Encoding.UTF8.GetBytes(expected);
+        var receivedBytes = Encoding.UTF8.GetBytes(receivedHash);
+        return expectedBytes.Length == receivedBytes.Length
+            && CryptographicOperations.FixedTimeEquals(expectedBytes, receivedBytes);
+    }
+
+    private static string NormalizeCurrency(string? currency)
+        => string.Equals(currency, "TRY", StringComparison.OrdinalIgnoreCase)
+            ? "TL"
+            : string.IsNullOrWhiteSpace(currency) ? "TL" : currency.Trim().ToUpperInvariant();
+
+    private static string NormalizeReturnBaseUrl(string? callbackUrl)
+    {
+        var value = string.IsNullOrWhiteSpace(callbackUrl)
+            ? "https://sln.corplynk.com/api/payments/paytr-return"
+            : callbackUrl.Trim();
+
+        return value.Replace("/iyzico-callback", "/paytr-return", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string BuildReturnUrl(string baseUrl, string merchantOid, bool success)
+    {
+        var separator = baseUrl.Contains('?') ? '&' : '?';
+        return $"{baseUrl}{separator}merchant_oid={Uri.EscapeDataString(merchantOid)}&status={(success ? "success" : "failed")}";
     }
 
     private class PayTrTokenResponse { public string? Status { get; set; } public string? Token { get; set; } public string? Reason { get; set; } }

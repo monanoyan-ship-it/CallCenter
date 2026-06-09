@@ -280,6 +280,7 @@ public class PaymentConfigFactory : IPaymentConfigFactory
                 MerchantId = dto.PayTrMerchantId ?? "",
                 MerchantKey = dto.PayTrMerchantKey ?? "",
                 MerchantSalt = dto.PayTrMerchantSalt ?? "",
+                IsSandbox = dto.IsSandbox,
                 BaseUrl = "https://www.paytr.com"
             },
             PaymentProviders.Ids.Param => new ParamCredentials

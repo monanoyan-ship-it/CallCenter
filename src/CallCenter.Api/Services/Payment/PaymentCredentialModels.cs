@@ -15,6 +15,7 @@ public class PayTrCredentials
     public string MerchantId { get; set; } = string.Empty;
     public string MerchantKey { get; set; } = string.Empty;
     public string MerchantSalt { get; set; } = string.Empty;
+    public bool IsSandbox { get; set; } = true;
     /// <summary>Sandbox: https://www.paytr.com | Prod: https://www.paytr.com</summary>
     public string BaseUrl { get; set; } = "https://www.paytr.com";
 }

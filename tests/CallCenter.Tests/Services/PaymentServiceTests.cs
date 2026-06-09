@@ -9,6 +9,8 @@ using CallCenter.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace CallCenter.Tests.Services;
 
@@ -175,6 +177,94 @@ public sealed class PaymentServiceTests : IDisposable
         unified.Notes.Should().Contain("CheckoutSuperseded");
     }
 
+    [Fact]
+    public async Task HandlePayTrCallbackAsync_WithValidSuccessCallback_MarksBillingPeriodPaid()
+    {
+        var customer = AddCustomer(1);
+        var period = new CustomerBillingPeriod
+        {
+            Id = 101,
+            CustomerId = customer.Id,
+            BillingKindId = CustomerBillingKinds.SalonPlatform,
+            Year = 2026,
+            Month = 6,
+            PeriodStartDate = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc),
+            PeriodEndDate = new DateTime(2026, 6, 30, 0, 0, 0, DateTimeKind.Utc),
+            Amount = 1700m,
+            StatusId = BillingPeriodStatuses.Ids.Draft
+        };
+        _db.CustomerBillingPeriods.Add(period);
+        AddPayTrPaymentConfig();
+
+        var merchantOid = Guid.NewGuid().ToString("N");
+        var tx = new PaymentTransaction
+        {
+            CustomerId = customer.Id,
+            BillingPeriodId = period.Id,
+            PaymentTypeId = PaymentTypes.Ids.PlatformAbonelik,
+            PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti,
+            StatusId = PaymentStatuses.Ids.Beklemede,
+            Amount = 1700m,
+            Currency = "TRY",
+            Provider = "PayTR",
+            ProviderTransactionId = merchantOid
+        };
+        _db.PaymentTransactions.Add(tx);
+        await _db.SaveChangesAsync();
+
+        var hash = ComputePayTrHash(merchantOid, "success", "170000");
+        var result = await _sut.HandlePayTrCallbackAsync(
+            merchantOid,
+            "success",
+            "170000",
+            "170000",
+            "TL",
+            hash,
+            null,
+            null);
+
+        result.Accepted.Should().BeTrue();
+        tx.StatusId.Should().Be(PaymentStatuses.Ids.Basarili);
+        period.IsPaid.Should().BeTrue();
+        period.StatusId.Should().Be(BillingPeriodStatuses.Ids.Paid);
+        tx.Notes.Should().Contain("PayTrCallbackSucceeded");
+    }
+
+    [Fact]
+    public async Task HandlePayTrCallbackAsync_WithInvalidHash_DoesNotMutateTransaction()
+    {
+        var customer = AddCustomer(1);
+        AddPayTrPaymentConfig();
+        var merchantOid = Guid.NewGuid().ToString("N");
+        var tx = new PaymentTransaction
+        {
+            CustomerId = customer.Id,
+            PaymentTypeId = PaymentTypes.Ids.PlatformAbonelik,
+            PaymentMethodId = BillingPaymentMethods.Ids.KrediKarti,
+            StatusId = PaymentStatuses.Ids.Beklemede,
+            Amount = 1700m,
+            Currency = "TRY",
+            Provider = "PayTR",
+            ProviderTransactionId = merchantOid
+        };
+        _db.PaymentTransactions.Add(tx);
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.HandlePayTrCallbackAsync(
+            merchantOid,
+            "success",
+            "170000",
+            "170000",
+            "TL",
+            "bad-hash",
+            null,
+            null);
+
+        result.Accepted.Should().BeFalse();
+        tx.StatusId.Should().Be(PaymentStatuses.Ids.Beklemede);
+        tx.CompletedAt.Should().BeNull();
+    }
+
     private void AddTransaction(int customerId, int paymentTypeId, DateTime createdAt)
     {
         _db.PaymentTransactions.Add(new PaymentTransaction
@@ -192,15 +282,21 @@ public sealed class PaymentServiceTests : IDisposable
 
     private PaymentService CreatePaymentService(ISubscriptionFactory subscriptionFactory)
     {
+        var gatewayFactory = CreateGatewayFactory("unit-test-encryption-key");
+
+        return new PaymentService(_db, gatewayFactory, subscriptionFactory, NullLogger<PaymentService>.Instance);
+    }
+
+    private static PaymentGatewayFactory CreateGatewayFactory(string encryptionKey)
+    {
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Encryption:Key"] = "unit-test-encryption-key"
+                ["Encryption:Key"] = encryptionKey
             })
             .Build();
-        var gatewayFactory = new PaymentGatewayFactory(new AesEncryptionService(config));
 
-        return new PaymentService(_db, gatewayFactory, subscriptionFactory, NullLogger<PaymentService>.Instance);
+        return new PaymentGatewayFactory(new AesEncryptionService(config));
     }
 
     private Customer AddCustomer(int id)
@@ -227,6 +323,32 @@ public sealed class PaymentServiceTests : IDisposable
             IsActive = true,
             IsSandbox = true
         });
+    }
+
+    private void AddPayTrPaymentConfig()
+    {
+        var gatewayFactory = CreateGatewayFactory("unit-test-encryption-key");
+        _db.PlatformPaymentConfigs.Add(new PlatformPaymentConfig
+        {
+            ProviderTypeId = PaymentProviders.Ids.PayTR,
+            EncryptedCredentials = gatewayFactory.EncryptCredentials(new PayTrCredentials
+            {
+                MerchantId = "merchant-id",
+                MerchantKey = "merchant-key",
+                MerchantSalt = "merchant-salt",
+                BaseUrl = "https://www.paytr.com",
+                IsSandbox = true
+            }),
+            IsActive = true,
+            IsSandbox = true
+        });
+    }
+
+    private static string ComputePayTrHash(string merchantOid, string status, string totalAmount)
+    {
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes("merchant-key"));
+        var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(merchantOid + "merchant-salt" + status + totalAmount));
+        return Convert.ToBase64String(hash);
     }
 
     private PaymentTransaction AddPendingUnifiedCheckout(int customerId, int billingPeriodId)

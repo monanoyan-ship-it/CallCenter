@@ -93,6 +93,22 @@ public class PublicProxyController : Controller
     public Task<IActionResult> IyzicoWebhook()
         => ForwardPaymentPostAsync("api/payments/iyzico-webhook");
 
+    [HttpPost("api/payments/paytr-callback")]
+    public Task<IActionResult> PayTrCallback()
+        => ForwardPaymentPostAsync("api/payments/paytr-callback");
+
+    [HttpGet("api/payments/paytr-return")]
+    public Task<IActionResult> PayTrReturn()
+        => ForwardPaymentGetAsync("api/payments/paytr-return");
+
+    private async Task<IActionResult> ForwardPaymentGetAsync(string apiPath)
+    {
+        var factory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
+        var client = factory.CreateClient("SalonApi");
+        var response = await client.GetAsync($"{apiPath}{Request.QueryString}");
+        return await ProxyResultHelper.ToApiResult(response, HttpContext);
+    }
+
     private async Task<IActionResult> ForwardPaymentPostAsync(string apiPath)
     {
         var factory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();

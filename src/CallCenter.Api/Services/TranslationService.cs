@@ -59,11 +59,30 @@ public class TranslationService : ITranslationService
         {
             var dict = group.ToDictionary(
                 t => t.TranslationKey.Key,
-                t => t.Value
+                t => CleanGeneratedTextArtifact(t.Value)
             );
             _cache[group.Key] = dict;
         }
 
         _isLoaded = true;
     }
+
+    private static string CleanGeneratedTextArtifact(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return value;
+
+        var cleaned = value.TrimEnd();
+        while (cleaned.Length >= 2 && cleaned[^1] == ';' && IsQuote(cleaned[^2]))
+            cleaned = cleaned[..^2].TrimEnd();
+
+        return cleaned;
+    }
+
+    private static bool IsQuote(char value)
+        => value is '\'' or '"'
+           || value == '\u2018'
+           || value == '\u2019'
+           || value == '\u201C'
+           || value == '\u201D';
 }
