@@ -165,10 +165,17 @@ public class FileLocalRepository : ILocalRepository
     public async Task DeleteRecordingAsync(Guid uid)
         => await _recordings.RemoveAsync(r => r.Uid == uid);
 
-    public Task<List<LocalRecording>> GetUnuploadedRecordingsAsync(int limit = 10)
-        => _recordings.WhereAsync(r =>
-            (!r.IsUploadedToCloud && r.CloudUploadAttemptCount < 5) ||
-            (!r.IsUploadedToPlatform && r.PlatformUploadAttemptCount < 5));
+    public async Task<List<LocalRecording>> GetUnuploadedRecordingsAsync(int limit = 10)
+    {
+        var all = await _recordings.WhereAsync(r =>
+            !r.IsUploadedToCloud ||
+            !r.IsUploadedToPlatform);
+
+        return all
+            .OrderBy(r => r.CreatedAt)
+            .Take(limit)
+            .ToList();
+    }
 
     public async Task MarkRecordingAsUploadedAsync(Guid uid, string? cloudFileId = null)
     {

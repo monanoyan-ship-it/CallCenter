@@ -152,6 +152,7 @@ public partial class MainWindow : Window
         blazorWebView.Services = services.BuildServiceProvider();
 
         var serviceProvider = blazorWebView.Services as ServiceProvider;
+        _trayService.BeforeExitAsync = () => EnsureSafeExitAsync(serviceProvider);
 
         // System Tray, Hotkeys ve BackgroundSync'i pencere yuklendikten sonra baslat
         Loaded += async (s, e) =>
@@ -179,5 +180,72 @@ public partial class MainWindow : Window
             var bgSync = serviceProvider?.GetService<Services.BackgroundSyncService>();
             bgSync?.StartAsync();
         };
+    }
+
+    private static async Task<bool> EnsureSafeExitAsync(ServiceProvider? serviceProvider)
+    {
+        if (serviceProvider == null)
+            return true;
+
+        var sipService = serviceProvider.GetService<Services.ISipService>();
+        if (sipService is { IsInCall: true } || sipService is { IsRecording: true })
+        {
+            MessageBox.Show(
+                "Aktif gorusme veya ses kaydi devam ediyor. Uygulamayi kapatmadan once gorusmeyi sonlandirin ve kaydin tamamlanmasini bekleyin.",
+                "CorpLynk",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return false;
+        }
+
+        var recordingUpload = serviceProvider.GetService<Services.RecordingUploadService>();
+        var backgroundSync = serviceProvider.GetService<Services.BackgroundSyncService>();
+        if (recordingUpload == null || backgroundSync == null)
+            return true;
+
+        if (!await recordingUpload.HasAnyPendingRequiredUploadsAsync())
+            return true;
+
+        MessageBox.Show(
+            "Bekleyen ses kaydi upload islemleri var. Uygulama kapanmadan once kayitlari yuklemeyi deneyecek; lutfen bekleyin.",
+            "CorpLynk",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+        try
+        {
+            await backgroundSync.FlushOnceAsync(cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            MessageBox.Show(
+                "Ses kaydi upload islemi zaman asimina ugradi. Kayitlar kaybolmasin diye uygulama kapatilmadi.",
+                "CorpLynk",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                $"Ses kaydi upload kontrolu tamamlanamadi: {ex.Message}\n\nKayitlar kaybolmasin diye uygulama kapatilmadi.",
+                "CorpLynk",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return false;
+        }
+
+        if (await recordingUpload.HasAnyPendingRequiredUploadsAsync())
+        {
+            MessageBox.Show(
+                "Bekleyen ses kaydi upload islemleri hala tamamlanmadi. Kayitlar kaybolmasin diye uygulama kapatilmadi.",
+                "CorpLynk",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return false;
+        }
+
+        return true;
     }
 }

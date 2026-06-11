@@ -211,6 +211,30 @@ public class RecordingUploadService
         return false;
     }
 
+    /// <summary>
+    /// Herhangi bir cagri icin tamamlanmasi gereken upload isi varsa true doner.
+    /// Logout/exit guard bu metodu kullanir; hedefler alinamazsa dosya kaybolmasin diye pending kabul edilir.
+    /// </summary>
+    public async Task<bool> HasAnyPendingRequiredUploadsAsync(CancellationToken ct = default)
+    {
+        await RepairMissingRecordingMetadataAsync(ct);
+
+        var recordings = await _localRepo.GetUnuploadedRecordingsAsync(100);
+        if (recordings.Count == 0) return false;
+
+        var targets = await GetUploadTargetsAsync(ct);
+        foreach (var recording in recordings)
+        {
+            if (!File.Exists(recording.FilePath))
+                continue;
+
+            if (targets == null || !IsCompleteForTargets(recording, targets))
+                return true;
+        }
+
+        return false;
+    }
+
     private async Task UploadToTargetAsync(
         CloudConfigForClientDto config,
         LocalRecording recording,

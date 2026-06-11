@@ -14,6 +14,11 @@ public class SystemTrayService : IDisposable
     private Window? _mainWindow;
 
     /// <summary>
+    /// Gercek cikis oncesi calisan guard. false donerse uygulama kapanmaz.
+    /// </summary>
+    public Func<Task<bool>>? BeforeExitAsync { get; set; }
+
+    /// <summary>
     /// System tray ikonunu olusturur ve gosterir.
     /// </summary>
     public void Initialize(Window mainWindow)
@@ -42,7 +47,7 @@ public class SystemTrayService : IDisposable
         contextMenu.Items.Add(new System.Windows.Controls.Separator());
 
         var exitItem = new System.Windows.Controls.MenuItem { Header = "Cikis" };
-        exitItem.Click += (s, e) => ExitApplication();
+        exitItem.Click += async (s, e) => await ExitApplicationAsync();
         contextMenu.Items.Add(exitItem);
 
         _trayIcon.ContextMenu = contextMenu;
@@ -124,8 +129,11 @@ public class SystemTrayService : IDisposable
             BalloonIcon.Info);
     }
 
-    private void ExitApplication()
+    private async Task ExitApplicationAsync()
     {
+        if (BeforeExitAsync != null && !await BeforeExitAsync())
+            return;
+
         // Gercekten cik
         if (_mainWindow != null)
         {

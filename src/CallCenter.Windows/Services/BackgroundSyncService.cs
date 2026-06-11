@@ -33,6 +33,7 @@ public class BackgroundSyncService
     private PeriodicTimer? _timer;
     private CancellationTokenSource? _cts;
     private Task? _runningTask;
+    private readonly SemaphoreSlim _syncGate = new(1, 1);
 
     /// <summary>Senkronizasyon araligi (varsayilan: 60 saniye)</summary>
     private static readonly TimeSpan SyncInterval = TimeSpan.FromSeconds(60);
@@ -94,6 +95,12 @@ public class BackgroundSyncService
         _logger.LogInformation("BackgroundSyncService durduruldu");
     }
 
+    /// <summary>
+    /// Logout/exit oncesi tek seferlik flush. Once kayit uploadlarini, sonra call sync'i tamamlamayi dener.
+    /// </summary>
+    public Task FlushOnceAsync(CancellationToken ct = default)
+        => RunSyncCycleAsync(ct);
+
     // ═══════════════════════════════════════
     // ANA DONGU
     // ═══════════════════════════════════════
@@ -108,13 +115,7 @@ public class BackgroundSyncService
         {
             try
             {
-                // ONCE metadata repair + upload (CloudFileId/PlatformFileId set edilsin),
-                // SONRA sync (dosya id'leri backend'e gitsin).
-                await _recordingUpload.UploadPendingRecordingsAsync(ct);
-                await SyncUnsyncedRecordsAsync(ct);
-                await SyncUnsyncedContactsAsync(ct);
-                await SyncUnsyncedSipAccountsAsync(ct);
-                await CleanupSyncedRecordsAsync();
+                await RunSyncCycleAsync(ct);
             }
             catch (OperationCanceledException)
             {
@@ -125,6 +126,25 @@ public class BackgroundSyncService
                 // Hic bir hata donguyu kirmamali — bir sonraki turda tekrar dene
                 _logger.LogError(ex, "Senkronizasyon dongusunde hata");
             }
+        }
+    }
+
+    private async Task RunSyncCycleAsync(CancellationToken ct)
+    {
+        await _syncGate.WaitAsync(ct);
+        try
+        {
+            // ONCE metadata repair + upload (CloudFileId/PlatformFileId set edilsin),
+            // SONRA sync (dosya id'leri backend'e gitsin).
+            await _recordingUpload.UploadPendingRecordingsAsync(ct);
+            await SyncUnsyncedRecordsAsync(ct);
+            await SyncUnsyncedContactsAsync(ct);
+            await SyncUnsyncedSipAccountsAsync(ct);
+            await CleanupSyncedRecordsAsync();
+        }
+        finally
+        {
+            _syncGate.Release();
         }
     }
 

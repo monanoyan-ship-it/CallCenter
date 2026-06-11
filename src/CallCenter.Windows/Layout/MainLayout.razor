@@ -10,6 +10,8 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject WindowsSessionEvents SessionEvents
 @inject ToastService Toast
+@inject BackgroundSyncService BackgroundSync
+@inject RecordingUploadService RecordingUpload
 @implements IAsyncDisposable
 @using CallCenter.Shared.Enums
 @using CallCenter.Shared.DTOs
@@ -66,7 +68,7 @@
                     @* ─── SES CIHAZI AYARLARI ─── *@
                     <AudioSettings />
 
-                    <button class="btn btn-link text-muted btn-logout" title="Cikis Yap" @onclick="HandleLogout">
+                    <button class="btn btn-link text-muted btn-logout" title="Cikis Yap" @onclick="HandleLogout" disabled="@isEndingSession">
                         <i class="bi bi-box-arrow-right"></i>
                     </button>
                 </div>
@@ -273,24 +275,75 @@
 
         isEndingSession = true;
 
-        try { await Http.PostAsync("api/sipaccounts/my/release", null); }
-        catch { /* best effort */ }
+        try
+        {
+            if (!await EnsureRecordingWorkSafeBeforeSessionEndAsync(revokeServerToken))
+            {
+                isEndingSession = false;
+                return;
+            }
 
-        try { await SipService.DisposeAsync(); }
-        catch { /* best effort */ }
+            try { await Http.PostAsync("api/sipaccounts/my/release", null); }
+            catch { /* best effort */ }
 
-        try { await HubService.DisconnectAsync(); }
-        catch { /* best effort */ }
+            try { await SipService.DisposeAsync(); }
+            catch { /* best effort */ }
 
-        if (revokeServerToken)
-            await AuthService.LogoutAsync();
-        else
-            await AuthService.ForceLogoutAsync();
+            try { await HubService.DisconnectAsync(); }
+            catch { /* best effort */ }
 
-        if (!revokeServerToken && !string.IsNullOrWhiteSpace(reason))
-            Toast.ShowWarning(reason);
+            if (revokeServerToken)
+                await AuthService.LogoutAsync();
+            else
+                await AuthService.ForceLogoutAsync();
 
-        await InvokeAsync(() => NavigationManager.NavigateTo("/login", forceLoad: true));
+            if (!revokeServerToken && !string.IsNullOrWhiteSpace(reason))
+                Toast.ShowWarning(reason);
+
+            await InvokeAsync(() => NavigationManager.NavigateTo("/login", forceLoad: true));
+        }
+        finally
+        {
+            isEndingSession = false;
+        }
+    }
+
+    private async Task<bool> EnsureRecordingWorkSafeBeforeSessionEndAsync(bool userRequestedLogout)
+    {
+        if (SipService.IsInCall || SipService.IsRecording)
+        {
+            Toast.ShowWarning("Aktif gorusme veya ses kaydi tamamlanmadan cikis yapilamaz.");
+            return false;
+        }
+
+        try
+        {
+            if (!await RecordingUpload.HasAnyPendingRequiredUploadsAsync())
+                return true;
+
+            Toast.ShowInfo("Bekleyen ses kaydi uploadlari tamamlanmadan cikis yapilmayacak. Lutfen bekleyin.");
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            await BackgroundSync.FlushOnceAsync(cts.Token);
+
+            if (!await RecordingUpload.HasAnyPendingRequiredUploadsAsync())
+                return true;
+
+            Toast.ShowWarning(userRequestedLogout
+                ? "Bekleyen ses kaydi uploadlari var. Kayitlar kaybolmasin diye cikis yapilmadi."
+                : "Baska oturum girisi geldi ancak bekleyen ses kaydi uploadlari var. Kayitlar tamamlanana kadar bu oturum kapatilmadi.");
+            return false;
+        }
+        catch (OperationCanceledException)
+        {
+            Toast.ShowWarning("Ses kaydi upload kontrolu zaman asimina ugradi. Kayitlar kaybolmasin diye cikis yapilmadi.");
+            return false;
+        }
+        catch
+        {
+            Toast.ShowWarning("Ses kaydi upload kontrolu tamamlanamadi. Kayitlar kaybolmasin diye cikis yapilmadi.");
+            return false;
+        }
     }
 
     // ═══ GUNCELLEME ═══
@@ -320,10 +373,13 @@
         downloadedPath = await UpdateSvc.DownloadUpdateAsync();
     }
 
-    private void LaunchUpdate()
+    private async Task LaunchUpdate()
     {
         if (downloadedPath != null)
         {
+            if (!await EnsureRecordingWorkSafeBeforeSessionEndAsync(userRequestedLogout: true))
+                return;
+
             UpdateSvc.LaunchInstaller(downloadedPath);
             // Uygulama kapanacak, installer baslatildi
         }
