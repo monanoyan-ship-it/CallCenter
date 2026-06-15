@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using CallCenter.Shared.Enums;
 using CallCenter.Shared.Interfaces;
 
@@ -93,8 +94,9 @@ public class IyzicoGateway : IPaymentGateway
 
             if (result?.Status == "success")
             {
+                var paymentTransactionId = result.GetFirstPaymentTransactionId();
                 return PaymentInitResult.Ok(
-                    result.PaymentId ?? conversationId,
+                    paymentTransactionId ?? result.PaymentId ?? conversationId,
                     result.PaymentId);
             }
 
@@ -118,7 +120,7 @@ public class IyzicoGateway : IPaymentGateway
             var result = JsonSerializer.Deserialize<IyzicoPaymentResponse>(responseBody, JsonOpts);
 
             return result?.Status == "success"
-                ? PaymentVerifyResult.Ok(result.PaymentId ?? providerTransactionId, result.PaymentId, result.PaidPrice ?? result.Price, result.Currency)
+                ? PaymentVerifyResult.Ok(result.GetFirstPaymentTransactionId() ?? result.PaymentId ?? providerTransactionId, result.PaymentId, result.PaidPrice ?? result.Price, result.Currency)
                 : PaymentVerifyResult.Fail(result?.ErrorMessage ?? "Dogrulama basarisiz");
         }
         catch (Exception ex)
@@ -127,16 +129,18 @@ public class IyzicoGateway : IPaymentGateway
         }
     }
 
-    public async Task<PaymentRefundResult> RefundAsync(string providerTransactionId, decimal amount, CancellationToken ct = default)
+    public async Task<PaymentRefundResult> RefundAsync(string providerReference, decimal amount, CancellationToken ct = default)
     {
+        // Amount-based refund uses the paymentId. Our PaymentTransaction stores iyzico paymentId in
+        // ProviderPaymentId, so this path avoids confusing paymentId with paymentTransactionId.
         var body = JsonSerializer.Serialize(new
         {
             locale = "tr",
-            paymentTransactionId = providerTransactionId,
+            paymentId = providerReference,
             price = amount.ToString("F2", System.Globalization.CultureInfo.InvariantCulture),
-            currency = "TRY"
+            ip = "127.0.0.1"
         });
-        var httpRequest = CreateRequest(HttpMethod.Post, "/payment/refund", body);
+        var httpRequest = CreateRequest(HttpMethod.Post, "/v2/payment/refund", body);
 
         try
         {
@@ -145,7 +149,7 @@ public class IyzicoGateway : IPaymentGateway
             var result = JsonSerializer.Deserialize<IyzicoPaymentResponse>(responseBody, JsonOpts);
 
             return result?.Status == "success"
-                ? PaymentRefundResult.Ok(result.PaymentId ?? providerTransactionId)
+                ? PaymentRefundResult.Ok(result.PaymentId ?? providerReference)
                 : PaymentRefundResult.Fail(result?.ErrorMessage ?? "Iade basarisiz");
         }
         catch (Exception ex)
@@ -358,7 +362,7 @@ public class IyzicoGateway : IPaymentGateway
             var result = JsonSerializer.Deserialize<IyzicoPaymentResponse>(responseBody, JsonOpts);
 
             return result?.Status == "success"
-                ? PaymentVerifyResult.Ok(result.PaymentId ?? token, result.PaymentId, result.PaidPrice ?? result.Price, result.Currency)
+                ? PaymentVerifyResult.Ok(result.GetFirstPaymentTransactionId() ?? result.PaymentId ?? token, result.PaymentId, result.PaidPrice ?? result.Price, result.Currency)
                 : PaymentVerifyResult.Fail(result?.ErrorMessage ?? "Checkout dogrulama basarisiz");
         }
         catch (Exception ex)
@@ -378,6 +382,18 @@ public class IyzicoGateway : IPaymentGateway
         public decimal? Price { get; set; }
         public decimal? PaidPrice { get; set; }
         public string? Currency { get; set; }
+        [JsonPropertyName("itemTransactions")]
+        public List<IyzicoPaymentItem>? ItemTransactions { get; set; }
+
+        public string? GetFirstPaymentTransactionId()
+            => ItemTransactions?
+                .FirstOrDefault(item => !string.IsNullOrWhiteSpace(item.PaymentTransactionId))
+                ?.PaymentTransactionId;
+    }
+
+    private class IyzicoPaymentItem
+    {
+        public string? PaymentTransactionId { get; set; }
     }
 
     private class IyzicoCheckoutResponse

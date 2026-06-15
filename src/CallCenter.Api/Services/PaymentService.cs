@@ -2059,6 +2059,7 @@ footer {{ margin-top: 2rem; font-size: 0.8rem; color: #888; }}
             tx.ProviderPaymentId = verifyResult.ProviderPaymentId;
             tx.CompletedAt = DateTime.UtcNow;
             tx.Notes = AddNoteEvent(tx.Notes, "ProviderCallbackSucceeded", "Checkout callback dogrulamasi basarili.");
+            tx.Notes = AddEncodedNoteValue(tx.Notes, "IyzicoPaymentTransactionId:", verifyResult.ProviderTransactionId);
 
             if ((tx.BillingPeriodId.HasValue || tx.Lines.Count > 0) && !tx.CustomerId.HasValue)
             {
