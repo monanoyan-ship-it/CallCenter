@@ -196,10 +196,62 @@ function ModulesViewModel() {
     self.dashboardSub = ko.observable(null);
     /** api/subscriptions/my → unpaidBillings (bilgi amaçlı) */
     self.platformUnpaid = ko.observableArray([]);
+    self.platformUnpaidNoticeDismissed = ko.observable(false);
     /** Platform tahakkuku KK (subscription-checkout) */
     self.platformPayLoading = ko.observable(false);
     self.paymentHistory = ko.observableArray([]);
     self.paymentHistoryLoading = ko.observable(false);
+    var platformNoticeDismissTtlMs = 24 * 60 * 60 * 1000;
+    var platformNoticeStoragePrefix = 'slnPlatformUnpaidNoticeDismissed:';
+
+    function hashKey(value) {
+        var text = String(value || '');
+        var hash = 0;
+        for (var i = 0; i < text.length; i++) {
+            hash = ((hash << 5) - hash) + text.charCodeAt(i);
+            hash |= 0;
+        }
+        return Math.abs(hash).toString(36);
+    }
+
+    self.platformUnpaidNoticeKey = ko.computed(function () {
+        var parts = self.platformUnpaid().map(function (x) {
+            return [
+                x.id || 0,
+                x.year || '',
+                x.month || '',
+                x.isUpcoming ? 'u' : 'd',
+                x.total || 0,
+                x.dueDate || x.periodStartDate || ''
+            ].join(':');
+        });
+        return platformNoticeStoragePrefix + hashKey(parts.join('|'));
+    });
+
+    function refreshPlatformUnpaidNoticeDismissal() {
+        if (self.platformUnpaid().length === 0) {
+            self.platformUnpaidNoticeDismissed(false);
+            return;
+        }
+        var key = self.platformUnpaidNoticeKey();
+        var expiresAt = parseInt(localStorage.getItem(key) || '0', 10);
+        if (expiresAt && expiresAt > Date.now()) {
+            self.platformUnpaidNoticeDismissed(true);
+            return;
+        }
+        if (expiresAt) localStorage.removeItem(key);
+        self.platformUnpaidNoticeDismissed(false);
+    }
+
+    self.showPlatformUnpaidNotice = ko.computed(function () {
+        return self.platformUnpaid().length > 0 && !self.platformUnpaidNoticeDismissed();
+    });
+
+    self.dismissPlatformUnpaidNotice = function () {
+        localStorage.setItem(self.platformUnpaidNoticeKey(), String(Date.now() + platformNoticeDismissTtlMs));
+        self.platformUnpaidNoticeDismissed(true);
+    };
+
     self.hasUpcomingPlatformBilling = ko.computed(function () {
         return self.platformUnpaid().some(function (x) { return x && x.isUpcoming; });
     });
@@ -507,10 +559,12 @@ function ModulesViewModel() {
                     var t = Number(x && x.total);
                     return !isNaN(t) && t > 0;
                 }));
+                refreshPlatformUnpaidNoticeDismissal();
                 maybeOpenInitialPlatformPayment();
             })
             .fail(function () {
                 self.platformUnpaid([]);
+                refreshPlatformUnpaidNoticeDismissal();
                 if (initialPlatformPayRequested && !initialPlatformPayHandled) {
                     initialPlatformPayHandled = true;
                     toastr.error(moduleT('salon.modules.payment_status_failed', 'Ödeme durumu alınamadı.'));

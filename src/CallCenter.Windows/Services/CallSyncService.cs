@@ -186,6 +186,7 @@ public class CallSyncService
     public async Task EndCallAsync(Guid uid, int? backendCallId, string? recordingFilePath = null)
     {
         SyncLog($"EndCallAsync BASLADI. uid={uid}, backendCallId={backendCallId}, recPath={recordingFilePath}");
+        var durationSeconds = 0;
 
         // ── 1. Lokal kaydi guncelle ──
         if (_localRepo.IsConfigured)
@@ -202,11 +203,13 @@ public class CallSyncService
                     {
                         record.DurationSeconds = (int)(record.EndedAt.Value - record.AnsweredAt.Value).TotalSeconds;
                     }
-                    record.RecordingFilePath = recordingFilePath;
+                    durationSeconds = record.DurationSeconds;
+                    if (!string.IsNullOrWhiteSpace(recordingFilePath))
+                        record.RecordingFilePath = recordingFilePath;
                     // Re-sync zorunlu: guncellenmis veri (sure, kayit) backend'e push edilmeli
                     record.IsSyncedToBackend = false;
                     await _localRepo.UpdateCallRecordAsync(record);
-                    SyncLog($"Lokal kayit guncellendi: Status=Completed, Sure={record.DurationSeconds}s, RecPath={recordingFilePath}");
+                    SyncLog($"Lokal kayit guncellendi: Status=Completed, Sure={record.DurationSeconds}s, RecPath={record.RecordingFilePath}");
                 }
             }
             catch (Exception ex)
@@ -220,30 +223,44 @@ public class CallSyncService
             {
                 try
                 {
-                    var fileInfo = new FileInfo(recordingFilePath);
+                    var fullRecordingPath = Path.GetFullPath(recordingFilePath);
+                    var fileInfo = new FileInfo(fullRecordingPath);
                     SyncLog($"Recording file check: Exists={fileInfo.Exists}, Size={fileInfo.Length}");
                     if (fileInfo.Exists)
                     {
-                        var isEncrypted = fileInfo.Extension.Equals(".enc", StringComparison.OrdinalIgnoreCase);
-                        string? fileHash = null;
-                        try
-                        {
-                            fileHash = await CallCenter.Shared.Services.FileEncryptionService.ComputeFileHashAsync(recordingFilePath);
-                        }
-                        catch { /* Hash hesaplanamadiysa null kalir */ }
+                        var existingRecordings = await _localRepo.GetRecordingsAsync(uid, 1, 100);
+                        var alreadySaved = existingRecordings.Any(r =>
+                            !string.IsNullOrWhiteSpace(r.FilePath) &&
+                            string.Equals(Path.GetFullPath(r.FilePath), fullRecordingPath, StringComparison.OrdinalIgnoreCase));
 
-                        var recording = new LocalRecording
+                        if (alreadySaved)
                         {
-                            CallRecordUid = uid,
-                            FilePath = recordingFilePath,
-                            FileSize = fileInfo.Length,
-                            Format = fileInfo.Extension.TrimStart('.').ToLowerInvariant(),
-                            FileHash = fileHash,
-                            IsEncrypted = isEncrypted,
-                            RetentionDate = DateTime.UtcNow.AddYears(10) // TTK md. 82
-                        };
-                        await _localRepo.SaveRecordingMetadataAsync(recording);
-                        SyncLog("Ses kaydi metadata KAYDEDILDI.");
+                            SyncLog("Ses kaydi metadata zaten var; tekrar yazilmadi.");
+                        }
+                        else
+                        {
+                            var isEncrypted = fileInfo.Extension.Equals(".enc", StringComparison.OrdinalIgnoreCase);
+                            string? fileHash = null;
+                            try
+                            {
+                                fileHash = await CallCenter.Shared.Services.FileEncryptionService.ComputeFileHashAsync(fullRecordingPath);
+                            }
+                            catch { /* Hash hesaplanamadiysa null kalir */ }
+
+                            var recording = new LocalRecording
+                            {
+                                CallRecordUid = uid,
+                                FilePath = fullRecordingPath,
+                                FileSize = fileInfo.Length,
+                                Format = fileInfo.Extension.TrimStart('.').ToLowerInvariant(),
+                                DurationSeconds = durationSeconds,
+                                FileHash = fileHash,
+                                IsEncrypted = isEncrypted,
+                                RetentionDate = DateTime.UtcNow.AddYears(10) // TTK md. 82
+                            };
+                            await _localRepo.SaveRecordingMetadataAsync(recording);
+                            SyncLog("Ses kaydi metadata KAYDEDILDI.");
+                        }
                     }
                 }
                 catch (Exception ex)

@@ -748,6 +748,7 @@
     private bool _callEndedLocally;  // EndCall/HandleCallEnded sonrasi UI'yi hemen sifirla
     private int? _activeCallbackCallId; // Callback gorevi takibi (geri arama icin)
     private bool _callAnswered; // Arama cevaplanip cevaplanmadigini takip eder
+    private static readonly TimeSpan RecordingStopSlowLogThreshold = TimeSpan.FromSeconds(15);
 
     // SipService.IsInCall yerine bunu kullan — EndCall/HandleCallEnded sonrasi hemen false doner
     private bool IsCallActive => !_callEndedLocally && (SipService.IsInCall || isCallStarting);
@@ -763,6 +764,55 @@
             System.IO.File.AppendAllText(path, line);
         }
         catch { }
+    }
+
+    private async Task<string?> StopRecordingForSyncAsync(string source, bool wasRecording)
+    {
+        if (!wasRecording)
+            return null;
+
+        var startedPath = SipService.LastRecordingPath;
+        var expectedEncryptedPath = GetExpectedEncryptedRecordingPath(startedPath);
+
+        DiagLog($"{source}: StopRecordingAsync cagriliyor. StartedPath={startedPath}");
+        var stopTask = Task.Run(async () => await SipService.StopRecordingAsync());
+        var slowLogTask = Task.Delay(RecordingStopSlowLogThreshold);
+
+        if (await Task.WhenAny(stopTask, slowLogTask) != stopTask)
+        {
+            DiagLog($"{source}: StopRecordingAsync 15sn'den uzun surdu; kayit final olmadan backend'e bos/gecici path gonderilmeyecek.");
+        }
+
+        var stopped = await stopTask;
+        var finalPath = ResolveFinalRecordingPath(startedPath, expectedEncryptedPath);
+        DiagLog($"{source}: StopRecordingAsync tamamlandi. Success={stopped}, FinalPath={finalPath}");
+
+        return finalPath;
+    }
+
+    private static string? GetExpectedEncryptedRecordingPath(string? startedPath)
+    {
+        if (string.IsNullOrWhiteSpace(startedPath))
+            return null;
+
+        return string.Equals(Path.GetExtension(startedPath), ".enc", StringComparison.OrdinalIgnoreCase)
+            ? startedPath
+            : Path.ChangeExtension(startedPath, ".enc");
+    }
+
+    private string? ResolveFinalRecordingPath(string? startedPath, string? expectedEncryptedPath)
+    {
+        if (!string.IsNullOrWhiteSpace(expectedEncryptedPath) && File.Exists(expectedEncryptedPath))
+            return expectedEncryptedPath;
+
+        var currentPath = SipService.LastRecordingPath;
+        if (!string.IsNullOrWhiteSpace(currentPath) && File.Exists(currentPath))
+            return currentPath;
+
+        if (!string.IsNullOrWhiteSpace(startedPath) && File.Exists(startedPath))
+            return startedPath;
+
+        return currentPath ?? startedPath;
     }
 
     private async Task HandleCallEnded()
@@ -820,21 +870,7 @@
                     try
                     {
                         DiagLog("HandleCallEnded Task.Run BASLADI");
-                        if (wasRecording)
-                        {
-                            DiagLog("HandleCallEnded: StopRecordingAsync cagriliyor...");
-                            var stopTask = Task.Run(async () => await SipService.StopRecordingAsync());
-                            if (await Task.WhenAny(stopTask, Task.Delay(15000)) != stopTask)
-                            {
-                                DiagLog("HandleCallEnded: StopRecordingAsync 15sn TIMEOUT!");
-                            }
-                            else
-                            {
-                                DiagLog($"HandleCallEnded: StopRecordingAsync tamamlandi. Path={SipService.LastRecordingPath}");
-                            }
-                        }
-
-                        string? recordingPath = SipService.LastRecordingPath;
+                        string? recordingPath = await StopRecordingForSyncAsync("HandleCallEnded", wasRecording);
                         DiagLog($"HandleCallEnded: EndCallAsync cagriliyor. uid={endCallUid.Value}, recPath={recordingPath}");
                         await CallSync.EndCallAsync(endCallUid.Value, endCallId, recordingPath);
                         DiagLog("HandleCallEnded: EndCallAsync TAMAMLANDI.");
@@ -939,6 +975,15 @@
     private async Task StartCall()
     {
         if (string.IsNullOrWhiteSpace(phoneNumber) || !SipService.IsRegistered) return;
+
+        if (SipService.IsRecording)
+        {
+            statusMessage = "Onceki ses kaydi isleniyor. Lutfen tamamlanmasini bekleyin.";
+            statusClass = "text-warning";
+            Toast.ShowWarning(statusMessage);
+            StateHasChanged();
+            return;
+        }
 
         if (!await AuthService.IsCurrentSessionActiveAsync())
         {
@@ -1163,12 +1208,7 @@
         {
             try
             {
-                if (wasRec)
-                {
-                    DiagLog("EndCall: StopRecordingAsync ONCE cagriliyor (HangupAsync oncesi)");
-                    await SipService.StopRecordingAsync();
-                    DiagLog($"EndCall: StopRecordingAsync tamamlandi. Path={SipService.LastRecordingPath}");
-                }
+                string? recordingPath = await StopRecordingForSyncAsync("EndCall", wasRec);
 
                 DiagLog("EndCall: HangupAsync cagriliyor...");
                 // HangupAsync senkron bloklanabilir — ayri thread'de calistir
@@ -1182,7 +1222,6 @@
                     DiagLog("EndCall: HangupAsync tamamlandi.");
                 }
 
-                string? recordingPath = SipService.LastRecordingPath;
                 DiagLog($"EndCall: endUid={endUid}, endId={endId}, recPath={recordingPath}");
 
                 if (endUid.HasValue)

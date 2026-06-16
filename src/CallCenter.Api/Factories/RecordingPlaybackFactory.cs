@@ -47,7 +47,7 @@ public class RecordingPlaybackFactory : IRecordingPlaybackFactory
 
         return new RecordingInfoDto
         {
-            HasRecording = call.CloudFileId != null || call.PlatformFileId != null,
+            HasRecording = call.CloudFileId != null,
             IsEncrypted = call.IsRecordingEncrypted,
             FileSize = call.RecordingFileSize,
             DurationSeconds = call.DurationSeconds,

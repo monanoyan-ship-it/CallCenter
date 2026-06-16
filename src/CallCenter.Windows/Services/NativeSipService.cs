@@ -94,6 +94,7 @@ public class NativeSipService : ISipService
     // ─── Recording (iki yonlu mono mix) ───
     private WaveFileWriter? _waveWriter;
     private bool _isRecording;
+    private bool _isRecordingFinalizing;
     private string? _recordingWavPath; // Sifrelemeden onceki WAV yolu
     private int _recordingPayloadType; // Aktif codec: 0=PCMU, 8=PCMA, 9=G722
     private Audio.LowLatencyAudioEndPoint? _winAudioEndPoint; // Mikrofon event'i icin referans
@@ -178,7 +179,7 @@ public class NativeSipService : ISipService
     public bool IsOnHold => ActiveLine.State == LineState.OnHold;
     public bool IsDndEnabled => _dndEnabled;
     public bool IsAutoAnswerEnabled => _autoAnswerEnabled;
-    public bool IsRecording => _isRecording;
+    public bool IsRecording => _isRecording || _isRecordingFinalizing;
     public string? LastRecordingPath => _recordingWavPath;
     public bool IsMuted => _muted;
     public int ActiveLineIndex => _activeLineIndex;
@@ -837,7 +838,7 @@ public class NativeSipService : ISipService
 
     public Task<bool> StartRecordingAsync(string? filePath = null)
     {
-        if (_isRecording) return Task.FromResult(false);
+        if (IsRecording) return Task.FromResult(false);
 
         try
         {
@@ -937,6 +938,8 @@ public class NativeSipService : ISipService
 
         try
         {
+            _isRecordingFinalizing = true;
+
             if (ActiveLine.MediaSession != null)
             {
                 ActiveLine.MediaSession.OnRtpPacketReceived -= OnRtpPacketForRecording;
@@ -985,6 +988,10 @@ public class NativeSipService : ISipService
         {
             Log($"[SIP] Recording durdurulamadi: {ex.Message}");
             return false;
+        }
+        finally
+        {
+            _isRecordingFinalizing = false;
         }
     }
 

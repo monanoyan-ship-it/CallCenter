@@ -12,9 +12,10 @@
 }
 
 <div id="modules-vm">
-    <!-- ko if: platformUnpaid().length > 0 -->
-    <div class="alert alert-warning border-warning mb-3 py-2 small">
-        <div class="fw-semibold mb-1"><i class="bi bi-receipt-cutoff me-1"></i><span data-bind="text: platformBillingTitle"></span></div>
+    <!-- ko if: showPlatformUnpaidNotice() -->
+    <div class="alert alert-warning border-warning alert-dismissible mb-3 py-2 small">
+        <button type="button" class="btn-close btn-sm" aria-label="Kapat" data-bind="click: dismissPlatformUnpaidNotice"></button>
+        <div class="fw-semibold mb-1 pe-4"><i class="bi bi-receipt-cutoff me-1"></i><span data-bind="text: platformBillingTitle"></span></div>
         <ul class="mb-2 ps-3" data-bind="foreach: platformUnpaid">
             <li><span data-bind="text: (month || '-') + '/' + (year || '-')"></span> —
                 <strong data-bind="text: (total || 0).toLocaleString(document.documentElement.lang || undefined, { minimumFractionDigits: 2 }) + ' ₺'"></strong></li>
@@ -50,7 +51,7 @@
                     <div class="fw-semibold" data-bind="text: subscriptionNextBillingText"></div>
                 </div>
                 <div class="col-md-4 text-md-end">
-                    <a href="/Modules?pay=subscription" class="btn btn-sm btn-purple" data-bind="visible: platformUnpaid().length > 0">
+                    <a href="/Modules?pay=subscription" class="btn btn-sm btn-purple" data-bind="visible: showPlatformUnpaidNotice()">
                         <i class="bi bi-credit-card me-1"></i><t key="salon.dashboard.pay">Ödeme Yap</t>
                     </a>
                 </div>

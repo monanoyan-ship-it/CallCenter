@@ -26,7 +26,14 @@ public class SubscriptionFactory : ISubscriptionFactory
         (12, 20m, "12 Aylik Abonelik (%20 indirim)", 4)
     ];
 
-    /// <summary>Plan indirimi uygulanmadan temel paket dönem tutarı (tahakkuk sıfırlanmasın).</summary>
+    /// <summary>UTC tarihlerini gun bazinda karsilastirir.</summary>
+    private static int DaysUntil(DateTime targetUtc, DateTime nowUtc)
+        => (targetUtc.Date - nowUtc.Date).Days;
+
+    private static bool IsWithinBillingNoticeWindow(DateTime targetUtc, DateTime nowUtc)
+        => DaysUntil(targetUtc, nowUtc) <= PlatformBillingAccessPolicy.UpcomingBillingNoticeDays;
+
+    /// <summary>Plan indirimi uygulanmadan temel paket donem tutari (tahakkuk sifirlanmasin).</summary>
     private async Task<decimal> ComputeSalonPlatformListBasePeriodAmountForIntervalAsync(int intervalMonths)
     {
         var prices = await _servicePricingFactory.GetActiveSalonPackagePricesAsync();
@@ -737,6 +744,7 @@ public class SubscriptionFactory : ISubscriptionFactory
 
     public async Task<object> GetMySubscriptionAsync(int customerId)
     {
+        var now = DateTime.UtcNow;
         var sub = await GetCustomerSubscriptionsAsync(customerId);
         var activeSub = sub.FirstOrDefault();
 
@@ -779,6 +787,8 @@ public class SubscriptionFactory : ISubscriptionFactory
                     total = amt + svc,
                     p.PeriodStartDate,
                     p.PeriodEndDate,
+                    dueDate = p.PeriodStartDate.AddDays(PlatformBillingAccessPolicy.UnpaidGraceDaysAfterPeriodStart),
+                    daysUntilDue = DaysUntil(p.PeriodStartDate.AddDays(PlatformBillingAccessPolicy.UnpaidGraceDaysAfterPeriodStart), now),
                     p.StatusId,
                     isUpcoming = false,
                     salonModuleLines = p.ModuleLines
@@ -788,7 +798,7 @@ public class SubscriptionFactory : ISubscriptionFactory
                         .ToList()
                 };
             })
-            .Where(x => x.total > 0m)
+            .Where(x => x.total > 0m && IsWithinBillingNoticeWindow(x.dueDate, now))
             .Cast<object>()
             .ToList();
 
@@ -796,7 +806,7 @@ public class SubscriptionFactory : ISubscriptionFactory
         {
             var next = await GetNextSalonAccrualUtcAsync(customerId) ?? activeEntity.StartDate;
             var virtualBreakdown = await GetSalonBillingBreakdownForCustomerAsync(customerId);
-            if (virtualBreakdown.HasValue)
+            if (virtualBreakdown.HasValue && IsWithinBillingNoticeWindow(next, now))
             {
                 var virtualTotal = virtualBreakdown.Value.PlatformAmount + virtualBreakdown.Value.ModuleAmount;
                 if (virtualTotal > 0m)
@@ -811,6 +821,8 @@ public class SubscriptionFactory : ISubscriptionFactory
                         total = virtualTotal,
                         PeriodStartDate = next,
                         PeriodEndDate = next.AddMonths(GetEffectiveBillingIntervalMonths(activeEntity.Plan)),
+                        dueDate = next,
+                        daysUntilDue = DaysUntil(next, now),
                         StatusId = BillingPeriodStatuses.Ids.Draft,
                         isUpcoming = true,
                         salonModuleLines = Array.Empty<object>()
@@ -842,14 +854,18 @@ public class SubscriptionFactory : ISubscriptionFactory
             {
                 overdue = new
                 {
+                    dismissKey = $"overdue:{oldestUnpaid.Id}:{graceEnd:yyyy-MM-dd}",
+                    daysUntilDue = DaysUntil(graceEnd, now),
                     message = $"Ödenmemiş platform tahakkukunuz bulunmaktadır ({oldestUnpaid.Year}/{oldestUnpaid.Month:D2}). Lütfen ödeme yapın."
                 };
             }
-            else
+            else if (IsWithinBillingNoticeWindow(graceEnd, now))
             {
-                var daysLeft = (graceEnd.Date - now.Date).Days;
+                var daysLeft = DaysUntil(graceEnd, now);
                 info = new
                 {
+                    dismissKey = $"info:{oldestUnpaid.Id}:{graceEnd:yyyy-MM-dd}",
+                    daysUntilDue = daysLeft,
                     message = $"Ödenmemiş tahakkukunuz var. Son ödeme tarihi: {graceEnd:yyyy-MM-dd} ({Math.Max(0, daysLeft)} gün kaldı)."
                 };
             }

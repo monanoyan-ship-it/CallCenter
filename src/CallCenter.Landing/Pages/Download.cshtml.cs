@@ -4,8 +4,8 @@ namespace CallCenter.Landing.Pages;
 
 public class DownloadModel : PageModel
 {
-    public string WindowsVersion { get; set; } = "0.4.8";
-    public string WindowsDownloadUrl { get; set; } = "https://storage.googleapis.com/corplynk-releases/CorpLynk-0.4.8-setup.exe";
+    public string WindowsVersion { get; set; } = "0.4.9";
+    public string WindowsDownloadUrl { get; set; } = "https://storage.googleapis.com/corplynk-releases/CorpLynk-0.4.9-setup.exe";
 
     public void OnGet()
     {

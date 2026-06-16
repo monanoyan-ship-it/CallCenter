@@ -77,7 +77,7 @@ public class CallFactory : ICallFactory
                 c.DurationSeconds,
                 QueueName = c.Queue != null ? c.Queue.Name : null,
                 AgentName = c.Agent != null ? c.Agent.FullName : null,
-                HasRecording = c.CloudFileId != null || c.PlatformFileId != null,
+                HasRecording = c.CloudFileId != null,
                 c.IsRecordingEncrypted,
                 c.RecordingFileSize,
                 c.CallbackStatusId,

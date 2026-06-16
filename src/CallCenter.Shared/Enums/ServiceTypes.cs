@@ -105,6 +105,9 @@ public static class PlatformBillingAccessPolicy
     /// <summary>Tahakkuk kesiminden (PeriodStartDate) sonra odeme icin panel acik kalir; sonrasinda kilit.</summary>
     public const int UnpaidGraceDaysAfterPeriodStart = 5;
 
+    /// <summary>Yaklasan platform tahakkuku kullaniciya yalniz son bu kadar gun icinde hatirlatilir.</summary>
+    public const int UpcomingBillingNoticeDays = 5;
+
     /// <summary>Demo bitince ek grace verilmez; odeme grace'i yalniz tahakkuklu ucretli donemler icindir.</summary>
     public const int TrialSuspensionGraceDays = 0;
 }
