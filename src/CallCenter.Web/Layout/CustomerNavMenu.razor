@@ -148,6 +148,13 @@
                             <span>Arama Gecmisi</span>
                         </NavLink>
                     }
+                    @if (IsFirmaAdmin)
+                    {
+                        <NavLink class="nav-link" href="customer/calls/orphans">
+                            <i class="bi bi-link-45deg"></i>
+                            <span>Eslesmemis Kayitlar</span>
+                        </NavLink>
+                    }
                     <NavLink class="nav-link" href="customer/contacts" Match="NavLinkMatch.All">
                         <i class="bi bi-people-fill"></i>
                         <span>Rehber</span>

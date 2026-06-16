@@ -1,0 +1,318 @@
+@page "/customer/calls/orphans"
+@attribute [Authorize(Roles = "CustomerUser")]
+@inject HttpClient Http
+@using CallCenter.Shared.DTOs
+@using CallCenter.Shared.Enums
+
+<div class="history-page">
+    <div class="page-header mb-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <h5><i class="bi bi-link-45deg me-2"></i>Eslesmemis Kayitlar</h5>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="LoadOrphans" disabled="@isLoading">
+                <i class="bi bi-arrow-clockwise me-1"></i>Yenile
+            </button>
+        </div>
+        <p class="text-muted small mb-0 mt-1">
+            Bir cagriya otomatik baglanamamis (eski surumlerden kalmis) ses kayitlari. Dinleyip dogru cagriya esleyin.
+        </p>
+    </div>
+
+    @if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <div class="alert @statusClass alert-dismissible py-2" role="alert">
+            @statusMessage
+            <button type="button" class="btn-close" @onclick="() => statusMessage = null"></button>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Yukleniyor...</span></div>
+        </div>
+    }
+    else if (orphans.Count == 0)
+    {
+        <div class="empty-state">
+            <i class="bi bi-check2-circle"></i>
+            <h6>Eslesmemis kayit yok</h6>
+            <p>Tum ses kayitlari ilgili cagrilara bagli.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table history-table">
+                <thead>
+                    <tr>
+                        <th>Dosya</th>
+                        <th>Kayit Zamani</th>
+                        <th>Temsilci / PC</th>
+                        <th>Boyut</th>
+                        <th>Sifreli</th>
+                        <th class="text-end">Islem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in orphans)
+                    {
+                        <tr>
+                            <td class="small text-break">@o.FileName</td>
+                            <td class="text-muted small">@(o.RecordedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "-")</td>
+                            <td class="small">
+                                @(o.AgentName ?? "-")
+                                @if (!string.IsNullOrEmpty(o.MachineId))
+                                {
+                                    <span class="text-muted"> · @o.MachineId</span>
+                                }
+                            </td>
+                            <td class="small text-muted">@FormatSize(o.FileSize)</td>
+                            <td>
+                                @if (o.IsEncrypted)
+                                {
+                                    <span class="badge bg-secondary"><i class="bi bi-lock-fill"></i></span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    @if (o.HasCloudFile)
+                                    {
+                                        var isPlaying = playingOrphanUid == o.Uid;
+                                        <button class="btn @(isPlaying ? "btn-warning" : "btn-outline-success")"
+                                                @onclick="() => TogglePlay(o.Uid)" title="@(isPlaying ? "Kapat" : "Dinle")">
+                                            <i class="bi @(isPlaying ? "bi-stop-fill" : "bi-play-circle")"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-outline-secondary" disabled title="Bulut dosyasi yok">
+                                            <i class="bi bi-play-circle"></i>
+                                        </button>
+                                    }
+                                    <button class="btn btn-outline-primary" @onclick="() => OpenMatch(o)" title="Cagriya esle">
+                                        <i class="bi bi-link-45deg"></i> Esle
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        @if (playingOrphanUid == o.Uid)
+                        {
+                            <tr>
+                                <td colspan="6">
+                                    <AudioPlayer CallUid="o.Uid"
+                                                 StreamUrlOverride="@($"api/recordings/orphans/{o.Uid}/stream")"
+                                                 ReportEnded="false"
+                                                 OnClose="() => playingOrphanUid = null" />
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@* ─── Esleme Modal ─── *@
+@if (matchingOrphan != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color:rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header py-2">
+                    <h6 class="modal-title"><i class="bi bi-link-45deg me-2"></i>Cagriya Esle</h6>
+                    <button type="button" class="btn-close" @onclick="CloseMatch"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted">
+                        <strong>@matchingOrphan.FileName</strong> kaydini asagidan dogru cagriya esleyin.
+                        Esleme sonrasi kayit o cagrinin ses kaydi olur.
+                    </p>
+                    <div class="input-group input-group-sm mb-2">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" placeholder="Numara ara..."
+                               @bind="callSearch" @bind:event="oninput" />
+                    </div>
+
+                    @if (isLoadingCalls)
+                    {
+                        <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+                    }
+                    else if (filteredCalls.Count == 0)
+                    {
+                        <div class="text-muted small text-center py-3">Eslenebilecek cagri bulunamadi.</div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive" style="max-height:340px;overflow:auto;">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr><th>Tarih</th><th>Arayan</th><th>Aranan</th><th>Sure</th><th></th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var c in filteredCalls)
+                                    {
+                                        <tr>
+                                            <td class="small text-muted">@c.StartedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                                            <td class="small fw-medium">@c.CallerNumber</td>
+                                            <td class="small">@c.CalleeNumber</td>
+                                            <td class="small">@FormatDuration(c.DurationSeconds)</td>
+                                            <td class="text-end">
+                                                <button class="btn btn-sm btn-primary" disabled="@isMatching"
+                                                        @onclick="() => DoMatch(c.Uid)">
+                                                    <i class="bi bi-check-lg"></i> Sec
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private List<OrphanRecordingDto> orphans = new();
+    private Guid? playingOrphanUid;
+
+    private string? statusMessage;
+    private string statusClass = "alert-success";
+
+    // Esleme modal state
+    private OrphanRecordingDto? matchingOrphan;
+    private bool isLoadingCalls;
+    private bool isMatching;
+    private string callSearch = "";
+    private List<CallItem> calls = new();
+
+    private List<CallItem> filteredCalls => calls
+        .Where(c => string.IsNullOrEmpty(callSearch)
+                 || c.CallerNumber.Contains(callSearch, StringComparison.OrdinalIgnoreCase)
+                 || c.CalleeNumber.Contains(callSearch, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    protected override async Task OnInitializedAsync() => await LoadOrphans();
+
+    private async Task LoadOrphans()
+    {
+        isLoading = true;
+        try
+        {
+            orphans = await Http.GetFromJsonAsync<List<OrphanRecordingDto>>("api/recordings/orphans") ?? new();
+        }
+        catch (Exception ex)
+        {
+            orphans = new();
+            ShowStatus($"Liste yuklenemedi: {ex.Message}", false);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void TogglePlay(Guid orphanUid)
+        => playingOrphanUid = playingOrphanUid == orphanUid ? null : orphanUid;
+
+    private async Task OpenMatch(OrphanRecordingDto orphan)
+    {
+        matchingOrphan = orphan;
+        callSearch = "";
+        isLoadingCalls = true;
+        calls = new();
+        try
+        {
+            var resp = await Http.GetFromJsonAsync<HistoryResponse>("api/calls/history?page=1&pageSize=200");
+            calls = resp?.Items ?? new();
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Cagrilar yuklenemedi: {ex.Message}", false);
+        }
+        finally
+        {
+            isLoadingCalls = false;
+        }
+    }
+
+    private void CloseMatch()
+    {
+        matchingOrphan = null;
+        calls = new();
+    }
+
+    private async Task DoMatch(Guid callUid)
+    {
+        if (matchingOrphan == null || isMatching) return;
+        isMatching = true;
+        try
+        {
+            var resp = await Http.PostAsJsonAsync(
+                $"api/recordings/orphans/{matchingOrphan.Uid}/match",
+                new MatchOrphanRequest { CallUid = callUid });
+
+            if (resp.IsSuccessStatusCode)
+            {
+                orphans.RemoveAll(o => o.Uid == matchingOrphan.Uid);
+                if (playingOrphanUid == matchingOrphan.Uid) playingOrphanUid = null;
+                ShowStatus("Kayit cagriya eslendi.", true);
+                CloseMatch();
+            }
+            else
+            {
+                ShowStatus("Esleme basarisiz (yetki veya cagri uyumsuz).", false);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"Esleme hatasi: {ex.Message}", false);
+        }
+        finally
+        {
+            isMatching = false;
+        }
+    }
+
+    private void ShowStatus(string msg, bool success)
+    {
+        statusMessage = msg;
+        statusClass = success ? "alert-success" : "alert-danger";
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes <= 0) return "-";
+        string[] units = { "B", "KB", "MB", "GB" };
+        double size = bytes;
+        int u = 0;
+        while (size >= 1024 && u < units.Length - 1) { size /= 1024; u++; }
+        return $"{size:0.#} {units[u]}";
+    }
+
+    private static string FormatDuration(int seconds)
+    {
+        if (seconds <= 0) return "-";
+        var ts = TimeSpan.FromSeconds(seconds);
+        return ts.Hours > 0 ? ts.ToString(@"hh\:mm\:ss") : ts.ToString(@"mm\:ss");
+    }
+
+    private class HistoryResponse
+    {
+        public List<CallItem> Items { get; set; } = new();
+        public int TotalCount { get; set; }
+    }
+
+    private class CallItem
+    {
+        public Guid Uid { get; set; }
+        public string CallerNumber { get; set; } = "";
+        public string CalleeNumber { get; set; } = "";
+        public DateTime StartedAt { get; set; }
+        public int DurationSeconds { get; set; }
+    }
+}

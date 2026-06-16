@@ -47,6 +47,12 @@
     [Parameter] public EventCallback OnPlaybackEnded { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
 
+    /// <summary>Varsayilan api/recordings/{CallUid}/stream yerine kullanilacak yol (orn. orphan stream).</summary>
+    [Parameter] public string? StreamUrlOverride { get; set; }
+
+    /// <summary>Dinleme bitince api/recordings/{CallUid}/stream-ended cagrilsin mi? (orphan'da yok)</summary>
+    [Parameter] public bool ReportEnded { get; set; } = true;
+
     private string containerId = "";
     private bool isLoading = true;
     private bool loadError;
@@ -74,7 +80,9 @@
             if (string.IsNullOrEmpty(token)) { loadError = true; isLoading = false; StateHasChanged(); return; }
 
             var apiBaseUrl = Http.BaseAddress?.ToString().TrimEnd('/');
-            var streamUrl = $"{apiBaseUrl}/api/recordings/{CallUid}/stream";
+            var streamUrl = !string.IsNullOrEmpty(StreamUrlOverride)
+                ? $"{apiBaseUrl}/{StreamUrlOverride.TrimStart('/')}"
+                : $"{apiBaseUrl}/api/recordings/{CallUid}/stream";
 
             var success = await JS.InvokeAsync<bool>("audioPlayer.create", containerId, streamUrl, token);
             if (!success) { loadError = true; isLoading = false; StateHasChanged(); return; }
@@ -139,11 +147,14 @@
     {
         isPlaying = false;
         hasStarted = false;
-        try
+        if (ReportEnded)
         {
-            await Http.PostAsync($"api/recordings/{CallUid}/stream-ended", null);
+            try
+            {
+                await Http.PostAsync($"api/recordings/{CallUid}/stream-ended", null);
+            }
+            catch { /* best effort */ }
         }
-        catch { /* best effort */ }
         await OnPlaybackEnded.InvokeAsync();
         if (!disposed) await InvokeAsync(StateHasChanged);
     }
