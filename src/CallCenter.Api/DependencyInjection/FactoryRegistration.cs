@@ -50,6 +50,7 @@ public static class FactoryRegistration
 
         // Recording Playback
         services.AddScoped<IRecordingPlaybackFactory, RecordingPlaybackFactory>();
+        services.AddScoped<IOrphanRecordingFactory, OrphanRecordingFactory>();
 
         // Campaign (Gunluk Arama Listesi)
         services.AddScoped<ICampaignFactory, CampaignFactory>();

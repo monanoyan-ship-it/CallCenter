@@ -40,6 +40,9 @@ public class AppDbContext : DbContext
     // ─── Recording Access Log ───
     public DbSet<RecordingAccessLog> RecordingAccessLogs => Set<RecordingAccessLog>();
 
+    // ─── Orphan Recording (eslesmemis ses kaydi - dinle/esle) ───
+    public DbSet<OrphanRecording> OrphanRecordings => Set<OrphanRecording>();
+
     // ─── Personel-Org Junction ───
     public DbSet<CustomerPersonnelOrganizationUnit> CustomerPersonnelOrganizationUnits => Set<CustomerPersonnelOrganizationUnit>();
 
@@ -1289,6 +1292,29 @@ public class AppDbContext : DbContext
              .WithMany()
              .HasForeignKey(r => r.CallRecordId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // OrphanRecording (eslesmemis ses kaydi - dinle/esle)
+        modelBuilder.Entity<OrphanRecording>(e =>
+        {
+            e.HasKey(o => o.Id);
+            e.HasIndex(o => o.Uid).IsUnique();
+            e.HasIndex(o => new { o.CustomerId, o.IsResolved });
+            e.Property(o => o.FileName).HasMaxLength(300);
+            e.Property(o => o.CloudFileId).HasMaxLength(500);
+            e.Property(o => o.CloudFileName).HasMaxLength(300);
+            e.Property(o => o.PlatformFileId).HasMaxLength(500);
+            e.Property(o => o.FileHash).HasMaxLength(100);
+            e.Property(o => o.AgentName).HasMaxLength(150);
+            e.Property(o => o.MachineId).HasMaxLength(150);
+            e.HasOne(o => o.Customer)
+             .WithMany()
+             .HasForeignKey(o => o.CustomerId)
+             .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(o => o.ResolvedCallRecord)
+             .WithMany()
+             .HasForeignKey(o => o.ResolvedCallRecordId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         // CustomerBillingPeriod (faturalama donemi)

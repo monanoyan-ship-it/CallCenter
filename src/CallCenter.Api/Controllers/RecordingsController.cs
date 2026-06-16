@@ -21,6 +21,7 @@ public class RecordingsController : AuditableControllerBase
 {
     private readonly ICloudStorageFactory _cloudStorageFactory;
     private readonly IRecordingPlaybackFactory _playbackFactory;
+    private readonly IOrphanRecordingFactory _orphanFactory;
     private readonly ISettingEntityService _settingEs;
     private readonly ICustomerEntityService _customerEs;
     private readonly AesEncryptionService _aes;
@@ -31,6 +32,7 @@ public class RecordingsController : AuditableControllerBase
         IAuditFactory auditFactory,
         ICloudStorageFactory cloudStorageFactory,
         IRecordingPlaybackFactory playbackFactory,
+        IOrphanRecordingFactory orphanFactory,
         ISettingEntityService settingEs,
         ICustomerEntityService customerEs,
         AesEncryptionService aes,
@@ -39,6 +41,7 @@ public class RecordingsController : AuditableControllerBase
     {
         _cloudStorageFactory = cloudStorageFactory;
         _playbackFactory = playbackFactory;
+        _orphanFactory = orphanFactory;
         _settingEs = settingEs;
         _customerEs = customerEs;
         _aes = aes;
@@ -275,6 +278,63 @@ public class RecordingsController : AuditableControllerBase
         if (user == null) return Unauthorized();
 
         await _playbackFactory.LogStreamEndedAsync(callUid, user, ClientIp, ClientUserAgent);
+        return Ok();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // ORPHAN RECORDINGS (eslesmemis kayit - dinle/esle)
+    // ═══════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// WinApp: dosya adindan callUid cozulemeyen bir kaydi buluta yukledikten sonra kaydeder.
+    /// CloudFileId bazli idempotent.
+    /// </summary>
+    [HttpPost("orphan")]
+    public async Task<ActionResult<OrphanRecordingDto>> RegisterOrphan([FromBody] RegisterOrphanRecordingRequest req)
+    {
+        var customerId = CurrentCustomerId;
+        if (customerId == null) return Unauthorized("CustomerId bulunamadi");
+
+        var dto = await _orphanFactory.RegisterAsync(customerId.Value, req);
+        return Ok(dto);
+    }
+
+    /// <summary>Musterinin cozulmemis (eslesmemis) kayitlari.</summary>
+    [HttpGet("orphans")]
+    public async Task<ActionResult<List<OrphanRecordingDto>>> ListOrphans()
+    {
+        var customerId = CurrentCustomerId;
+        if (customerId == null) return Unauthorized("CustomerId bulunamadi");
+
+        return Ok(await _orphanFactory.ListUnresolvedAsync(customerId.Value));
+    }
+
+    /// <summary>Orphan kaydi dinlemek icin stream (decrypt edilmis). Admin/CustomerAdmin yetkisi.</summary>
+    [HttpGet("orphans/{orphanUid:guid}/stream")]
+    public async Task<IActionResult> StreamOrphan(Guid orphanUid)
+    {
+        var user = BuildCurrentUser();
+        if (user == null) return Unauthorized();
+
+        var result = await _orphanFactory.StreamAsync(orphanUid, user);
+        if (result == null) return Forbid();
+
+        var (audioStream, contentType) = result.Value;
+        if (audioStream == null) return NotFound(new { error = contentType });
+
+        return File(audioStream, contentType, enableRangeProcessing: true);
+    }
+
+    /// <summary>Orphan kaydi dogru cagriya esler.</summary>
+    [HttpPost("orphans/{orphanUid:guid}/match")]
+    public async Task<IActionResult> MatchOrphan(Guid orphanUid, [FromBody] MatchOrphanRequest req)
+    {
+        var user = BuildCurrentUser();
+        if (user == null) return Unauthorized();
+
+        var ok = await _orphanFactory.MatchAsync(orphanUid, req.CallUid, user);
+        if (!ok) return BadRequest(new { error = "Eslestirme basarisiz (yetki/kayit/cagri bulunamadi veya farkli musteri)" });
+
         return Ok();
     }
 

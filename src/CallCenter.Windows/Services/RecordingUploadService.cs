@@ -54,6 +54,7 @@ public class RecordingUploadService
     /// </summary>
     public async Task UploadPendingRecordingsAsync(CancellationToken ct = default)
     {
+        await RecoverOrphanRecordingFilesAsync(ct);
         await RepairMissingRecordingMetadataAsync(ct);
 
         var targets = await GetUploadTargetsAsync(ct);
@@ -110,13 +111,27 @@ public class RecordingUploadService
 
             if (IsCompleteForTargets(recording, targets))
             {
+                // Orphan (CallRecordUid bos): bir CallRecord'a bagli degil. Buluta yuklendi ama
+                // backend'in haberi yok. Once backend'e orphan olarak kaydet; ancak basariliysa sil
+                // (aksi halde bulutta referanssiz kalir, dinle/esle ekrani goremez).
+                var isOrphan = recording.CallRecordUid == Guid.Empty;
+                if (isOrphan && !await RegisterOrphanAsync(recording, ct))
+                {
+                    UploadLog($"Orphan backend kaydi basarisiz; dosya korunuyor, sonra tekrar denenecek: {recording.FilePath}");
+                    continue;
+                }
+
                 try
                 {
                     if (File.Exists(recording.FilePath))
                         File.Delete(recording.FilePath);
 
-                    // Metadata silinmez; BackgroundSync CloudFileId/PlatformFileId degerlerini backend'e gonderir.
-                    UploadLog($"Tamamlandi; orijinal dosya silindi: {recording.FilePath}");
+                    // Normal kayit: metadata silinmez; BackgroundSync CloudFileId/PlatformFileId'yi CallRecord'a tasir.
+                    // Orphan: backend'e kaydedildi, lokal metadata artik gereksiz — sil.
+                    if (isOrphan)
+                        await _localRepo.DeleteRecordingAsync(recording.Uid);
+
+                    UploadLog($"Tamamlandi; orijinal dosya silindi ({(isOrphan ? "orphan" : "normal")}): {recording.FilePath}");
                 }
                 catch (Exception ex)
                 {
@@ -124,6 +139,58 @@ public class RecordingUploadService
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Bir CallRecord'a baglanamayan (Uid'siz) kaydi backend'e orphan olarak kaydeder.
+    /// Bulut referanslari (CloudFileId/PlatformFileId) zaten yuklenmis durumdadir.
+    /// </summary>
+    private async Task<bool> RegisterOrphanAsync(LocalRecording recording, CancellationToken ct)
+    {
+        try
+        {
+            var fileName = Path.GetFileName(recording.FilePath);
+            var req = new RegisterOrphanRecordingRequest
+            {
+                FileName = fileName,
+                RecordedAt = ParseTimestampFromFileName(fileName) ?? recording.CreatedAt,
+                FileSize = recording.FileSize,
+                FileHash = recording.FileHash,
+                IsEncrypted = recording.IsEncrypted,
+                CloudFileId = recording.CloudFileId,
+                CloudFileName = fileName,
+                PlatformFileId = recording.PlatformFileId,
+                MachineId = Environment.MachineName,
+                RetentionDate = recording.RetentionDate
+            };
+
+            var resp = await _http.PostAsJsonAsync("api/recordings/orphan", req, ct);
+            if (resp.IsSuccessStatusCode)
+            {
+                UploadLog($"Orphan backend'e kaydedildi: {fileName}");
+                return true;
+            }
+
+            UploadLog($"Orphan register HTTP {(int)resp.StatusCode}: {fileName}");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            UploadLog($"Orphan register hata: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>call_{yyyyMMdd_HHmmss}_... dosya adindan kayit zamanini (UTC) cozer.</summary>
+    private static DateTime? ParseTimestampFromFileName(string fileName)
+    {
+        var m = System.Text.RegularExpressions.Regex.Match(fileName, @"(\d{8})_(\d{6})");
+        if (m.Success && DateTime.TryParseExact(
+                m.Groups[1].Value + m.Groups[2].Value, "yyyyMMddHHmmss",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeLocal, out var dt))
+            return dt.ToUniversalTime();
+        return null;
     }
 
     /// <summary>
@@ -187,6 +254,109 @@ public class RecordingUploadService
             UploadLog($"Recording metadata onarim hatasi: {ex.Message}");
             _logger.LogWarning(ex, "Recording metadata onarim hatasi");
         }
+    }
+
+    /// <summary>
+    /// Recordings klasorunu tarar; recordings.json metadata'sinda olmayan ses dosyalarini bulur.
+    /// Dosya adindaki callUid (32 hex segment) parse edilebiliyorsa o CallRecordUid ile metadata
+    /// olusturulur ve normal upload+sync pipeline'i dosyayi buluta yukleyip ilgili CallRecord'a baglar.
+    ///
+    /// Uid parse edilemeyen (eski timestamp-only format) dosyalar GERCEK orphan'dir: bunlar
+    /// diskte korunur, otomatik upload edilmez (backend orphan kaydi/eslestirme akisi gelmeden
+    /// buluta yukleyip referanssiz birakmamak icin). Sadece sayilir ve loglanir.
+    /// </summary>
+    public async Task RecoverOrphanRecordingFilesAsync(CancellationToken ct = default)
+    {
+        if (!_localRepo.IsConfigured) return;
+
+        try
+        {
+            var recordingsDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "CorpLynk", "Recordings");
+            if (!Directory.Exists(recordingsDir)) return;
+
+            var files = Directory
+                .EnumerateFiles(recordingsDir, "*.*", SearchOption.TopDirectoryOnly)
+                .Where(f => f.EndsWith(".enc", StringComparison.OrdinalIgnoreCase)
+                         || f.EndsWith(".wav", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+            if (files.Count == 0) return;
+
+            var existing = await _localRepo.GetRecordingsAsync(null, 1, 5000);
+            var knownPaths = existing
+                .Where(r => !string.IsNullOrWhiteSpace(r.FilePath))
+                .Select(r => Path.GetFullPath(r.FilePath))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var recovered = 0;
+            var orphans = 0;
+            foreach (var file in files)
+            {
+                ct.ThrowIfCancellationRequested();
+                var full = Path.GetFullPath(file);
+                if (knownPaths.Contains(full)) continue;
+
+                // Yarim kalmis WAV: ayni isimde sifreli .enc varsa WAV'i atla (enc finalize edilmis surum).
+                if (full.EndsWith(".wav", StringComparison.OrdinalIgnoreCase)
+                    && File.Exists(Path.ChangeExtension(full, ".enc")))
+                    continue;
+
+                var fi = new FileInfo(full);
+                if (!fi.Exists || fi.Length == 0) continue;
+
+                var callUid = TryParseCallUidFromFileName(Path.GetFileName(full));
+
+                string? fileHash = null;
+                try { fileHash = await FileEncryptionService.ComputeFileHashAsync(full); }
+                catch { }
+
+                await _localRepo.SaveRecordingMetadataAsync(new LocalRecording
+                {
+                    // Uid cozulduyse o CallRecord'a baglanir (otomatik eslesir).
+                    // Cozulemediyse Guid.Empty -> orphan: pipeline buluta yukler ve
+                    // backend'e orphan olarak kaydeder (dinle/esle ekrani goruntuler).
+                    CallRecordUid = callUid ?? Guid.Empty,
+                    FilePath = full,
+                    FileSize = fi.Length,
+                    Format = fi.Extension.TrimStart('.').ToLowerInvariant(),
+                    CreatedAt = fi.CreationTimeUtc,
+                    FileHash = fileHash,
+                    IsEncrypted = fi.Extension.Equals(".enc", StringComparison.OrdinalIgnoreCase),
+                    RetentionDate = DateTime.UtcNow.AddYears(10) // TTK md. 82
+                });
+
+                knownPaths.Add(full);
+                if (callUid == null) orphans++;
+                else recovered++;
+            }
+
+            if (recovered > 0 || orphans > 0)
+                UploadLog($"Recovery sweep: {recovered} dosya kurtarildi (Uid eslesti), {orphans} orphan (Uid yok, buluta yuklenip backend'e orphan kaydedilecek).");
+        }
+        catch (Exception ex)
+        {
+            UploadLog($"Recovery sweep hatasi: {ex.Message}");
+            _logger.LogWarning(ex, "Recording recovery sweep hatasi");
+        }
+    }
+
+    /// <summary>
+    /// Kayit dosya adindan callUid'i cozer. Format: call_{timestamp}_{numara}_{uidN}.wav
+    /// uid 32 karakter hex (Guid "N" format) segmenttir. Bulunamazsa null (eski format / orphan).
+    /// </summary>
+    private static Guid? TryParseCallUidFromFileName(string fileName)
+    {
+        var name = Path.GetFileNameWithoutExtension(fileName);
+        var parts = name.Split('_', StringSplitOptions.RemoveEmptyEntries);
+        // Sondan basa: ilk gecerli 32-hex segment uid'dir.
+        for (var i = parts.Length - 1; i >= 0; i--)
+        {
+            var seg = parts[i];
+            if (seg.Length == 32 && Guid.TryParseExact(seg, "N", out var g) && g != Guid.Empty)
+                return g;
+        }
+        return null;
     }
 
     /// <summary>

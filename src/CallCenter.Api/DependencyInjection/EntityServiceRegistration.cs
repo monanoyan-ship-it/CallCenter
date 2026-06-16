@@ -44,6 +44,7 @@ public static class EntityServiceRegistration
 
         // Recording Access Log
         services.AddScoped<IRecordingAccessLogEntityService, RecordingAccessLogEntityService>();
+        services.AddScoped<IOrphanRecordingEntityService, OrphanRecordingEntityService>();
 
         // Faz 13 — KVKK Uyumluluk
         services.AddScoped<IConsentRecordEntityService, ConsentRecordEntityService>();

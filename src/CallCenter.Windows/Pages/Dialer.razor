@@ -714,7 +714,7 @@
             {
                 try
                 {
-                    await SipService.StartRecordingAsync();
+                    await SipService.StartRecordingAsync(callUid: currentCallUid, remoteNumber: phoneNumber);
                     Toast.ShowInfo("Otomatik kayit baslatildi");
                 }
                 catch (Exception ex)
@@ -1301,7 +1301,7 @@
         }
         else
         {
-            await SipService.StartRecordingAsync();
+            await SipService.StartRecordingAsync(callUid: currentCallUid, remoteNumber: phoneNumber);
             Toast.ShowInfo("Kayit baslatildi");
         }
     }

@@ -836,7 +836,39 @@ public class NativeSipService : ISipService
     // RECORDING
     // ═══════════════════════════════════════════════════
 
-    public Task<bool> StartRecordingAsync(string? filePath = null)
+    /// <summary>
+    /// Kayit dosya adini cagri kimligi ile uretir: call_{timestamp}_{numara}_{uid}.wav
+    /// Uid (DB CallRecord.Uid ile ayni) dosya adina gomulur ki kayit upload edilemese
+    /// veya lokal metadata kaybolsa bile dosyanin hangi cagriya ait oldugu adindan okunabilsin.
+    /// Eski timestamp-only dosyalar bu sayede "orphan" olur; yeni dosyalar otomatik eslesir.
+    /// </summary>
+    private static string BuildRecordingFileName(Guid? callUid, string? remoteNumber)
+    {
+        var ts = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        var num = SanitizeForFileName(remoteNumber);
+        var uidPart = callUid.HasValue && callUid.Value != Guid.Empty
+            ? callUid.Value.ToString("N")
+            : "noid";
+        return string.IsNullOrEmpty(num)
+            ? $"call_{ts}_{uidPart}.wav"
+            : $"call_{ts}_{num}_{uidPart}.wav";
+    }
+
+    /// <summary>Dosya adinda kullanilmak uzere numarayi temizler (harf/rakam/+ disi karakterleri atar).</summary>
+    private static string SanitizeForFileName(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "";
+        var sb = new System.Text.StringBuilder(value.Length);
+        foreach (var c in value)
+        {
+            if (char.IsLetterOrDigit(c) || c == '+')
+                sb.Append(c);
+            if (sb.Length >= 24) break;
+        }
+        return sb.ToString();
+    }
+
+    public Task<bool> StartRecordingAsync(string? filePath = null, Guid? callUid = null, string? remoteNumber = null)
     {
         if (IsRecording) return Task.FromResult(false);
 
@@ -845,7 +877,7 @@ public class NativeSipService : ISipService
             var recordingsDir = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "CorpLynk", "Recordings");
-            var path = filePath ?? Path.Combine(recordingsDir, $"call_{DateTime.Now:yyyyMMdd_HHmmss}.wav");
+            var path = filePath ?? Path.Combine(recordingsDir, BuildRecordingFileName(callUid, remoteNumber));
 
             var dir = Path.GetDirectoryName(path);
             if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
