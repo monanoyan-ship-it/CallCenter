@@ -25,7 +25,15 @@ public class LowLatencyAudioEndPoint : IAudioEndPoint
     // Düşük gecikme ayarları (50ms+2buf ses kırılmasına neden oldu, 300ms varsayılan çok geç)
     private const int PLAYBACK_DESIRED_LATENCY_MS = 100;
     private const int PLAYBACK_NUMBER_OF_BUFFERS = 3;
-    private const int ECHO_REFERENCE_FRAME_LIMIT = 12;
+
+    // Playback jitter buffer'ı (BufferedWaveProvider) için gecikme sınırı.
+    // Varsayılan NAudio buffer'ı 5 sn'dir ve birikmiş gecikmeyi boşaltmaz; bu yüzden
+    // kapasiteyi düşürüp gecikme eşiği aşılınca canlıya atlanır (drift resync).
+    private const int PLAYBACK_BUFFER_CAPACITY_MS = 1000;
+    private const int PLAYBACK_MAX_LATENCY_MS = 300;
+
+    // Bounded gecikme ile yankı referansı ~360ms pencereyi kapsamalı (20ms frame * 18).
+    private const int ECHO_REFERENCE_FRAME_LIMIT = 18;
     private const double ECHO_REMOTE_ACTIVE_RMS = 0.015;
     private const double ECHO_CORRELATION_THRESHOLD = 0.55;
     private const float ECHO_STRONG_ATTENUATION = 0.18f;
@@ -209,7 +217,8 @@ public class LowLatencyAudioEndPoint : IAudioEndPoint
 
             _waveProvider = new BufferedWaveProvider(_waveSinkFormat)
             {
-                DiscardOnBufferOverflow = true
+                DiscardOnBufferOverflow = true,
+                BufferDuration = TimeSpan.FromMilliseconds(PLAYBACK_BUFFER_CAPACITY_MS)
             };
 
             _waveOutEvent.Init(_waveProvider);
@@ -285,7 +294,26 @@ public class LowLatencyAudioEndPoint : IAudioEndPoint
     public void GotAudioSample(byte[] pcmSample)
     {
         ApplySpeakerProcessing(pcmSample);
-        _waveProvider?.AddSamples(pcmSample, 0, pcmSample.Length);
+        EnqueuePlayback(pcmSample, 0, pcmSample.Length);
+    }
+
+    /// <summary>
+    /// Çözülmüş PCM'i oynatma kuyruğuna ekler. Birikmiş oynatma gecikmesi eşiği aşarsa
+    /// (jitter/burst sonrası) buffer temizlenip "canlıya" atlanır; böylece gecikme sabit-düşük kalır.
+    /// </summary>
+    private void EnqueuePlayback(byte[] pcmBytes, int offset, int count)
+    {
+        if (_waveProvider == null || count <= 0)
+        {
+            return;
+        }
+
+        if (_waveProvider.BufferedDuration > TimeSpan.FromMilliseconds(PLAYBACK_MAX_LATENCY_MS))
+        {
+            _waveProvider.ClearBuffer();
+        }
+
+        _waveProvider.AddSamples(pcmBytes, offset, count);
     }
 
     [Obsolete("Use GotEncodedMediaFrame instead.")]
@@ -296,7 +324,7 @@ public class LowLatencyAudioEndPoint : IAudioEndPoint
             var pcmSample = _audioEncoder.DecodeAudio(payload, _audioFormatManager.SelectedFormat);
             ApplySpeakerProcessing(pcmSample);
             byte[] pcmBytes = ShortsToBytes(pcmSample);
-            _waveProvider?.AddSamples(pcmBytes, 0, pcmBytes.Length);
+            EnqueuePlayback(pcmBytes, 0, pcmBytes.Length);
         }
     }
 
@@ -309,7 +337,7 @@ public class LowLatencyAudioEndPoint : IAudioEndPoint
             var pcmSample = _audioEncoder.DecodeAudio(encodedMediaFrame.EncodedAudio, audioFormat);
             ApplySpeakerProcessing(pcmSample);
             byte[] pcmBytes = ShortsToBytes(pcmSample);
-            _waveProvider?.AddSamples(pcmBytes, 0, pcmBytes.Length);
+            EnqueuePlayback(pcmBytes, 0, pcmBytes.Length);
         }
     }
 
