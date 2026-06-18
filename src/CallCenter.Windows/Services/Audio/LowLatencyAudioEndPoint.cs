@@ -30,7 +30,8 @@ public class LowLatencyAudioEndPoint : IAudioEndPoint
     // Varsayılan NAudio buffer'ı 5 sn'dir ve birikmiş gecikmeyi boşaltmaz; bu yüzden
     // kapasiteyi düşürüp gecikme eşiği aşılınca canlıya atlanır (drift resync).
     private const int PLAYBACK_BUFFER_CAPACITY_MS = 1000;
-    private const int PLAYBACK_MAX_LATENCY_MS = 300;
+    // 200ms: endustri onerisi 70-150ms ile eski "50ms kirilma yapiyor" gozlemi arasinda denge.
+    private const int PLAYBACK_MAX_LATENCY_MS = 200;
 
     // Bounded gecikme ile yankı referansı ~360ms pencereyi kapsamalı (20ms frame * 18).
     private const int ECHO_REFERENCE_FRAME_LIMIT = 18;
