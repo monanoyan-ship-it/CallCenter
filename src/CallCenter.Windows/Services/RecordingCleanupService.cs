@@ -43,16 +43,33 @@ public class RecordingCleanupService
             }
 
             int deleted = 0;
+            int keptUnuploaded = 0;
             foreach (var recording in expiredRecordings)
             {
                 try
                 {
-                    if (File.Exists(recording.FilePath))
+                    var fileExists = File.Exists(recording.FilePath);
+
+                    // GUVENLIK KORUMASI (asla kaybolmasin):
+                    // Henuz hicbir kalici depoya (musteri/platform) yuklenmemis bir kaydin
+                    // yerel dosyasini, retention suresi dolmus olsa bile ASLA silme.
+                    // Aksi halde dosya portala hic ulasmadan kalici olarak kaybolur.
+                    // Dosya hala diskteyse upload pipeline'i tekrar deneyecektir; bu yuzden
+                    // hem dosyayi hem metadata'yi koru.
+                    var uploadedSomewhere = recording.IsUploadedToCloud || recording.IsUploadedToPlatform;
+                    if (fileExists && !uploadedSomewhere)
+                    {
+                        keptUnuploaded++;
+                        continue;
+                    }
+
+                    if (fileExists)
                     {
                         File.Delete(recording.FilePath);
                         deleted++;
                     }
 
+                    // Dosya yok (zaten yuklenip silinmis) veya yuklenmis: metadata temizlenebilir.
                     await _localRepo.DeleteRecordingAsync(recording.Uid);
                 }
                 catch (Exception ex)
@@ -61,8 +78,13 @@ public class RecordingCleanupService
                 }
             }
 
-            _logger.LogInformation("Kayit temizleme tamamlandi: {Deleted}/{Total} dosya silindi.",
-                deleted, expiredRecordings.Count);
+            if (keptUnuploaded > 0)
+                _logger.LogWarning(
+                    "Kayit temizleme: {Kept} adet suresi dolmus ama HENUZ YUKLENMEMIS kayit korundu (kaybolmamasi icin silinmedi).",
+                    keptUnuploaded);
+
+            _logger.LogInformation("Kayit temizleme tamamlandi: {Deleted}/{Total} dosya silindi, {Kept} korundu.",
+                deleted, expiredRecordings.Count, keptUnuploaded);
         }
         catch (Exception ex)
         {

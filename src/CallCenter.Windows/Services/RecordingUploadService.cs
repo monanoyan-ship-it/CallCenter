@@ -278,7 +278,8 @@ public class RecordingUploadService
 
             var files = Directory
                 .EnumerateFiles(recordingsDir, "*.*", SearchOption.TopDirectoryOnly)
-                .Where(f => f.EndsWith(".enc", StringComparison.OrdinalIgnoreCase)
+                .Where(f => f.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase)
+                         || f.EndsWith(".enc", StringComparison.OrdinalIgnoreCase)
                          || f.EndsWith(".wav", StringComparison.OrdinalIgnoreCase))
                 .ToList();
             if (files.Count == 0) return;
@@ -297,9 +298,10 @@ public class RecordingUploadService
                 var full = Path.GetFullPath(file);
                 if (knownPaths.Contains(full)) continue;
 
-                // Yarim kalmis WAV: ayni isimde sifreli .enc varsa WAV'i atla (enc finalize edilmis surum).
+                // Yarim kalmis WAV: ayni isimde finalize edilmis .mp3 (veya eski .enc) varsa WAV'i atla.
                 if (full.EndsWith(".wav", StringComparison.OrdinalIgnoreCase)
-                    && File.Exists(Path.ChangeExtension(full, ".enc")))
+                    && (File.Exists(Path.ChangeExtension(full, ".mp3"))
+                        || File.Exists(Path.ChangeExtension(full, ".enc"))))
                     continue;
 
                 var fi = new FileInfo(full);

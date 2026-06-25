@@ -52,6 +52,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="CallCenter.Windows.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Update="wwwroot\appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

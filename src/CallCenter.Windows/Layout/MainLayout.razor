@@ -75,6 +75,17 @@
             </div>
         </header>
 
+        @* ─── GUVENLIK UYARISI (eszamanli giris denemesi) ─── *@
+        @if (!string.IsNullOrEmpty(_securityAlert))
+        {
+            <div class="alert alert-danger alert-dismissible mb-0 rounded-0 py-2 px-3 d-flex align-items-center"
+                 style="border-left:4px solid #b02a37;">
+                <i class="bi bi-shield-lock-fill me-2" style="font-size:1.2rem;"></i>
+                <span class="flex-grow-1 fw-medium">@_securityAlert</span>
+                <button type="button" class="btn-close" @onclick="() => _securityAlert = null"></button>
+            </div>
+        }
+
         @* ─── GUNCELLEME BILDIRIMI ─── *@
         @if (updateInfo != null)
         {
@@ -251,11 +262,18 @@
         await EndAuthenticatedSessionAsync("Bu kullanici baska bir cihazda oturum acti.", revokeServerToken: false);
     }
 
+    private string? _securityAlert;
+
     private void HandleConcurrentLoginBlocked(string message)
     {
-        Toast.ShowWarning(string.IsNullOrWhiteSpace(message)
-            ? "Aktif gorusme nedeniyle yeni giris reddedildi."
-            : message);
+        var text = string.IsNullOrWhiteSpace(message)
+            ? "Guvenlik uyarisi: Birisi sifrenizle hesabiniza giris yapmaya calisti. Aktif gorusmeniz korundu."
+            : message;
+
+        // Hem belirgin sticky banner hem de toast — gorusmedeyken kacirilmasin.
+        _securityAlert = text;
+        Toast.ShowWarning(text);
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task HandleLogout()

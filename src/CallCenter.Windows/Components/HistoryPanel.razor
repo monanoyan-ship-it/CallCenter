@@ -13,6 +13,18 @@
             <option value="@CallDirections.Ids.Inbound">Gelen</option>
             <option value="@CallDirections.Ids.Outbound">Giden</option>
         </select>
+        @* Cikis numarasi filtresi: hangi cikis numarasindan hangi numaralar arandi *@
+        @if (OutboundNumbers.Count > 0)
+        {
+            <select class="form-select form-select-sm" style="width:auto;max-width:150px;" @bind="filterOutbound"
+                    title="Cikis numarasina gore filtrele">
+                <option value="">Tum cikis no</option>
+                @foreach (var num in OutboundNumbers)
+                {
+                    <option value="@num">Cikis: @num</option>
+                }
+            </select>
+        }
         <select class="form-select form-select-sm" style="width:auto;" @bind="filterStatus">
             <option value="0">Tumu</option>
             @foreach (var status in CallStatuses.FinishedStatuses)
@@ -45,7 +57,7 @@
                 <thead class="table-light">
                     <tr>
                         <th style="width:28px;"></th>
-                        <th>Arayan</th>
+                        <th title="Giden aramalarda cikis numaraniz">Arayan / Cikis No</th>
                         <th>Aranan</th>
                         <th>Durum</th>
                         <th>Tarih</th>
@@ -85,6 +97,15 @@
     private string searchTerm = "";
     private int filterDirection;
     private int filterStatus;
+    private string filterOutbound = "";
+
+    // Giden aramalarda kullanilan farkli cikis numaralari (filtre dropdown'u icin)
+    private List<string> OutboundNumbers => callRecords
+        .Where(r => r.DirectionId == CallDirections.Ids.Outbound && !string.IsNullOrWhiteSpace(r.CallerNumber))
+        .Select(r => r.CallerNumber)
+        .Distinct()
+        .OrderBy(n => n)
+        .ToList();
 
     private static readonly Dictionary<string, string> StatusNames = new()
     {
@@ -98,6 +119,8 @@
                      r.CalleeNumber.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
         .Where(r => filterDirection == 0 || r.DirectionId == filterDirection)
         .Where(r => filterStatus == 0 || r.StatusId == filterStatus)
+        .Where(r => string.IsNullOrEmpty(filterOutbound) ||
+                    (r.DirectionId == CallDirections.Ids.Outbound && r.CallerNumber == filterOutbound))
         .OrderByDescending(r => r.StartedAt)
         .ToList();
 

@@ -72,7 +72,7 @@ public interface ISipService : IAsyncDisposable
     // ─── Recording ───
     string? LastRecordingPath { get; }
     void SetEncryptionKey(string key);
-    Task<bool> StartRecordingAsync(string? filePath = null, Guid? callUid = null, string? remoteNumber = null);
+    Task<bool> StartRecordingAsync(string? filePath = null, Guid? callUid = null, string? remoteNumber = null, string? outboundNumber = null);
     Task<bool> StopRecordingAsync();
 
     // ─── Codec ───

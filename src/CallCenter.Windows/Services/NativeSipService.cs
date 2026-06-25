@@ -6,6 +6,7 @@ using CallCenter.Shared.DTOs;
 using CallCenter.Windows.Models;
 using Concentus.Enums;
 using Concentus.Structs;
+using NAudio.MediaFoundation;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 using SIPSorcery.Media;
@@ -102,6 +103,10 @@ public class NativeSipService : ISipService
     private readonly System.Collections.Concurrent.ConcurrentQueue<byte[]> _recOutQueue = new(); // Giden ses (mikrofon)
     private readonly object _recWriteLock = new();
     private const int MaxRecordQueueDepth = 50; // ~1sn (20ms chunk basina)
+    private string? _recordingRemoteNumber; // Belgeler arsivi klasor adi icin (aranan numara)
+    private string? _recordingOutboundNumber; // Belgeler arsivi dosya adi icin (cikis yapilan hat/numara)
+    private DateTime _recordingStartedAt;    // Belgeler arsivi dosya adi icin (kayit baslangic zamani)
+    private static bool _mediaFoundationStarted; // MP3 encoder bir kez baslatilir
 
     // ─── RTP Timeout (karsi taraf BYE gondermeden kapatirsa) ───
     private DateTime _lastRtpReceived;
@@ -868,7 +873,87 @@ public class NativeSipService : ISipService
         return sb.ToString();
     }
 
-    public Task<bool> StartRecordingAsync(string? filePath = null, Guid? callUid = null, string? remoteNumber = null)
+    /// <summary>
+    /// Kaydin oynatilabilir WAV kopyasini bu PC'nin Belgeler klasorune KALICI olarak yazar.
+    /// Yapi: Belgeler\CorpLynk Kayitlar\<aranan_numara>\<numara>_<yyyy-MM-dd_HH-mm-ss>.wav
+    /// Bulut yuklemesi hic olmasa bile kayit burada erisilebilir kalir.
+    /// Best-effort: hata olursa ana kayit/sifreleme/upload akisini bozmaz.
+    /// </summary>
+    private void TryWriteDocumentsArchiveCopy(string sourcePath)
+    {
+        try
+        {
+            var documentsRoot = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            var ext = Path.GetExtension(sourcePath); // ".mp3" (normal) veya ".wav" (fallback)
+            var (archiveDir, fileName) = BuildDocumentsArchiveTarget(
+                _recordingRemoteNumber, _recordingOutboundNumber, _recordingStartedAt, documentsRoot, ext);
+            Directory.CreateDirectory(archiveDir);
+
+            var archivePath = Path.Combine(archiveDir, fileName);
+            // Ayni saniyede ikinci kayit cakismasini onle
+            if (File.Exists(archivePath))
+                archivePath = Path.Combine(archiveDir,
+                    Path.GetFileNameWithoutExtension(fileName) + "_" + Guid.NewGuid().ToString("N") + ext);
+
+            File.Copy(sourcePath, archivePath, overwrite: false);
+            Log($"[SIP] Kalici yerel arsiv yazildi (Belgeler): {archivePath}");
+        }
+        catch (Exception ex)
+        {
+            Log($"[SIP] Belgeler arsiv kopyasi yazilamadi: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Belgeler arsiv hedefini (klasor + dosya adi) uretir. Test edilebilir saf mantik.
+    /// Klasor: &lt;documentsRoot&gt;\CorpLynk Kayitlar\&lt;aranan_numara&gt;
+    /// Dosya:  &lt;cikis_numarasi&gt;_&lt;aranan&gt;_&lt;yyyy-MM-dd_HH-mm-ss&gt;.&lt;ext&gt;
+    ///         (aranan yoksa "Bilinmeyen"; cikis yoksa basa eklenmez).
+    /// </summary>
+    internal static (string dir, string fileName) BuildDocumentsArchiveTarget(
+        string? remoteNumber, string? outboundNumber, DateTime startedAt, string documentsRoot, string extension)
+    {
+        var called = SanitizeForFileName(remoteNumber);
+        if (string.IsNullOrEmpty(called)) called = "Bilinmeyen";
+        var outbound = SanitizeForFileName(outboundNumber);
+
+        var stamp = (startedAt == default ? DateTime.Now : startedAt).ToString("yyyy-MM-dd_HH-mm-ss");
+        var ext = string.IsNullOrWhiteSpace(extension) ? "mp3" : extension.TrimStart('.').ToLowerInvariant();
+        var dir = Path.Combine(documentsRoot, "CorpLynk Kayitlar", called);
+        var namePrefix = string.IsNullOrEmpty(outbound) ? "" : outbound + "_";
+        var fileName = $"{namePrefix}{called}_{stamp}.{ext}";
+        return (dir, fileName);
+    }
+
+    /// <summary>
+    /// WAV dosyasini MP3'e cevirir (sifresiz, PC'de dogrudan oynatilabilir).
+    /// 8kHz gibi dusuk oranlar MP3 encoder tarafindan desteklenmeyebilecegi icin
+    /// gerekiyorsa 16kHz mono'ya resample edilir. Test edilebilir (internal static).
+    /// </summary>
+    internal static void EncodeWavToMp3(string wavPath, string mp3Path, int bitrate = 64000)
+    {
+        if (!_mediaFoundationStarted)
+        {
+            MediaFoundationApi.Startup();
+            _mediaFoundationStarted = true;
+        }
+
+        using var reader = new WaveFileReader(wavPath);
+        if (reader.WaveFormat.SampleRate < 16000)
+        {
+            using var resampler = new MediaFoundationResampler(reader, new WaveFormat(16000, 16, 1))
+            {
+                ResamplerQuality = 60
+            };
+            MediaFoundationEncoder.EncodeToMp3(resampler, mp3Path, bitrate);
+        }
+        else
+        {
+            MediaFoundationEncoder.EncodeToMp3(reader, mp3Path, bitrate);
+        }
+    }
+
+    public Task<bool> StartRecordingAsync(string? filePath = null, Guid? callUid = null, string? remoteNumber = null, string? outboundNumber = null)
     {
         if (IsRecording) return Task.FromResult(false);
 
@@ -905,6 +990,9 @@ public class NativeSipService : ISipService
 
             _waveWriter = new WaveFileWriter(path, new WaveFormat(sampleRate, 16, 1));
             _recordingWavPath = path;
+            _recordingRemoteNumber = remoteNumber;
+            _recordingOutboundNumber = outboundNumber;
+            _recordingStartedAt = DateTime.Now;
             _isRecording = true;
 
             // Kuyruklari temizle
@@ -990,27 +1078,35 @@ public class NativeSipService : ISipService
             _waveWriter = null;
             _isRecording = false;
 
-            // WAV dosyasini AES-256 ile sifrele
+            // ── WAV → MP3 (PC'de dogrudan oynatilabilir, sifresiz) ──
+            // Hem bulut yuklemesi hem Belgeler arsivi ayni MP3 formatini kullanir.
             if (!string.IsNullOrEmpty(_recordingWavPath) && File.Exists(_recordingWavPath))
             {
+                var wavPath = _recordingWavPath;
+                var mp3Path = Path.ChangeExtension(wavPath, ".mp3");
                 try
                 {
-                    var encPath = Path.ChangeExtension(_recordingWavPath, ".enc");
-                    var key = CallCenter.Shared.Services.FileEncryptionService.DeriveKey(
-                        _encryptionKey ?? "DefaultEncryptionKey");
-                    await CallCenter.Shared.Services.FileEncryptionService.EncryptFileAsync(
-                        _recordingWavPath, encPath, key);
+                    EncodeWavToMp3(wavPath, mp3Path);
 
-                    // Orijinal WAV'i sil — sadece sifreli .enc kalsin
-                    File.Delete(_recordingWavPath);
-                    _recordingWavPath = encPath;
+                    // ── KALICI YEREL ARSIV (asla kaybolmasin) ──
+                    // Bulut yuklemesi basarisiz olsa bile kayit bu PC'nin Belgeler klasorunde
+                    // oynatilabilir MP3 olarak kalir. Yapi:
+                    // Belgeler\CorpLynk Kayitlar\<aranan_numara>\<cikis>_<aranan>_<tarih_saat>.mp3
+                    // Bu kopya upload/temizlik pipeline'i tarafindan ASLA silinmez (Recordings disinda).
+                    TryWriteDocumentsArchiveCopy(mp3Path);
 
-                    Log($"[SIP] Recording sifrelendi: {encPath}");
+                    // Orijinal WAV'i sil — sadece MP3 kalsin (upload bunu yukler)
+                    File.Delete(wavPath);
+                    _recordingWavPath = mp3Path;
+
+                    Log($"[SIP] Recording MP3'e donusturuldu: {mp3Path}");
                 }
-                catch (Exception encEx)
+                catch (Exception mp3Ex)
                 {
-                    Log($"[SIP] Recording sifreleme hatasi (WAV korundu): {encEx.Message}");
-                    // Sifreleme basarisiz olursa WAV oldugu gibi kalir
+                    // MP3 donusumu basarisiz olursa WAV'i KORU (asla kaybolmasin) ve onu arsivle.
+                    Log($"[SIP] MP3 donusum hatasi (WAV korundu): {mp3Ex.Message}");
+                    if (File.Exists(wavPath))
+                        TryWriteDocumentsArchiveCopy(wavPath);
                 }
             }
 
@@ -1037,7 +1133,7 @@ public class NativeSipService : ISipService
             int pt = rtpPacket.Header.PayloadType;
             if (pt >= 96) pt = _recordingPayloadType;
 
-            var pcm = AudioCodecDecoder.Decode(rtpPacket.Payload, pt);
+            var pcm = AudioCodecDecoder.Decode(rtpPacket.Payload, pt, opusStream: 0); // gelen
             _recInQueue.Enqueue(pcm);
             // Mix islemini ayri thread'de yap - RTP alma pipeline'ini bloklama
             ThreadPool.QueueUserWorkItem(_ => TryWriteMixedAudio());
@@ -1057,7 +1153,7 @@ public class NativeSipService : ISipService
         {
             try
             {
-                var pcm = AudioCodecDecoder.Decode(payload, pt);
+                var pcm = AudioCodecDecoder.Decode(payload, pt, opusStream: 1); // giden
                 _recOutQueue.Enqueue(pcm);
                 TryWriteMixedAudio();
             }
@@ -2292,21 +2388,26 @@ internal static class AudioCodecDecoder
 
     public static short ALawToLinear(byte aLaw) => ALawTable[aLaw];
 
-    // ── Opus decoder (lazy init, thread-safe degil — recording thread'de kullanilir) ──
-    private static OpusDecoder? _opusDecoderStatic;
+    // ── Opus decoder ──
+    // Opus decoder STATEFUL ve thread-safe DEGIL. Kayit yolu iki AYRI akisi (gelen RTP + giden mikrofon)
+    // ayni anda decode eder; tek paylasilan decoder hem yaris kosulu hem akis-state karismasi yaratir.
+    // Cozum: akis basina AYRI decoder + kilit. opusStream 0=gelen, 1=giden.
+    private static readonly OpusDecoder?[] _opusDecoders = new OpusDecoder?[2];
+    private static readonly object[] _opusLocks = { new object(), new object() };
 
     /// <summary>
     /// RTP payload type'a gore ses verisini PCM16'ya decode eder.
     /// PT 0 = PCMU, PT 8 = PCMA, PT 9 = G.722, PT 111 = Opus.
+    /// opusStream: Opus icin akis ayrimi (0=gelen, 1=giden) — ayri decoder kullanilir.
     /// </summary>
-    public static byte[] Decode(byte[] payload, int payloadType)
+    public static byte[] Decode(byte[] payload, int payloadType, int opusStream = 0)
     {
         return payloadType switch
         {
             0 => DecodeMuLaw(payload),
             8 => DecodeALaw(payload),
             9 => DecodeG722(payload),
-            111 => DecodeOpus(payload),
+            111 => DecodeOpus(payload, opusStream),
             _ => DecodeMuLaw(payload) // fallback: mu-law
         };
     }
@@ -2348,26 +2449,31 @@ internal static class AudioCodecDecoder
     /// PLC (Packet Loss Concealment): null payload gonderildiginde
     /// Concentus codec kendi PLC algoritmasini uygular.
     /// </summary>
-    private static byte[] DecodeOpus(byte[] payload)
+    private static byte[] DecodeOpus(byte[] payload, int opusStream)
     {
-#pragma warning disable CS0618 // Concentus managed fallback
-        _opusDecoderStatic ??= new OpusDecoder(48000, 1);
-#pragma warning restore CS0618
-
-        // Opus frame → PCM16 (48kHz, mono)
-        // Max frame: 120ms = 5760 samples
-        var pcmShort = new short[5760];
-#pragma warning disable CS0618
-        int samples = _opusDecoderStatic.Decode(payload, 0, payload.Length, pcmShort, 0, pcmShort.Length, false);
-#pragma warning restore CS0618
-
-        var pcm = new byte[samples * 2];
-        for (int i = 0; i < samples; i++)
+        var idx = opusStream == 1 ? 1 : 0;
+        // Akis basina ayri decoder + kilit: yaris kosulu ve akis-state karismasini onler.
+        lock (_opusLocks[idx])
         {
-            pcm[i * 2] = (byte)(pcmShort[i] & 0xFF);
-            pcm[i * 2 + 1] = (byte)(pcmShort[i] >> 8);
+#pragma warning disable CS0618 // Concentus managed fallback
+            _opusDecoders[idx] ??= new OpusDecoder(48000, 1);
+            var decoder = _opusDecoders[idx]!;
+#pragma warning restore CS0618
+
+            // Opus frame → PCM16 (48kHz, mono). Max frame: 120ms = 5760 samples
+            var pcmShort = new short[5760];
+#pragma warning disable CS0618
+            int samples = decoder.Decode(payload, 0, payload.Length, pcmShort, 0, pcmShort.Length, false);
+#pragma warning restore CS0618
+
+            var pcm = new byte[samples * 2];
+            for (int i = 0; i < samples; i++)
+            {
+                pcm[i * 2] = (byte)(pcmShort[i] & 0xFF);
+                pcm[i * 2 + 1] = (byte)(pcmShort[i] >> 8);
+            }
+            return pcm;
         }
-        return pcm;
     }
 
     /// <summary>

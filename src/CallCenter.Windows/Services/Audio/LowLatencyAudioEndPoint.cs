@@ -32,6 +32,9 @@ public class LowLatencyAudioEndPoint : IAudioEndPoint
     private const int PLAYBACK_BUFFER_CAPACITY_MS = 1000;
     // 200ms: endustri onerisi 70-150ms ile eski "50ms kirilma yapiyor" gozlemi arasinda denge.
     private const int PLAYBACK_MAX_LATENCY_MS = 200;
+    // Resync esigi asilinca buffer TAMAMEN bosaltilmaz (tam sessizlik = kesilme);
+    // sadece bu hedefin uzerindeki fazla (en eski) ornekler atilir. Boylece kesinti minimuma iner.
+    private const int PLAYBACK_RESYNC_TARGET_MS = 100;
 
     // Bounded gecikme ile yankı referansı ~360ms pencereyi kapsamalı (20ms frame * 18).
     private const int ECHO_REFERENCE_FRAME_LIMIT = 18;
@@ -311,7 +314,15 @@ public class LowLatencyAudioEndPoint : IAudioEndPoint
 
         if (_waveProvider.BufferedDuration > TimeSpan.FromMilliseconds(PLAYBACK_MAX_LATENCY_MS))
         {
-            _waveProvider.ClearBuffer();
+            // Tam ClearBuffer() yerine yumusak resync: sadece hedef gecikmenin uzerindeki
+            // (en eski) fazla ornekleri at. Tam sessizlik/kesilme yerine kucuk bir atlama olur.
+            var targetBytes = _waveProvider.WaveFormat.AverageBytesPerSecond * PLAYBACK_RESYNC_TARGET_MS / 1000;
+            var excess = _waveProvider.BufferedBytes - targetBytes;
+            if (excess > 0)
+            {
+                var discard = new byte[excess];
+                _waveProvider.Read(discard, 0, discard.Length); // en eski ornekleri tuket/at
+            }
         }
 
         _waveProvider.AddSamples(pcmBytes, offset, count);

@@ -61,6 +61,17 @@
                                     <i class="bi bi-hdd-network me-1"></i>@_activeSipInfo.GatewayName
                                 </span>
                             }
+                            @* ─── CIKIS HATTI / KANAL GOSTERGESI (bilgi amacli) ─── *@
+                            @if (_activeSipInfo != null)
+                            {
+                                <span class="badge bg-primary" title="Bu aramanin cikis yaptigi hat/kanal ve numara">
+                                    <i class="bi bi-diagram-3 me-1"></i>Hat @_activeSipInfo.ChannelNumber
+                                    @if (!string.IsNullOrWhiteSpace(_activeSipInfo.AuthUsername))
+                                    {
+                                        <span class="ms-1">• @_activeSipInfo.AuthUsername</span>
+                                    }
+                                </span>
+                            }
                             <span class="badge @(SipService.IsRegistered ? "bg-success" : "bg-secondary") sip-badge">
                                 <i class="bi @(SipService.IsRegistered ? "bi-wifi" : "bi-wifi-off") me-1"></i>
                                 @(SipService.IsRegistered ? "SIP Kayitli" : sipStatusText)
@@ -479,12 +490,13 @@
         try
         {
             var targets = await Http.GetFromJsonAsync<CallCenter.Shared.DTOs.RecordingUploadTargetsDto>("api/recordings/upload-targets");
-            _autoRecordEnabled = targets?.AutoRecordCalls ?? false;
+            // ZORUNLU KAYIT: tetikleme server flag'inden bagimsiz; her zaman aktif (kapatilamaz).
+            _autoRecordEnabled = true;
 
             if (targets != null && !targets.UploadToPlatform && !targets.UploadToCustomerStorage)
-                _storageWarning = "Depolama ayari yapilmamis! Ses kayitlari sadece bu bilgisayarda kalacak.";
+                _storageWarning = "Bulut depolama ayari yapilmamis! Kayitlar buluta yuklenmeyecek; bu bilgisayarin Belgeler\\CorpLynk Kayitlar klasorunde kalici saklanacak.";
         }
-        catch { _autoRecordEnabled = false; }
+        catch { _autoRecordEnabled = true; }
 
         // Kayitli volume degerlerini yukle
         var savedMicVol = await Storage.GetAsync("audio_mic_volume");
@@ -709,17 +721,21 @@
             statusMessage = $"{phoneNumber} ile gorusme baslatildi";
             statusClass = "text-success";
 
-            // Otomatik kayit
-            if (_autoRecordEnabled && !SipService.IsRecording)
+            // ZORUNLU KAYIT: politika geregi her cevaplanan cagri otomatik kaydedilir
+            // (server flag'inden bagimsiz; agent/admin kapatamaz). Kayit her durumda baslar;
+            // bulut yoksa bile NativeSipService dosyayi Belgeler arsivine kalici yazar.
+            if (!SipService.IsRecording)
             {
                 try
                 {
-                    await SipService.StartRecordingAsync(callUid: currentCallUid, remoteNumber: phoneNumber);
-                    Toast.ShowInfo("Otomatik kayit baslatildi");
+                    await SipService.StartRecordingAsync(
+                        callUid: currentCallUid,
+                        remoteNumber: phoneNumber,
+                        outboundNumber: _activeSipInfo?.AuthUsername);
                 }
                 catch (Exception ex)
                 {
-                    Toast.ShowError($"Otomatik kayit baslatilamadi: {ex.Message}");
+                    Toast.ShowError($"Kayit baslatilamadi: {ex.Message}");
                 }
             }
 
@@ -772,7 +788,7 @@
             return null;
 
         var startedPath = SipService.LastRecordingPath;
-        var expectedEncryptedPath = GetExpectedEncryptedRecordingPath(startedPath);
+        var expectedFinalPath = GetExpectedFinalRecordingPath(startedPath);
 
         DiagLog($"{source}: StopRecordingAsync cagriliyor. StartedPath={startedPath}");
         var stopTask = Task.Run(async () => await SipService.StopRecordingAsync());
@@ -784,26 +800,27 @@
         }
 
         var stopped = await stopTask;
-        var finalPath = ResolveFinalRecordingPath(startedPath, expectedEncryptedPath);
+        var finalPath = ResolveFinalRecordingPath(startedPath, expectedFinalPath);
         DiagLog($"{source}: StopRecordingAsync tamamlandi. Success={stopped}, FinalPath={finalPath}");
 
         return finalPath;
     }
 
-    private static string? GetExpectedEncryptedRecordingPath(string? startedPath)
+    // Kayit durdurulunca WAV -> MP3'e cevrilir; beklenen final dosya .mp3 olur.
+    private static string? GetExpectedFinalRecordingPath(string? startedPath)
     {
         if (string.IsNullOrWhiteSpace(startedPath))
             return null;
 
-        return string.Equals(Path.GetExtension(startedPath), ".enc", StringComparison.OrdinalIgnoreCase)
+        return string.Equals(Path.GetExtension(startedPath), ".mp3", StringComparison.OrdinalIgnoreCase)
             ? startedPath
-            : Path.ChangeExtension(startedPath, ".enc");
+            : Path.ChangeExtension(startedPath, ".mp3");
     }
 
-    private string? ResolveFinalRecordingPath(string? startedPath, string? expectedEncryptedPath)
+    private string? ResolveFinalRecordingPath(string? startedPath, string? expectedFinalPath)
     {
-        if (!string.IsNullOrWhiteSpace(expectedEncryptedPath) && File.Exists(expectedEncryptedPath))
-            return expectedEncryptedPath;
+        if (!string.IsNullOrWhiteSpace(expectedFinalPath) && File.Exists(expectedFinalPath))
+            return expectedFinalPath;
 
         var currentPath = SipService.LastRecordingPath;
         if (!string.IsNullOrWhiteSpace(currentPath) && File.Exists(currentPath))
@@ -1301,7 +1318,10 @@
         }
         else
         {
-            await SipService.StartRecordingAsync(callUid: currentCallUid, remoteNumber: phoneNumber);
+            await SipService.StartRecordingAsync(
+                callUid: currentCallUid,
+                remoteNumber: phoneNumber,
+                outboundNumber: _activeSipInfo?.AuthUsername);
             Toast.ShowInfo("Kayit baslatildi");
         }
     }
