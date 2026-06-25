@@ -14,5 +14,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/CallCenter.Tests/CallCenter.Tests.csproj" />
+    <Project Path="tests/CallCenter.Windows.Tests/CallCenter.Windows.Tests.csproj" />
   </Folder>
 </Solution>
