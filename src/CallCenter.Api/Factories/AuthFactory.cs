@@ -143,7 +143,7 @@ public class AuthFactory : IAuthFactory
             && await HasRecentActiveCallAsync(user.Id))
         {
             const string loginError = "Bu kullanici su anda aktif bir gorusmede. Gorusme bitmeden baska bir cihazdan giris yapilamaz.";
-            const string activeSessionNotice = "Aktif gorusmeniz devam ederken baska bir yerden giris denemesi reddedildi.";
+            const string activeSessionNotice = "Guvenlik uyarisi: Birisi sifrenizle hesabiniza giris yapmaya calisti. Aktif gorusmeniz korundu ve giris reddedildi.";
             await _hubContext.Clients.User(user.Id.ToString()).SendAsync("ConcurrentLoginBlocked", activeSessionNotice);
             return (false, null, loginError);
         }
@@ -161,7 +161,8 @@ public class AuthFactory : IAuthFactory
             old.RevokedAt = DateTime.UtcNow;
 
         await _hubContext.Clients.User(user.Id.ToString()).SendAsync("ForceLogout");
-        await _hubContext.Clients.User(user.Id.ToString()).SendAsync("ForceLogout", "Bu kullanici baska bir cihazda oturum acti.");
+        await _hubContext.Clients.User(user.Id.ToString()).SendAsync("ForceLogout",
+            "Guvenlik uyarisi: Hesabiniza baska bir yerden sifrenizle giris yapildi. Oturumunuz guvenlik nedeniyle kapatildi.");
 
         var refreshToken = _tokenService.GenerateRefreshToken(user.Id);
         _refreshTokens.Add(refreshToken);

@@ -25,6 +25,14 @@ public class Customer
     public bool SaveRecordingToOwnStorage { get; set; }
     public bool AutoRecordCalls { get; set; }
     public bool IsCallbackManagementEnabled { get; set; }
+
+    /// <summary>
+    /// Hat rotasyonu (round-robin) icin son tahsis edilen SipLine.Id.
+    /// Her yeni hat tahsisinde (login) bir sonraki hatta gecmek icin kullanilir;
+    /// tum hatlar bitince basa doner. Logout/login arasinda korunur.
+    /// </summary>
+    public int? LastAssignedSipLineId { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // ─── Pazaryeri Komisyon Yapilandirmasi (PS.8) ───

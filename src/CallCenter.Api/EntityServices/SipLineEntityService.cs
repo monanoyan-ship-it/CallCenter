@@ -71,6 +71,47 @@ public class SipLineEntityService : ISipLineEntityService
                 l.AssignedPersonnelId == null);
     }
 
+    public async Task<SipLine?> AcquireNextRotatingAsync(int customerId, int? excludeLineId = null)
+    {
+        // Musterinin TUM aktif hatlarini stabil sirayla al — rotasyon pozisyonu sabit kalsin.
+        var allLines = await _db.SipLines
+            .Include(l => l.SipAccount)
+            .Where(l => l.SipAccount.CustomerId == customerId && l.SipAccount.IsActive && l.IsActive)
+            .OrderByDescending(l => l.SipAccount.IsDefault)
+            .ThenBy(l => l.SipAccount.Name)
+            .ThenBy(l => l.ChannelNumber)
+            .ThenBy(l => l.Id)
+            .ToListAsync();
+
+        if (allLines.Count == 0) return null;
+
+        var customer = await _db.Customers.FirstOrDefaultAsync(c => c.Id == customerId);
+
+        // Son tahsis edilen hattin pozisyonundan SONRAKINDEN basla (yoksa bastan).
+        var startIdx = 0;
+        if (customer?.LastAssignedSipLineId is int lastId)
+        {
+            var idx = allLines.FindIndex(l => l.Id == lastId);
+            startIdx = idx >= 0 ? idx + 1 : 0;
+        }
+
+        // startIdx'ten itibaren (sona gelince basa donerek) ilk BOS ve haric-olmayan hatti bul.
+        for (var i = 0; i < allLines.Count; i++)
+        {
+            var line = allLines[(startIdx + i) % allLines.Count];
+            if (line.AssignedPersonnelId == null &&
+                (!excludeLineId.HasValue || line.Id != excludeLineId.Value))
+            {
+                // Pointer'i ilerlet — cagiranin SaveChangesAsync'i kalici yapar (ayni DbContext).
+                if (customer != null)
+                    customer.LastAssignedSipLineId = line.Id;
+                return line;
+            }
+        }
+
+        return null; // tum hatlar dolu
+    }
+
     public async Task ReleaseByPersonnelAsync(int personnelId)
     {
         var line = await _db.SipLines

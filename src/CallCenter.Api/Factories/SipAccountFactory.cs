@@ -69,7 +69,8 @@ public class SipAccountFactory : ISipAccountFactory
         {
             line = gatewayId.HasValue
                 ? await _lineEs.AcquireUnassignedAsync(customerId, gatewayId.Value, effectiveExcludeLineId)
-                : await _lineEs.AcquireUnassignedAsync(customerId, effectiveExcludeLineId);
+                // Belirli gateway istenmediyse round-robin: her tahsiste sonraki hatta gec (bitince basa don).
+                : await _lineEs.AcquireNextRotatingAsync(customerId, effectiveExcludeLineId);
 
             if (line != null)
             {
